@@ -12,7 +12,7 @@ then `git lfs install`) before cloning.
 Tracked in this repository, and in the family's umbrella as
 [`wkusnierczyk/garmin-watch-faces#42`](https://github.com/wkusnierczyk/garmin-watch-faces/issues/42).
 
-CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request, in our private tester image with a throwaway signing key. Every target device, the store bundle and the unit tests follow once the design and functionality are settled.
+CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key. Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
 
 ## Prototype 0.0.1
 
