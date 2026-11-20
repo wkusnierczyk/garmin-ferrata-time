@@ -6,7 +6,11 @@ import Toybox.Lang;
 // Drawing helpers in the design's 416 px coordinates, scaled to the screen.
 class Draw {
 
-    const GRADE_COLOUR = [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] as Array<Number>;
+    // Difficulty colours for walk and K1 to K5. The heat map, ending in purple, is the earlier pages';
+    // the revised pages use heat with amber and no purple (design/widgets.md).
+    const HEAT = [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] as Array<Number>;
+    const HEAT_AMBER = [0x6b7280, 0x8ecae6, 0xffe14d, 0xffb000, 0xff7a1a, 0xe63946] as Array<Number>;
+    var colours as Array<Number> = HEAT;
     const REST = 0x4fc3f7;
     const EXIT = 0xcfd8dc;
     const MUTED = 0x99aaaa;
@@ -24,7 +28,7 @@ class Draw {
 
     // A grade's colour; climbed parts are drawn at a third of it.
     function grade(g as Number, dim as Boolean) as Number {
-        var c = GRADE_COLOUR[g < 0 ? 0 : g];
+        var c = colours[g < 0 ? 0 : g];
         return dim ? darken(c, 0.33) : c;
     }
 

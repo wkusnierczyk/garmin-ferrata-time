@@ -13,7 +13,7 @@ module Pages {
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
         switch (page) {
-            case 0: { profileAlone(d, st); break; }
+            case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
             case 1: { profile(d, st); break; }
             case 2: { combined(d, st); break; }
             case 3: { ladderPage(d, st); break; }
