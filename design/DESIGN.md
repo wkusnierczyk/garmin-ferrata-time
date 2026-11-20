@@ -126,7 +126,7 @@ Figures are rounded from public guides. Outlines are schematic. Rest and difficu
 
 The demo model: each route is a polyline of waypoints smoothed with two Chaikin iterations. Progress is a fraction of arc length. Planned minutes are scaled to route minutes, and a pace factor (70 to 160 percent) scales actual time. Markers are fractions of arc length.
 
-Known inconsistency: the demo gives Fürenwand 580 m of climb, while one set of altitude anchors (1240 m start, 1800 m exit) gives 560 m. To be resolved with real data.
+Known inconsistency: the demo gives Fürenwand 580 m of climb, while a start at 1240 m and an exit at 1800 m would give 560 m. To be resolved with real data.
 
 ## 7. Progress and sensing
 

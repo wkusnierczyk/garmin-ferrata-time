@@ -26,9 +26,9 @@ Garmin's position and altitude are known to be unreliable on a wall. The mechani
 
 Altitude along a route is not a one-to-one map to position:
 
-- Traverses are flat. A walk, a traverse from a bench and the foot of the next wall can all sit within about 10 m of each other, so altitude cannot tell them apart.
+- Traverses are flat. Sections along a band or a ledge sit at nearly the same height, so altitude cannot tell them apart.
 - Absolute altitude carries drift. A mapping from altitude to position inherits the drift.
-- Route data has its own error. In the Fürenwand example, three altitude sources disagree by about 100 m for one landmark.
+- Route data has its own error. Published tracks, guidebook figures and elevation models need not agree on a landmark's height; how far apart they are is one of the things to measure.
 
 ## 3. Design response
 

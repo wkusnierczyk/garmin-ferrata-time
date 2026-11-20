@@ -152,11 +152,11 @@ ol,ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
     <div>
       <h2>Decisions to settle</h2>
       <ol>
-        <li><b>Position source.</b> A wall is a poor place for GPS, so progress would come from barometric altitude matched to the route profile. Traverses like the Mürren route have no altitude change, so they need GPS as a fallback.</li>
+        <li><b>Position source.</b> A wall is a poor place for GPS, so progress would come from barometric altitude matched to the route profile. Traverses like the Mürren route have no altitude change; there, time and the forward-only rule carry the estimate, with GPS as a weak hint at best.</li>
         <li><b>Metric to the next marker.</b> The face shows minutes, because that works on traverses. The app screens add meters of climb.</li>
         <li><b>Route selection.</b> A watch face has almost no input. Connect IQ storage is probably per app, so a separate watch app may not be able to hand the selected route to the face (unverified). The route may need to be chosen in the face settings, or the whole experience may need to live in one app.</li>
         <li><b>Update rate.</b> In low power mode a face redraws once a minute, so the position dot moves in steps.</li>
-        <li><b>Route data.</b> Bundled with the app, fetched from a hosted catalogue of compact JSON files, or imported through a phone app. See docs/route-data.md.</li>
+        <li><b>Route data.</b> Bundled with the app, fetched from a hosted catalogue of compact JSON files, or imported through a phone app. See design/route-data.md.</li>
         <li><b>Escape points.</b> Allmenalp and Fürenwand have no emergency exit, which the overview already states. Mark exits on routes that have them?</li>
       </ol>
     </div>

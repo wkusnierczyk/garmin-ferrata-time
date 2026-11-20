@@ -23,7 +23,7 @@ Status: waiting for activities from the owner.
 
 1. Altitude against time, and where the flat plateaus (traverses) are.
 2. Disagreement between two ascents of the same route, as a function of progress.
-3. Which altitude-to-position mapping the data supports (a sketch scaled linearly, a sketch stretched between landmark heights, or heights from a GPX track), and the real size of the uncertainty (compared with the assumed plus or minus 20 m).
+3. How altitude maps to a position on the route (for example, heights interpolated between known landmarks, or taken from a recorded track), and how large the real uncertainty of that mapping is.
 4. Barometric drift over the climb, from start and end altitudes or a known return point.
 5. How far GPS strays on the wall, against the route geometry.
 6. Whether laps at landmarks reduce the uncertainty.

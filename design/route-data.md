@@ -27,7 +27,7 @@ How realistic is it to get real route paths and elevation profiles onto the watc
 | OpenStreetMap | Geometry of ways tagged `highway=via_ferrata`, a difficulty scale in `via_ferrata_scale`, and `route=via_ferrata` relations | Tagging is inconsistent. The start of a relation is not reliably computable |
 | swisstopo `api3.geo.admin.ch/rest/services/profile.json` | Elevation along a polyline | Outside Switzerland the grid is 10 m |
 | Recorded activities (FIT or GPX) | Real traces with barometric altitude | Garmin position and altitude are noisy on walls. Useful as ground truth, not as clean geometry |
-| User GPX files | Geometry | Quality varies. For Fürenwand, a published track puts one landmark about 100 m lower than the other sources |
+| User GPX files | Geometry | Quality varies, heights especially; check them against an elevation model and recorded ascents |
 
 ## 3. Size budget
 

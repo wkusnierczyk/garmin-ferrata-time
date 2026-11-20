@@ -4,7 +4,7 @@ A Garmin Connect IQ watch face and watch app for climbing via ferratas.
 
 Status: design phase. There is an interactive browser demo and a set of design notes. There is no Monkey C code yet.
 
-The notes below predate two decisions: Ferrata Time is first a standalone watch app that records the climb itself, and its screens are pages you move between with the buttons. `design/DESIGN.md` is brought up to date after the first prototype (#2).
+The notes in `design/` predate two decisions: Ferrata Time is first a standalone watch app that records the climb itself, and its screens are pages you move between with the buttons. `design/DESIGN.md` is brought up to date after the first prototype (#2).
 
 Images and fonts are stored with [Git LFS](https://git-lfs.com): install it (`brew install git-lfs`,
 then `git lfs install`) before cloning.
@@ -14,7 +14,7 @@ Tracked in this repository, and in the family's umbrella as
 
 ## What it is
 
-The user picks a real via ferrata from a list. The watch face then shows:
+The concept as the notes in `design/` describe it. The user picks a real via ferrata from a list. The watch face then shows:
 
 - an outline of the route with the climber's position on it
 - vertical meters climbed of the total
