@@ -318,7 +318,7 @@ function altitude(st, x, yt, feet) {
 }
 
 // The poi widget: one word for the point of interest the uncertainty stretch covers, REST, EXIT or
-// DANGER in its colour, left-aligned at x with the top of its capitals at yt. Nothing when there is
+// DANGER in its colour, right-aligned at x with the top of its capitals at yt. Nothing when there is
 // none. With several, the nearest to the climber's estimate wins; on a tie, danger before exit
 // before rest.
 function poi(st, x, yt, opt) {
@@ -333,7 +333,7 @@ function poi(st, x, yt, opt) {
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
   const f = found[0], fs = 24;
-  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
+  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
 }
 
 // Page 1, version 1: profile and ascent sharing the start, the ascent's foot at the profile's first
@@ -346,8 +346,8 @@ function page(st, opt) {
   return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, x0 + w - reach, y0, opt) +
     // In the rectangle's upper left, a small space right of the ascent line, level with its top.
     altitude(st, x0 + RING_OUTER + 8, y0 - h, opt.feet) +
-    // Under the altitude, starting where its box starts.
-    poi(st, x0 + RING_OUTER + 8, y0 - h + 0.7 * ALT_SIZE + 12, opt);
+    // Under the altitude, right-aligned with its number (not its unit).
+    poi(st, x0 + RING_OUTER + 8 + altBox(opt.feet), y0 - h + 0.7 * ALT_SIZE + 12, opt);
 }
 
 const speed = document.getElementById("speed");
