@@ -1,0 +1,33 @@
+# Build output: make build and make test write the .prg files, their .prg.debug.xml and
+# monkeyc's gen/ and *-mir/ folders; make export writes export/. make clean removes all of it.
+gen/
+internal-mir/
+external-mir/
+export/
+*.prg
+*.prg.*
+
+# monkeyc writes <prg>-settings.json beside a .prg once the app has settings (none yet; as in
+# wkusnierczyk/garmin-matrix-time#32).
+FerrataTime*-settings.json
+test_build-settings.json
+
+# Python's bytecode caches, from running the tools.
+__pycache__/
+
+# Safeguards rather than outputs: editor settings, system files and the key.
+# IDE/Editor settings
+.settings/
+.project
+.cproject
+.vscode/
+
+# System files
+.DS_Store
+
+# Developer key (CRITICAL: never commit this)
+developer_key*
+
+# A colleague's Fürenwand simulator: not shared until they approve.
+# Kept in .dev/ meanwhile; this line guards any other location.
+furenwand-simulator/
