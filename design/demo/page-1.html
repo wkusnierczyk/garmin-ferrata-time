@@ -360,6 +360,7 @@ const live = document.getElementById("live"), pos = document.getElementById("pos
   readout = document.getElementById("readout"), play = document.getElementById("play");
 const map = document.getElementById("map"), legend = document.getElementById("legend");
 for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `<option value="${k}">${m.name}</option>`);
+map.value = "heat2";
 const units = document.getElementById("units");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
