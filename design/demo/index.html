@@ -432,7 +432,7 @@ function screenProfile(D,P){
   o+=`<line x1="${box.x}" y1="${box.y+box.h+10}" x2="${box.x+box.w}" y2="${box.y+box.h+10}" stroke="${P.line}" stroke-width="2"/>`;
   o+=drawPath(r,map,D.f,P,{w:5,dot:7,cur:6});
   let y=312;
-  if(!D.ahead.length)o+=T(227,350,'Top reached',22,P.done,{sans:1,w:700});
+  if(!D.ahead.length)o+=T(227,350,D.f>=1?'Top reached':'No more markers ahead',22,D.f>=1?P.done:P.mid,{sans:1,w:700});
   D.ahead.slice(0,3).forEach(a=>{
     const col=a.kind==='rest'?P.rest:P.hard;
     o+=`<circle cx="84" cy="${y-6}" r="7" fill="${col}"/>`+T(98,y,trunc(a.label,17),17,P.fg,{a:'start',sans:1});
