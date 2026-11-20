@@ -87,6 +87,24 @@ The difficulty widget turned upright: the sections around the climber.
 
 Options: the colour map.
 
+## difficulty stack
+
+The difficulty column to scale: the sections as boxes in a window that moves with the climber. Two variants:
+
+- **ascent stack:** each box as tall as the metres its section climbs (2.5 px per metre on page 4). A flat section has no height: it is a line across the column at its altitude, in its own colour.
+- **path stack:** each box as tall as its section's length along the route (1 px per metre on page 5). Flat sections are boxes; walls are short.
+
+In the app, ascent or path is a setting.
+
+- The climber stays a quarter of the way up from the window's bottom, marked by a white line across the column with the climber's orange ring on the column's right edge, clear of the letters.
+- The boxes meet with no gap. The current one is filled, letters black and larger; the others are black with their sides in their colour, letters in it; those behind the climber at 55 % of their colour.
+- A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
+- Letters are centred on the part of a box in view, left out when it is too short for them.
+- Altitude ticks on the left, every 10 m (or 50 ft), only along the route, labelled right-aligned. In the path stack a tick sits where the route first reaches its altitude, so ticks crowd on walls and spread on walks; a label that would touch the one below is left out.
+- Section names on the right, centred on the part in view, greyed behind the climber, cut with an ellipsis to fit the round screen.
+
+Options: ascent or path; the scale; the tick step; names on or off; the colour map. Open: the tick resolution, the scales, and flat sections in the ascent stack (lines, or a minimum height).
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.

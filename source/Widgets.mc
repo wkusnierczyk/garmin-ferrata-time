@@ -407,4 +407,124 @@ module Widgets {
             d.textTop(ax + 3, baseline - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
+
+    // ---------------------------------------------------------------- difficulty stack
+
+    // The sections as boxes to scale, in a window from top to bottom that moves with the climber, who
+    // stays a quarter of the way up from its bottom: by ascent (byUp) each box as tall as the metres
+    // its section climbs, by path as tall as its length along the route.
+    const STACK_W = 60;
+    const STACK_NAMES = 80;
+
+    function stackLabels(d as Draw) as Float {
+        var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
+        return d.width(Graphics.FONT_XTINY, top.format("%d")) + 14.0;
+    }
+
+    // Where boundary i sits along the stack's axis, and section i's size on it.
+    function stackAt(i as Number, byUp as Boolean) as Float {
+        return (byUp ? Climb.uAt(i) : Climb.dAt(i)).toFloat();
+    }
+
+    function stackSize(i as Number, byUp as Boolean) as Number {
+        return byUp ? Climb.UP[i] : Climb.LEN[i];
+    }
+
+    function stackColour(d as Draw, st as Climb.State, i as Number) as Number {
+        var c = d.grade(section(i, false), false);
+        return i < st.cur ? d.darken(c, COL_DIM) : c;
+    }
+
+    // A name cut to fit a width, ending in an ellipsis when cut.
+    function fitName(d as Draw, name as String, w as Float) as String {
+        if (d.width(Graphics.FONT_XTINY, name) <= w) { return name; }
+        var n = name.length();
+        while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
+        return name.substring(0, n) + "…";
+    }
+
+    function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
+            scale as Float, names as Boolean) as Void {
+        var cy = bottom - (bottom - top) / 4, here = byUp ? st.u : st.d;
+        var right = left + STACK_W, cx = left + STACK_W / 2;
+        var n = Climb.count();
+        d.clip(left - 2, top, STACK_W + 4, bottom - top);
+        // The boxes: the current one filled, the others black with their sides in their colour.
+        for (var i = 0; i < n; i++) {
+            var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+            if (yt > bottom + 2 || yb < top - 2 || stackSize(i, byUp) == 0) { continue; }
+            var c = stackColour(d, st, i), now = i == st.cur;
+            if (now) {
+                d.rect(left, yt, STACK_W, yb - yt, c);
+            } else {
+                d.rect(left, yt, STACK_W, yb - yt, BLACK);
+                d.rect(left, yt, 3, yb - yt, c);
+                d.rect(right - 3, yt, 3, yb - yt, c);
+            }
+            // Letters centred on the part in view, left out when it is too short for them.
+            var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
+            var font = now ? Graphics.FONT_SMALL : Graphics.FONT_TINY;
+            if (vb - vt >= d.capHeight(font) + 10) {
+                d.textCapCentre(cx, (vt + vb) / 2, font, BOX_NAME[section(i, false)], now ? BLACK : c);
+            }
+        }
+        // The borders: between two boxes in the colour of the one closer to the current section; a
+        // flat section is a line in its own colour; the start and the top close the column.
+        for (var i = 0; i < n; i++) {
+            var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+            if (yt > bottom + 2 || yb < top - 2) { continue; }
+            if (stackSize(i, byUp) == 0) {
+                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, i));
+                continue;
+            }
+            if (i == 0) {
+                d.rect(left, yb - 3, STACK_W, 3, stackColour(d, st, i));
+            } else if (stackSize(i - 1, byUp) > 0) {
+                var closer = (i - st.cur).abs() <= (i - 1 - st.cur).abs() ? i : i - 1;
+                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, closer));
+            }
+            if (i == n - 1) { d.rect(left, yt, STACK_W, 3, stackColour(d, st, i)); }
+        }
+        d.unclip();
+        // The names on the right, centred on the part in view, cut to fit the round screen.
+        if (names) {
+            for (var i = 0; i < n; i++) {
+                var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+                if (yt > bottom || yb < top) { continue; }
+                var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
+                var flat = stackSize(i, byUp) == 0;
+                if (!flat && vb - vt < 16) { continue; }
+                var ny = flat ? yb : (vt + vb) / 2;
+                var half = 200 * 200 - (ny - 208) * (ny - 208);
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + 12)).toFloat();
+                if (room < 30) { continue; }
+                d.textCapMiddle(right + 12, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
+                    i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+            }
+        }
+        // Altitude ticks on the left, every 10 m or 50 ft, only along the route. By path a tick sits
+        // where the route first reaches its altitude; a label touching the one below is left out.
+        var ft = feet(), step = ft ? 50 : 10;
+        var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
+        if (vLo < 0) { vLo = 0.0; }
+        var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();
+        if (vHi > vMax) { vHi = vMax; }
+        var uLo = byUp ? vLo : Climb.heightAtDistance(vLo), uHi = byUp ? vHi : Climb.heightAtDistance(vHi);
+        var k = ft ? 3.28084 : 1.0;
+        var aLo = (Climb.START_ALT + uLo) * k, aHi = (Climb.START_ALT + uHi) * k;
+        var lastLabel = 9999.0;
+        for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
+            var u = a / k - Climb.START_ALT;
+            var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
+            d.rect(left - 9, y - 1, 6, 2, SCALE);
+            if (lastLabel - y >= d.capHeight(Graphics.FONT_XTINY) + 6) {
+                d.textCapMiddle(left - 14, y, Graphics.FONT_XTINY, a.format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
+                lastLabel = y;
+            }
+        }
+        // The climber: a white line across the column, the orange ring on its right edge.
+        d.rect(left - 12, cy - 1.5, STACK_W + 24, 3, WHITE);
+        d.dot(right, cy, RING_R, BLACK);
+        d.ring(right, cy, RING_R, CLIMBER, 3);
+    }
 }

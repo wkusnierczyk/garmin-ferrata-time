@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 13;
+    const COUNT = 15;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -16,15 +16,17 @@ module Pages {
             case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
             case 1: { d.colours = d.HEAT_AMBER; columnPage(d, st); break; }
             case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }
-            case 3: { profile(d, st); break; }
-            case 4: { combined(d, st); break; }
-            case 5: { ladderPage(d, st); break; }
-            case 6: { whereAmI(d, st); break; }
-            case 7: { whatsNext(d, st); break; }
-            case 8: { timeStrip(d, st); break; }
-            case 9: { bigHeight(d, st); break; }
-            case 10: { bigNextHard(d, st); break; }
-            case 11: { bigTop(d, st); break; }
+            case 3: { d.colours = d.HEAT_AMBER; stackByAscent(d, st); break; }
+            case 4: { d.colours = d.HEAT_AMBER; stackByPath(d, st); break; }
+            case 5: { profile(d, st); break; }
+            case 6: { combined(d, st); break; }
+            case 7: { ladderPage(d, st); break; }
+            case 8: { whereAmI(d, st); break; }
+            case 9: { whatsNext(d, st); break; }
+            case 10: { timeStrip(d, st); break; }
+            case 11: { bigHeight(d, st); break; }
+            case 12: { bigNextHard(d, st); break; }
+            case 13: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -158,6 +160,26 @@ module Pages {
         Widgets.ascent(d, st, lx, cy + reach, 2 * reach, true);
         Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true);
         Widgets.altitudeCentred(d, st, 208.0, 40.0);
+    }
+
+    // ---------------------------------------------------------------- pages 4 and 5: the difficulty stack
+
+    // Page 4: the stack by ascent, 2.5 px per metre climbed.
+    function stackByAscent(d as Draw, st as Climb.State) as Void {
+        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true);
+    }
+
+    // Page 5: the stack by path, 1 px per metre along the route, with the ascent on its left; the two
+    // spread across 56 to 360 px with equal space before, between and after them, the stack counting
+    // its tick labels, its column and room for names.
+    function stackByPath(d as Draw, st as Climb.State) as Void {
+        var left = 56.0, right = 360.0, top = 64.0, bottom = 352.0;
+        var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
+        var labels = Widgets.stackLabels(d);
+        var gap = (right - left - ascW - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES)) / 3;
+        var lx = left + gap + ascLeft;
+        Widgets.ascent(d, st, lx, bottom, bottom - top, true);
+        Widgets.stack(d, st, false, lx + Widgets.RING_OUTER + gap + labels, top, bottom, 1.0, true);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

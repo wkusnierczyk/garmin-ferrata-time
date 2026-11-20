@@ -145,6 +145,15 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
+    // Limit drawing to a rectangle, and lift the limit.
+    function clip(x as Numeric, y as Numeric, w as Numeric, h as Numeric) as Void {
+        dc.setClip(s(x), s(y), s(w), s(h));
+    }
+
+    function unclip() as Void {
+        dc.clearClip();
+    }
+
     // Text with its top at y, justified as given (Graphics.TEXT_JUSTIFY_LEFT, _RIGHT or _CENTER).
     function textTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
