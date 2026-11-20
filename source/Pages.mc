@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 10;
+    const COUNT = 11;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -14,14 +14,15 @@ module Pages {
         d.clear();
         switch (page) {
             case 0: { profile(d, st); break; }
-            case 1: { combined(d, st); break; }
-            case 2: { ladderPage(d, st); break; }
-            case 3: { whereAmI(d, st); break; }
-            case 4: { whatsNext(d, st); break; }
-            case 5: { timeStrip(d, st); break; }
-            case 6: { bigHeight(d, st); break; }
-            case 7: { bigNextHard(d, st); break; }
-            case 8: { bigTop(d, st); break; }
+            case 1: { profileAlone(d, st); break; }
+            case 2: { combined(d, st); break; }
+            case 3: { ladderPage(d, st); break; }
+            case 4: { whereAmI(d, st); break; }
+            case 5: { whatsNext(d, st); break; }
+            case 6: { timeStrip(d, st); break; }
+            case 7: { bigHeight(d, st); break; }
+            case 8: { bigNextHard(d, st); break; }
+            case 9: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -121,6 +122,18 @@ module Pages {
         d.text(284, 352, Graphics.FONT_XTINY, "top " + Climb.clockText(st.finish()), d.MUTED);
         d.text(208, 380, Graphics.FONT_XTINY, "~" + ((st.d / 10).toNumber() * 10).format("%d") + "/" +
             Climb.totalD().format("%d") + " m along", d.MUTED);
+    }
+
+    // ---------------------------------------------------------------- page 1, version 1: the profile alone
+
+    // design/page-1.md: profile and ascent share the start and span a rectangle; the difficulty
+    // boxes in its lower right, the altitude group in its upper left.
+    function profileAlone(d as Draw, st as Climb.State) as Void {
+        var x0 = 92.0, w = 260.0, y0 = 318.0, h = 226.0;
+        Widgets.profile(d, st, x0, w, y0, h);
+        Widgets.ascent(d, st, x0, y0, h, true);
+        Widgets.difficulty(d, st, x0 + w - Widgets.difficultyReach(), y0);
+        Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 8, y0 - h);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

@@ -77,6 +77,12 @@ class Draw {
         if (w >= h) { roundRect(x, y, w, h, h / 2, c); }
     }
 
+    function roundFrame(x as Numeric, y as Numeric, w as Numeric, h as Numeric, r as Numeric, c as Number, pen as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(pen);
+        dc.drawRoundedRectangle(s(x), s(y), s(w), s(h), s(r));
+    }
+
     function frame(x as Numeric, y as Numeric, w as Numeric, h as Numeric, c as Number, pen as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(pen);
@@ -133,6 +139,17 @@ class Draw {
     function textRight(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Text with its top at y, justified as given (Graphics.TEXT_JUSTIFY_LEFT, _RIGHT or _CENTER).
+    function textTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(s(x), s(y), font, str, justify);
+    }
+
+    // A font's height in design pixels.
+    function height(font as Graphics.FontType) as Number {
+        return (dc.getFontHeight(font) / k).toNumber();
     }
 
     // Width of a string in design pixels.
