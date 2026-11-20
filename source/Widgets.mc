@@ -274,4 +274,94 @@ module Widgets {
         altitude(d, st, x, yt);
         poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(ALT_FONT) + 12);
     }
+
+    // ---------------------------------------------------------------- difficulty column
+
+    // Equal boxes, the current one larger by COL_BIG; those before the climber at COL_DIM of their colour.
+    const COL_W = 64;
+    const COL_H = 40;
+    const COL_GAP = 8;
+    const COL_BIG = 1.08;
+    const COL_DIM = 0.55;
+    const COL_SPACE = 10;
+    const COL_ALT_FONT = Graphics.FONT_TINY;
+
+    // The centre of slot k (0 the climber's, positive above), and the half height of its box.
+    function slotY(k as Number, cy as Float) as Float {
+        if (k == 0) { return cy; }
+        var off = COL_H * COL_BIG / 2 + COL_GAP + COL_H / 2.0 + (k.abs() - 1) * (COL_H + COL_GAP);
+        return k > 0 ? cy - off : cy + off;
+    }
+
+    function slotHalf(k as Number) as Float {
+        return (k == 0 ? COL_H * COL_BIG : COL_H.toFloat()) / 2;
+    }
+
+    // Whether section i has a box in the column around section cur.
+    function inColumn(i as Number, cur as Number) as Boolean {
+        return i >= 0 && i < Climb.count() && (i - cur).abs() <= 2;
+    }
+
+    // The sections around the climber's as a column of boxes centred on (cx, cy): the current one
+    // filled and larger, two before below (dimmed) and two after above, outlined. A rest shows as W.
+    function column(d as Draw, st as Climb.State, cx as Float, cy as Float) as Void {
+        for (var k = -2; k <= 2; k++) {
+            var i = st.cur + k;
+            if (!inColumn(i, st.cur)) { continue; }
+            var g = section(i, false);
+            var big = k == 0, f = big ? COL_BIG : 1.0;
+            var w = Math.round(COL_W * f), h = Math.round(COL_H * f);
+            var y = slotY(k, cy), top = Math.round(y - h / 2);
+            var colour = d.grade(g, false);
+            if (k < 0) { colour = d.darken(colour, COL_DIM); }
+            d.roundRect(cx - w / 2, top, w, h, 8 * f, colour);
+            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6, BLACK); }
+            d.textCapCentre(cx, top + h / 2, big ? Graphics.FONT_SMALL : Graphics.FONT_TINY, BOX_NAME[g], big ? BLACK : colour);
+        }
+    }
+
+    // The widest altitude the route can show in the column's font, per unit, measured once.
+    var colWidest as Number? = null;
+    var colWidestFeet as Boolean = false;
+
+    function columnAltitudeBox(d as Draw, ft as Boolean) as Number {
+        var w = colWidest;
+        if (w == null || colWidestFeet != ft) {
+            w = 0;
+            var step = ft ? 50 : 10;
+            var last = altitudeValue(Climb.totalU().toFloat(), ft);
+            for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
+                var vw = d.width(COL_ALT_FONT, v.format("%d"));
+                if (vw > w) { w = vw; }
+            }
+            colWidest = w;
+            colWidestFeet = ft;
+        }
+        return w;
+    }
+
+    // The difficulty column group: the column, with the altitudes where the difficulty changes to its
+    // right, each level with a border between two boxes (and at the column's outer edges if outer),
+    // right-aligned in a box as wide as the route's widest, its unit after it. Centred on the screen
+    // as one group, at height cy.
+    function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean) as Void {
+        var ft = feet(), unit = ft ? "ft" : "m";
+        var bw = COL_W * COL_BIG, altW = columnAltitudeBox(d, ft), unitW = 3 + d.width(Graphics.FONT_XTINY, "ft");
+        var cx = 208 - (bw + COL_SPACE + altW + unitW) / 2 + bw / 2;
+        var ax = cx + bw / 2 + COL_SPACE + altW;
+        column(d, st, cx, cy);
+        // Border b lies between sections b - 1 and b, at height U[b].
+        for (var b = st.cur - 2; b <= st.cur + 3; b++) {
+            var above = inColumn(b, st.cur), below = inColumn(b - 1, st.cur);
+            if (!(above && below) && !(outer && (above || below))) { continue; }
+            var y = above
+                ? slotY(b - st.cur, cy) + slotHalf(b - st.cur) + COL_GAP / 2.0
+                : slotY(b - 1 - st.cur, cy) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
+            var v = altitudeValue(Climb.uAt(b).toFloat(), ft);
+            d.textCapMiddle(ax, y, COL_ALT_FONT, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+            // The unit on the number's baseline.
+            var baseline = y + d.capHeight(COL_ALT_FONT) / 2;
+            d.textTop(ax + 3, baseline - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
 }

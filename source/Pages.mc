@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 11;
+    const COUNT = 12;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -14,15 +14,16 @@ module Pages {
         d.clear();
         switch (page) {
             case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
-            case 1: { profile(d, st); break; }
-            case 2: { combined(d, st); break; }
-            case 3: { ladderPage(d, st); break; }
-            case 4: { whereAmI(d, st); break; }
-            case 5: { whatsNext(d, st); break; }
-            case 6: { timeStrip(d, st); break; }
-            case 7: { bigHeight(d, st); break; }
-            case 8: { bigNextHard(d, st); break; }
-            case 9: { bigTop(d, st); break; }
+            case 1: { d.colours = d.HEAT_AMBER; columnPage(d, st); break; }
+            case 2: { profile(d, st); break; }
+            case 3: { combined(d, st); break; }
+            case 4: { ladderPage(d, st); break; }
+            case 5: { whereAmI(d, st); break; }
+            case 6: { whatsNext(d, st); break; }
+            case 7: { timeStrip(d, st); break; }
+            case 8: { bigHeight(d, st); break; }
+            case 9: { bigNextHard(d, st); break; }
+            case 10: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -134,6 +135,13 @@ module Pages {
         Widgets.ascent(d, st, x0, y0, h, true);
         Widgets.difficulty(d, st, x0 + w - Widgets.difficultyReach(), y0, false);
         Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 8, y0 - h);
+    }
+
+    // ---------------------------------------------------------------- page 2, version 1: the difficulty column
+
+    // design/page-2.md: the difficulty column group, centred, with altitudes at the outer edges too.
+    function columnPage(d as Draw, st as Climb.State) as Void {
+        Widgets.columnGroup(d, st, 208.0, true);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile
