@@ -1,6 +1,6 @@
 # Ferrata Time
 
-A Garmin Connect IQ watch face and watch app for climbing via ferratas.
+A Garmin Connect IQ watch app for climbing via ferratas. On the watch it is called **Ferrata**, an activity in the activity list; "Ferrata Time" is the project's name.
 
 Status: design phase. There is an interactive browser demo, a set of design notes, and a first prototype that plays a made-up climb on the watch.
 
