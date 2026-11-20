@@ -61,6 +61,21 @@ module Climb {
     function totalU() as Number { return uAt(count()); }
     function totalM() as Number { return mAt(count()); }
 
+    // The demo plays the climb at a constant vertical pace: each section takes as long as the metres
+    // it climbs, a flat one as long as 5 m, so walks pass quickly and walls slowly. The guidebook
+    // minute reached at fraction f of the demo.
+    function demoMinute(f as Float) as Float {
+        var weights = 0;
+        for (var i = 0; i < count(); i++) { weights += UP[i] > 5 ? UP[i] : 5; }
+        var t = f * weights;
+        for (var i = 0; i < count(); i++) {
+            var w = UP[i] > 5 ? UP[i] : 5;
+            if (t <= w) { return mAt(i) + t / w * MIN[i]; }
+            t -= w;
+        }
+        return totalM().toFloat();
+    }
+
     // Height climbed at a distance along the route.
     function heightAtDistance(d as Float) as Float {
         for (var i = 0; i < count(); i++) {
