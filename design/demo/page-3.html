@@ -115,6 +115,15 @@ const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "
 const cum = a => a.reduce((o, v) => (o.push(o[o.length - 1] + v), o), [0]);
 const D = cum(LEN), U = cum(UP), M = cum(MIN);
 const N = LEN.length, TD = D[N], TU = U[N], TM = M[N];
+// The demo plays the climb at a constant vertical pace: each section takes as long as the metres it
+// climbs, a flat one as long as 5 m, so walks pass quickly and walls slowly. Returns the guidebook
+// minute reached at fraction f of the demo.
+const DEMO_W = UP.map(u => Math.max(u, 5)), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
+function demoMinute(f) {
+  const t = f * DEMO_T;
+  for (let i = 0; i < N; i++) if (t <= DEMO_C[i + 1]) return M[i] + (t - DEMO_C[i]) / DEMO_W[i] * MIN[i];
+  return TM;
+}
 
 const hex = c => "#" + c.toString(16).padStart(6, "0");
 // Climbed parts are drawn at a third of their colour.
@@ -464,7 +473,7 @@ const ends = document.getElementById("ends"), dangers = document.getElementById(
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
   boxRests: boxRests.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
-  const st = state(pos.value / 1000 * TM);
+  const st = state(demoMinute(pos.value / 1000));
   live.innerHTML = page3(st, opts());
   const g = GRADE[st.cur];
   readout.textContent = `${Math.round(st.u)} of ${TU} m up · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
@@ -482,7 +491,7 @@ const row = document.getElementById("row");
 function stills() {
   row.innerHTML = "";
   for (const f of [0.03, 0.4, 0.65, 0.97]) {
-    const st = state(f * TM);
+    const st = state(demoMinute(f));
     row.insertAdjacentHTML("beforeend",
       `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="Page 3 at ${Math.round(f * 100)} percent">${page3(st, opts())}</svg></div>` +
       `<figcaption>${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
