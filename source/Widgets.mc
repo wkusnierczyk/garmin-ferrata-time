@@ -124,6 +124,27 @@ module Widgets {
         d.ring(x, ty, RING_R, CLIMBER, 3);
     }
 
+    // The widest number the ascent widget can show, measured once.
+    var ascentWidest as Number? = null;
+
+    function ascentNumbersWidth(d as Draw) as Number {
+        var w = ascentWidest;
+        if (w == null) {
+            w = 0;
+            for (var n = 0; n <= Climb.totalU(); n++) {
+                var nw = d.width(Graphics.FONT_XTINY, n.format("%d"));
+                if (nw > w) { w = nw; }
+            }
+            ascentWidest = w;
+        }
+        return w;
+    }
+
+    // How far the ascent widget reaches left of its line.
+    function ascentLeft(d as Draw) as Float {
+        return ascentNumbersWidth(d) + NUMBER_SPACE + RING_OUTER;
+    }
+
     // ---------------------------------------------------------------- difficulty
 
     function boxWidth(code as Number, k as Float) as Float {
@@ -269,6 +290,13 @@ module Widgets {
         }
     }
 
+    // The altitude centred on x, its digits' top at yt.
+    function altitudeCentred(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
+        var ft = feet();
+        var w = altitudeBox(d, ft) + 4 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        altitude(d, st, x - w / 2, yt);
+    }
+
     // The altitude group: the altitude, with the poi word under it, right-aligned with the number.
     function altitudeGroup(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         altitude(d, st, x, yt);
@@ -340,14 +368,29 @@ module Widgets {
         return w;
     }
 
+    // The difficulty column group's width: the larger box, the space, the altitudes and their unit.
+    function columnGroupWidth(d as Draw) as Float {
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, feet()) + 3 + d.width(Graphics.FONT_XTINY, "ft");
+    }
+
+    // How far the column reaches above and below its centre.
+    function columnReach() as Float {
+        return COL_H * COL_BIG / 2 + 2 * (COL_GAP + COL_H);
+    }
+
+    // The difficulty column group, centred on the screen as one group, at height cy.
+    function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean) as Void {
+        columnGroupAt(d, st, 208 - columnGroupWidth(d) / 2, cy, outer);
+    }
+
     // The difficulty column group: the column, with the altitudes where the difficulty changes to its
     // right, each level with a border between two boxes (and at the column's outer edges if outer),
-    // right-aligned in a box as wide as the route's widest, its unit after it. Centred on the screen
-    // as one group, at height cy.
-    function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean) as Void {
+    // right-aligned in a box as wide as the route's widest, its unit after it. Its left edge at left,
+    // centred vertically on cy.
+    function columnGroupAt(d as Draw, st as Climb.State, left as Float, cy as Float, outer as Boolean) as Void {
         var ft = feet(), unit = ft ? "ft" : "m";
-        var bw = COL_W * COL_BIG, altW = columnAltitudeBox(d, ft), unitW = 3 + d.width(Graphics.FONT_XTINY, "ft");
-        var cx = 208 - (bw + COL_SPACE + altW + unitW) / 2 + bw / 2;
+        var bw = COL_W * COL_BIG, altW = columnAltitudeBox(d, ft);
+        var cx = left + bw / 2;
         var ax = cx + bw / 2 + COL_SPACE + altW;
         column(d, st, cx, cy);
         // Border b lies between sections b - 1 and b, at height U[b].
