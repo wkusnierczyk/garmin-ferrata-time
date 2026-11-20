@@ -25,7 +25,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 
 The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen.
 
-Build and install, with the SDK and the developer key in place (`../garmin-keys/developer_key`):
+Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
 ```sh
 make build       # FerrataTime.prg for the epix Pro (Gen 2) 47 mm
