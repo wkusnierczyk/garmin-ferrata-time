@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Via Ferrata Watch Face</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: round watch on a stage at left, controls at right, design notes underneath. */
+:root{
+  --bg:#eceee9; --panel:#f8f9f6; --ink:#1a2326; --ink2:#586367; --line:#cdd3cb;
+  --accent:#1f6b57; --accent-ink:#ffffff; --rest:#1b73c9; --hard:#c93232;
+  --font:'Ubuntu',system-ui,sans-serif; --mono:'Ubuntu Mono',ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171a; --panel:#182024; --ink:#e8eeee; --ink2:#93a2a5; --line:#2b373b;
+    --accent:#5fd1ae; --accent-ink:#06201a; --rest:#5db4ff; --hard:#ff6b6b; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11171a; --panel:#182024; --ink:#e8eeee; --ink2:#93a2a5; --line:#2b373b;
+  --accent:#5fd1ae; --accent-ink:#06201a; --rest:#5db4ff; --hard:#ff6b6b; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font)}
+.page{max-width:1120px;margin:0 auto;padding:24px 16px 56px;display:flex;flex-direction:column;gap:24px}
+h1{font-size:28px;line-height:1.15;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:18px;margin:0 0 8px;font-weight:700;text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--ink2);max-width:66ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage,.panel,.notes{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.stage{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 16px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.glabel{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:0 4px 0 8px}
+.tabs button{font:inherit;font-size:14px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,[data-act]:focus-visible{outline:3px solid var(--rest);outline-offset:2px}
+.bezel{width:min(100%,460px);aspect-ratio:1;border-radius:50%;padding:12px;background:linear-gradient(145deg,#4a5358,#1b2124);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#watch{display:block;width:100%;height:100%;border-radius:50%;background:#000;user-select:none}
+#watch [data-act]{cursor:pointer}
+.transport{width:min(100%,460px);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.play{font:inherit;font-weight:500;min-width:92px;padding:8px 14px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.readout{grid-column:1/-1;font-family:var(--mono);font-size:15px;color:var(--ink2);text-align:center;font-variant-numeric:tabular-nums}
+.panel{padding:16px;display:flex;flex-direction:column;gap:18px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+legend{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);padding:0;margin-bottom:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.opt input{margin-top:5px}
+.opt b{display:block;font-weight:500}
+.opt small{color:var(--ink2);font-family:var(--mono);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row .opt{flex:1 1 90px;align-items:center}
+.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
+.lab{display:flex;justify-content:space-between;font-size:14px}
+.lab span:last-child{font-family:var(--mono)}
+select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.notes{padding:20px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px}
+@media (max-width:880px){.notes{grid-template-columns:minmax(0,1fr)}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--ink2);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+ol,ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.fine{color:var(--ink2);font-size:14px;margin:12px 0 0;max-width:70ch}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Via Ferrata Watch Face</h1>
+    <p class="sub">Interactive design demo. Pick a route, drag the climber up the wall, and compare the two face layouts with the watch app screens.</p>
+  </header>
+
+  <div class="grid">
+    <section class="stage" aria-label="Watch simulator">
+      <div class="tabs" id="tabs" role="group" aria-label="Screen"></div>
+      <div class="bezel"><svg id="watch" viewBox="0 0 454 454" role="img" aria-label="Simulated round watch screen"></svg></div>
+      <div class="transport">
+        <button class="play" id="play" type="button">Play</button>
+        <input id="pos" type="range" min="0" max="1000" step="1" value="370" aria-label="Position on the route">
+        <div class="readout" id="readout" aria-live="off"></div>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Demo controls">
+      <fieldset id="routeSet"><legend>Route</legend></fieldset>
+
+      <fieldset>
+        <legend>Face layout</legend>
+        <div class="row">
+          <label class="opt"><input type="radio" name="variant" value="path" checked> Path</label>
+          <label class="opt"><input type="radio" name="variant" value="ring"> Ring</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Display</legend>
+        <div class="row">
+          <label class="opt"><input type="radio" name="display" value="amoled" checked> AMOLED</label>
+          <label class="opt"><input type="radio" name="display" value="mip"> MIP, 64 colors</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Face layers</legend>
+        <label class="chk"><input type="checkbox" id="lyRest" checked> Rest points (blue)</label>
+        <label class="chk"><input type="checkbox" id="lyHard" checked> Difficulties (red)</label>
+        <label class="chk"><input type="checkbox" id="lyNext" checked> Time to next rest and difficulty</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Simulated climber</legend>
+        <div class="lab"><label for="pace">Pace against guidebook</label><span id="paceVal">115 %</span></div>
+        <input id="pace" type="range" min="70" max="160" step="5" value="115">
+        <div class="lab"><label for="speed">Playback</label></div>
+        <select id="speed">
+          <option value="2">Slow, 2 min per second</option>
+          <option value="6" selected>Normal, 6 min per second</option>
+          <option value="15">Fast, 15 min per second</option>
+        </select>
+      </fieldset>
+    </aside>
+  </div>
+
+  <section class="notes" aria-label="Design notes">
+    <div>
+      <h2>What goes where</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Feature</th><th>Watch face</th><th>Watch app</th></tr></thead>
+          <tbody>
+            <tr><td>Choose a route</td><td>No input</td><td>List, then overview</td></tr>
+            <tr><td>Route outline</td><td>Small, with position</td><td>Full screen</td></tr>
+            <tr><td>Climbed and total</td><td>One number</td><td>Climbed, remaining, elapsed</td></tr>
+            <tr><td>Rest points</td><td>Blue dots, minutes to next</td><td>Named, with climb to go</td></tr>
+            <tr><td>Difficulties</td><td>Red segments, minutes to next</td><td>Named, with climb to go</td></tr>
+            <tr><td>Time estimate</td><td>Time left</td><td>Guidebook, your pace, finish time</td></tr>
+            <tr><td>Elevation profile</td><td>None</td><td>Own screen</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">Route figures are rounded from public guides. The outlines are schematic sketches, not GPS tracks, and the rest and difficulty positions are placeholders. Mürren–Gimmelwald descends, so the face counts meters descended and draws its outline with 3 times vertical exaggeration.</p>
+    </div>
+    <div>
+      <h2>Decisions to settle</h2>
+      <ol>
+        <li><b>Position source.</b> A wall is a poor place for GPS, so progress would come from barometric altitude matched to the route profile. Traverses like the Mürren route have no altitude change, so they need GPS as a fallback.</li>
+        <li><b>Metric to the next marker.</b> The face shows minutes, because that works on traverses. The app screens add meters of climb.</li>
+        <li><b>Route selection.</b> A watch face has almost no input. Connect IQ storage is probably per app, so a separate watch app may not be able to hand the selected route to the face (unverified). The route may need to be chosen in the face settings, or the whole experience may need to live in one app.</li>
+        <li><b>Update rate.</b> In low power mode a face redraws once a minute, so the position dot moves in steps.</li>
+        <li><b>Route data.</b> Bundled with the app, fetched from a hosted catalogue of compact JSON files, or imported through a phone app. See docs/route-data.md.</li>
+        <li><b>Escape points.</b> Allmenalp and Fürenwand have no emergency exit, which the overview already states. Mark exits on routes that have them?</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- data ---------- */
+const START = 9*60 + 15;               // simulated start, 09:15
+const PAL = {
+  amoled:{bg:'#000000',fg:'#ffffff',mid:'#9aa3a8',dim:'#3a4146',done:'#5ce1a8',rest:'#3da5ff',hard:'#ff4d4d',hardDim:'#8a3535',panel:'#11161a',line:'#2a3236',glow:true,crisp:false},
+  mip:{bg:'#000000',fg:'#ffffff',mid:'#aaaaaa',dim:'#555555',done:'#55ff55',rest:'#00aaff',hard:'#ff0000',hardDim:'#aa0000',panel:'#000000',line:'#555555',glow:false,crisp:true}
+};
+
+/* pts: [x meters across, height meters from start, relative time weight] */
+const ROUTES = [
+  {id:'allmenalp',name:'Allmenalp',place:'Kandersteg BE',grade:'C/D',minutes:165,noExit:true,
+   pts:[[0,0,0],[20,60,22],[70,125,50],[120,150,62],[210,175,80],[250,230,100],[240,300,130],[280,370,165]],
+   rests:[{f:.34,label:'Seat after first third'}],
+   hard:[{a:.07,b:.2,label:'Vertical ladder wall'},{a:.46,b:.56,label:'Nepal bridge'},{a:.74,b:.9,label:'Overhang ladders'}]},
+  {id:'fuerenwand',name:'Fürenwand',place:'Engelberg OW',grade:'K4–K5',minutes:180,noExit:true,
+   pts:[[0,0,0],[50,80,30],[30,170,60],[80,240,85],[170,255,100],[200,330,118],[160,430,145],[130,520,170],[140,580,185]],
+   rests:[{f:.5,label:'Jägerband ledge'}],
+   hard:[{a:.07,b:.22,label:'Steep dihedral'},{a:.62,b:.8,label:'Overhanging upper wall'},{a:.92,b:1,label:'Rope ladder exit'}]},
+  {id:'taelli',name:'Tälli',place:'Gadmen BE',grade:'K3',minutes:180,noExit:false,
+   pts:[[0,0,0],[25,70,20],[45,130,40],[140,170,70],[230,190,100],[250,270,125],[300,350,145],[330,430,165],[350,500,180]],
+   rests:[{f:.46,label:'Terrace ledge'}],
+   hard:[{a:.04,b:.14,label:'Gully with ladders'},{a:.3,b:.42,label:'Exposed traverse'},{a:.56,b:.68,label:'Three staggered ladders'}]},
+  {id:'muerren',name:'Mürren–Gimmelwald',place:'Mürren BE',grade:'K3',minutes:150,noExit:false,
+   pts:[[0,0,0],[300,-25,25],[650,-60,50],[900,-110,70],[1300,-150,95],[1650,-210,120],[2000,-260,140],[2200,-300,150]],
+   rests:[{f:.62,label:'Meadow after the bridge'}],
+   hard:[{a:.28,b:.36,label:'Ladder run'},{a:.44,b:.5,label:'Nepal bridge'},{a:.8,b:.9,label:'Ladders to the exit'}]}
+];
+/* verticals: Allmenalp 370, Fürenwand 580, Tälli 500, Mürren 300 down (see notes) */
+ROUTES[0].total=370;ROUTES[1].total=580;ROUTES[2].total=500;ROUTES[3].total=300;
+
+function lerp(a,b,t){return a+(b-a)*t;}
+function chaikin(p){
+  const o=[p[0]];
+  for(let i=0;i<p.length-1;i++){
+    const a=p[i],b=p[i+1];
+    for(const t of [.25,.75]) o.push({x:lerp(a.x,b.x,t),h:lerp(a.h,b.h,t),w:lerp(a.w,b.w,t)});
+  }
+  o.push(p[p.length-1]);
+  return o;
+}
+function build(r){
+  let P=r.pts.map(a=>({x:a[0],h:a[1],w:a[2]}));
+  P=chaikin(chaikin(P));
+  let s=0;P[0].s=0;
+  for(let i=1;i<P.length;i++){s+=Math.hypot(P[i].x-P[i-1].x,P[i].h-P[i-1].h);P[i].s=s;}
+  const wEnd=P[P.length-1].w;
+  P.forEach(p=>{p.s/=s;p.t=p.w/wEnd*r.minutes;});
+  r.P=P;r.h0=P[0].h;r.down=P[P.length-1].h<P[0].h;
+  // scale heights so the model matches the stated vertical
+  const span=Math.abs(P[P.length-1].h-P[0].h);
+  const k=r.total/span;
+  P.forEach(p=>{p.h=(p.h-r.h0)*k;});
+  r.h0=0;
+}
+ROUTES.forEach(build);
+
+function interp(P,by,v,key){
+  if(v<=P[0][by])return P[0][key];
+  const L=P[P.length-1];
+  if(v>=L[by])return L[key];
+  let lo=0,hi=P.length-1;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(P[m][by]<=v)lo=m;else hi=m;}
+  const a=P[lo],b=P[hi],u=(v-a[by])/(b[by]-a[by]);
+  return lerp(a[key],b[key],u);
+}
+const hAt=(r,f)=>interp(r.P,'s',f,'h');
+const xAt=(r,f)=>interp(r.P,'s',f,'x');
+const tAt=(r,f)=>interp(r.P,'s',f,'t');
+const fAtT=(r,t)=>interp(r.P,'t',t,'s');
+const climbedAt=(r,f)=>Math.abs(hAt(r,f));
+
+/* ---------- state ---------- */
+const st={route:0,screen:'face',variant:'path',display:'amoled',f:.37,playing:false,speed:6,pace:1.15,
+  layers:{rest:true,hard:true,next:true}};
+const SCREENS=[
+  {id:'face',label:'Face',group:0},
+  {id:'routes',label:'Routes',group:1},{id:'overview',label:'Overview',group:1},{id:'path',label:'Live path',group:1},
+  {id:'profile',label:'Live profile',group:1},{id:'stats',label:'Live stats',group:1},{id:'summary',label:'Summary',group:1}
+];
+const APP=['routes','overview','path','profile','stats','summary'];
+
+const $=s=>document.querySelector(s);
+const svg=$('#watch');
+
+function hm(min){min=Math.max(0,Math.round(min));return Math.floor(min/60)+':'+String(min%60).padStart(2,'0');}
+function clk(min){min=Math.round(min);return String(Math.floor(min/60)%24).padStart(2,'0')+':'+String(min%60).padStart(2,'0');}
+const mins=v=>v<0.5?'<1':String(Math.round(v));
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+
+function markerInfo(r,m,kind,f,planned){
+  const a=kind==='hard'?m.a:m.f,b=kind==='hard'?m.b:m.f;
+  const inside=kind==='hard'&&f>=a;
+  return {kind,label:m.label,inside,
+    min:inside?0:(tAt(r,a)-planned)*st.pace,
+    minEnd:(tAt(r,b)-planned)*st.pace,
+    vert:Math.abs(hAt(r,inside?b:a)-hAt(r,f))};
+}
+function derive(){
+  const r=ROUTES[st.route],f=st.f;
+  const planned=tAt(r,f),elapsed=planned*st.pace;
+  const climbed=climbedAt(r,f);
+  const nr=r.rests.find(m=>m.f>f+1e-6),nh=r.hard.find(m=>m.b>f+1e-6);
+  const ahead=[];
+  r.rests.forEach(m=>{if(m.f>f+1e-6)ahead.push(markerInfo(r,m,'rest',f,planned));});
+  r.hard.forEach(m=>{if(m.b>f+1e-6)ahead.push(markerInfo(r,m,'hard',f,planned));});
+  ahead.sort((a,b)=>a.min-b.min);
+  return {r,f,planned,elapsed,climbed,remaining:r.total-climbed,
+    left:(r.minutes-planned)*st.pace,
+    nextRest:nr?markerInfo(r,nr,'rest',f,planned):null,
+    nextHard:nh?markerInfo(r,nh,'hard',f,planned):null,
+    ahead,finish:START+r.minutes*st.pace};
+}
+
+/* ---------- svg helpers ---------- */
+function T(x,y,s,size,fill,o){
+  o=o||{};
+  return `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" text-anchor="${o.a||'middle'}" font-family="${o.sans?'Ubuntu, sans-serif':'Ubuntu Mono, monospace'}" font-weight="${o.w||400}"${o.ls?` letter-spacing="${o.ls}"`:''}>${s}</text>`;
+}
+function chev(x,y,s,down,col){
+  const d=down?-1:1;
+  return `<polyline points="${x-s},${y+d*s*.5} ${x},${y-d*s*.5} ${x+s},${y+d*s*.5}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function mapper(r,box,exag){
+  exag=exag||3;
+  let x0=1e9,x1=-1e9,h0=1e9,h1=-1e9;
+  r.P.forEach(p=>{x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);h0=Math.min(h0,p.h);h1=Math.max(h1,p.h);});
+  const xr=Math.max(x1-x0,1),hr=Math.max(h1-h0,1);
+  const sx=box.w/xr,sy=box.h/hr,u=Math.min(sx,sy);
+  const kx=u,ky=(sx<=sy)?Math.min(u*exag,sy):u;
+  const w=xr*kx,h=hr*ky,ox=box.x+(box.w-w)/2,oy=box.y+(box.h-h)/2;
+  return (x,hh)=>[ox+(x-x0)*kx,oy+h-(hh-h0)*ky];
+}
+function pathD(r,f0,f1,map){
+  if(f1<=f0)return '';
+  const q=[];
+  const add=(s,x,h)=>{const v=map(s,x,h);q.push(v[0].toFixed(1)+' '+v[1].toFixed(1));};
+  add(f0,xAt(r,f0),hAt(r,f0));
+  r.P.forEach(p=>{if(p.s>f0&&p.s<f1)add(p.s,p.x,p.h);});
+  add(f1,xAt(r,f1),hAt(r,f1));
+  return 'M'+q.join('L');
+}
+function drawPath(r,map,f,P,o){
+  const pt=s=>map(s,xAt(r,s),hAt(r,s));
+  let s='<g fill="none" stroke-linecap="round" stroke-linejoin="round">';
+  s+=`<path d="${pathD(r,0,1,map)}" stroke="${P.dim}" stroke-width="${o.w}"/>`;
+  if(f>0)s+=`<path d="${pathD(r,0,f,map)}" stroke="${P.done}" stroke-width="${o.w}"/>`;
+  if(st.layers.hard)r.hard.forEach(h=>{
+    if(f>h.a)s+=`<path d="${pathD(r,h.a,Math.min(h.b,f),map)}" stroke="${P.hardDim}" stroke-width="${o.w}"/>`;
+    if(f<h.b)s+=`<path d="${pathD(r,Math.max(h.a,f),h.b,map)}" stroke="${P.hard}" stroke-width="${o.w}"/>`;
+  });
+  s+='</g>';
+  if(st.layers.rest)r.rests.forEach(m=>{
+    const q=pt(m.f);
+    s+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot}" fill="${P.rest}" stroke="${P.bg}" stroke-width="3"/>`
+             :`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-2}" fill="${P.bg}" stroke="${P.dim}" stroke-width="3"/>`;
+  });
+  if(f<1){const q=pt(1);s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-3}" fill="${P.bg}" stroke="${P.fg}" stroke-width="2.5"/>`;}
+  const c=pt(f);
+  if(P.glow)s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur+9}" fill="${P.fg}" opacity=".22"/>`;
+  s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur}" fill="${P.fg}" stroke="${P.bg}" stroke-width="3"/>`;
+  return s;
+}
+function dotText(xc,y,col,label,P,size,solid){
+  const dot=solid?`<circle cx="${xc-34}" cy="${y-size*.33}" r="8" fill="${col}"/>`:`<circle cx="${xc-34}" cy="${y-size*.33}" r="6" fill="none" stroke="${P.dim}" stroke-width="3"/>`;
+  const inner=label==='now'?`<tspan font-weight="700">now</tspan>`:label==='–'?'–':`<tspan font-weight="700">${label}</tspan><tspan font-size="${Math.round(size*.55)}" fill="${P.mid}"> min</tspan>`;
+  return dot+T(xc+4,y,inner,size,solid?P.fg:P.dim,{});
+}
+function markerPair(D,P,y,xl,xr,size,capY){
+  if(!st.layers.next)return '';
+  let o=dotText(xl,y,P.rest,D.nextRest?mins(D.nextRest.min):'–',P,size,!!D.nextRest&&st.layers.rest);
+  o+=dotText(xr,y,P.hard,D.nextHard?(D.nextHard.inside?'now':mins(D.nextHard.min)):'–',P,size,!!D.nextHard&&st.layers.hard);
+  return o+T(xl,capY,'next rest',13,P.mid,{sans:1})+T(xr,capY,'next hard',13,P.mid,{sans:1});
+}
+function leftLine(D,P,y,size){
+  return T(227,y,`<tspan font-weight="700" fill="${P.fg}">${hm(D.left)}</tspan><tspan font-size="${Math.round(size*.6)}" fill="${P.mid}"> left</tspan>`,size,P.fg);
+}
+
+/* ---------- watch face layouts ---------- */
+function facePath(D,P){
+  const r=D.r,m=mapper(r,{x:132,y:98,w:190,h:214});
+  let o=T(227,80,clk(START+D.elapsed),64,P.fg,{w:700});
+  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:7,dot:8,cur:7});
+  o+=T(227,370,`<tspan font-size="58" font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan> /${r.total} m</tspan>`,24,P.mid);
+  o+=markerPair(D,P,214,78,376,24,236);
+  o+=leftLine(D,P,414,30);
+  return o;
+}
+function arcD(R,a,b){
+  const pt=t=>[(227+R*Math.sin(t*Math.PI/180)).toFixed(1),(227-R*Math.cos(t*Math.PI/180)).toFixed(1)];
+  if(b-a<.3)return '';
+  const p=pt(a),q=pt(b);
+  return `M${p[0]} ${p[1]}A${R} ${R} 0 ${b-a>180?1:0} 1 ${q[0]} ${q[1]}`;
+}
+function faceRing(D,P){
+  const r=D.r,f=D.f,R=203,th=s=>-135+270*s;
+  const pt=s=>[227+R*Math.sin(th(s)*Math.PI/180),227-R*Math.cos(th(s)*Math.PI/180)];
+  let o=`<g fill="none" stroke-linecap="round"><path d="${arcD(R,th(0),th(1))}" stroke="${P.dim}" stroke-width="14"/>`;
+  if(f>0)o+=`<path d="${arcD(R,th(0),th(f))}" stroke="${P.done}" stroke-width="14"/>`;
+  if(st.layers.hard)r.hard.forEach(h=>{
+    if(f>h.a)o+=`<path d="${arcD(R,th(h.a),th(Math.min(h.b,f)))}" stroke="${P.hardDim}" stroke-width="14"/>`;
+    if(f<h.b)o+=`<path d="${arcD(R,th(Math.max(h.a,f)),th(h.b))}" stroke="${P.hard}" stroke-width="14"/>`;
+  });
+  o+='</g>';
+  if(st.layers.rest)r.rests.forEach(m=>{
+    const q=pt(m.f);
+    o+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="10" fill="${P.rest}" stroke="${P.bg}" stroke-width="3"/>`
+             :`<circle cx="${q[0]}" cy="${q[1]}" r="8" fill="${P.bg}" stroke="${P.dim}" stroke-width="3"/>`;
+  });
+  const c=pt(f);
+  if(P.glow)o+=`<circle cx="${c[0]}" cy="${c[1]}" r="20" fill="${P.fg}" opacity=".22"/>`;
+  o+=`<circle cx="${c[0]}" cy="${c[1]}" r="10" fill="${P.fg}" stroke="${P.bg}" stroke-width="3"/>`;
+  o+=T(227,118,clk(START+D.elapsed),52,P.mid,{w:700});
+  o+=T(227,222,String(Math.round(D.climbed)),96,P.fg,{w:700});
+  o+=chev(146,254,9,r.down,P.mid)+T(227+6,265,`of ${r.total} m`,26,P.mid);
+  o+=leftLine(D,P,318,38);
+  o+=markerPair(D,P,376,160,294,24,396);
+  return o;
+}
+/* ---------- app screens ---------- */
+function hdr(title,P){return T(227,52,title.toUpperCase(),15,P.mid,{sans:1,w:500,ls:2});}
+function pager(P){
+  const i=APP.indexOf(st.screen);let o='';
+  APP.forEach((_,k)=>{o+=`<circle cx="${227+(k-2.5)*16}" cy="430" r="3.5" fill="${k===i?P.fg:P.dim}"/>`;});
+  return o;
+}
+function screenRoutes(D,P){
+  let o=hdr('Choose a route',P);
+  ROUTES.forEach((r,i)=>{
+    const y=84+i*66,sel=i===st.route;
+    o+=`<g data-act="route" data-i="${i}" tabindex="0" role="button" aria-label="${r.name}">`+
+      `<rect x="62" y="${y}" width="330" height="58" rx="14" fill="${sel?P.panel:'none'}" stroke="${sel?P.done:P.line}" stroke-width="${sel?3:2}"/>`+
+      T(80,y+26,trunc(r.name,20),23,P.fg,{a:'start',sans:1,w:700})+
+      T(80,y+47,`${r.grade} · ${r.total} m ${r.down?'down':'up'} · ${hm(r.minutes)}`,15,P.mid,{a:'start'})+`</g>`;
+  });
+  o+=T(227,372,'Tap a route to open it',15,P.mid,{sans:1});
+  return o+pager(P);
+}
+function screenOverview(D,P){
+  const r=D.r,m=mapper(r,{x:150,y:112,w:154,h:150});
+  let o=T(227,78,trunc(r.name,18),32,P.fg,{sans:1,w:700})+T(227,100,r.place,15,P.mid,{sans:1});
+  o+=drawPath(r,(s,x,h)=>m(x,h),0,P,{w:6,dot:7,cur:6});
+  o+=T(227,296,`${r.total} m ${r.down?'down':'up'}  ·  ${hm(r.minutes)}  ·  ${r.grade}`,19,P.fg);
+  o+=`<circle cx="165" cy="322" r="7" fill="${P.rest}"/>`+T(177,328,`${r.rests.length} rest`,17,P.fg,{a:'start'});
+  o+=`<circle cx="249" cy="322" r="7" fill="${P.hard}"/>`+T(261,328,`${r.hard.length} hard`,17,P.fg,{a:'start'});
+  o+=T(227,354,r.noExit?'No emergency exit':'Exit points not mapped',15,r.noExit?P.hard:P.mid,{sans:1});
+  o+=`<g data-act="start" tabindex="0" role="button" aria-label="Start"><rect x="157" y="372" width="140" height="42" rx="21" fill="${P.done}"/>`+T(227,401,'START',20,P.bg,{sans:1,w:700,ls:1.5})+`</g>`;
+  return o;
+}
+function screenPath(D,P){
+  const r=D.r,m=mapper(r,{x:120,y:84,w:214,h:250});
+  const nh=D.nextHard,hint=nh?(nh.inside?'In: '+nh.label:'Next: '+nh.label):'No more difficulties';
+  let o=T(227,58,trunc(hint,28),15,nh?P.hard:P.mid,{sans:1,w:500});
+  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:8,dot:9,cur:8});
+  o+=T(227,372,`<tspan font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan font-size="22" fill="${P.mid}"> /${r.total} m</tspan>`,38,P.fg);
+  o+=dotText(160,412,P.rest,D.nextRest?mins(D.nextRest.min):'–',P,22,!!D.nextRest&&st.layers.rest);
+  o+=dotText(300,412,P.hard,nh?(nh.inside?'now':mins(nh.min)):'–',P,22,!!nh&&st.layers.hard);
+  return o;
+}
+function screenProfile(D,P){
+  const r=D.r,box={x:62,y:96,w:330,h:170};
+  let hmin=1e9,hmax=-1e9;r.P.forEach(p=>{hmin=Math.min(hmin,p.h);hmax=Math.max(hmax,p.h);});
+  const map=(s,x,h)=>[box.x+s*box.w,box.y+box.h-(h-hmin)/(hmax-hmin)*box.h];
+  let o=T(227,66,'ELEVATION',13,P.mid,{sans:1,ls:2,w:500});
+  o+=`<line x1="${box.x}" y1="${box.y+box.h+10}" x2="${box.x+box.w}" y2="${box.y+box.h+10}" stroke="${P.line}" stroke-width="2"/>`;
+  o+=drawPath(r,map,D.f,P,{w:5,dot:7,cur:6});
+  let y=312;
+  if(!D.ahead.length)o+=T(227,350,'Top reached',22,P.done,{sans:1,w:700});
+  D.ahead.slice(0,3).forEach(a=>{
+    const col=a.kind==='rest'?P.rest:P.hard;
+    o+=`<circle cx="84" cy="${y-6}" r="7" fill="${col}"/>`+T(98,y,trunc(a.label,17),17,P.fg,{a:'start',sans:1});
+    o+=T(376,y,a.inside?`now · ${mins(a.minEnd)} min`:`${mins(a.min)} min · ${Math.round(a.vert)} m`,14,P.mid,{a:'end'});
+    y+=32;
+  });
+  return o+pager(P);
+}
+function screenStats(D,P){
+  const r=D.r,pc=Math.round((st.pace-1)*100);
+  const cell=(x,y,v,c)=>T(x,y,v,40,P.fg,{w:700})+T(x,y+22,c,13,P.mid,{sans:1});
+  let o=hdr('Live stats',P);
+  o+=cell(150,112,String(Math.round(D.climbed)),r.down?'meters descended':'meters climbed');
+  o+=cell(304,112,String(Math.round(D.remaining)),'meters to go');
+  o+=cell(150,200,hm(D.elapsed),'elapsed');
+  o+=cell(304,200,hm(D.left),'time left');
+  o+=cell(150,288,(pc>=0?'+':'')+pc+' %','vs guidebook');
+  o+=cell(304,288,clk(D.finish),'finish');
+  o+=T(227,362,'Guidebook '+hm(r.minutes)+'  ·  your pace '+hm(r.minutes*st.pace),15,P.mid);
+  return o+pager(P);
+}
+function screenSummary(D,P){
+  const r=D.r,f=D.f,done=f>=1;
+  const rp=r.rests.filter(m=>m.f<=f).length,hp=r.hard.filter(m=>m.b<=f).length;
+  let o=hdr(done?'Finished':'So far',P);
+  o+=T(227,150,hm(D.elapsed),84,P.fg,{w:700})+T(227,176,'total time',15,P.mid,{sans:1});
+  o+=T(227,238,`${Math.round(D.climbed)} m`,44,done?P.done:P.fg,{w:700})+T(227,262,r.down?'descended':'climbed',15,P.mid,{sans:1});
+  o+=`<circle cx="160" cy="312" r="7" fill="${P.rest}"/>`+T(172,318,`${rp} of ${r.rests.length} rests`,17,P.fg,{a:'start'});
+  o+=`<circle cx="160" cy="344" r="7" fill="${P.hard}"/>`+T(172,350,`${hp} of ${r.hard.length} hard`,17,P.fg,{a:'start'});
+  o+=T(227,386,'Pace '+(Math.round((st.pace-1)*100)>=0?'+':'')+Math.round((st.pace-1)*100)+' % vs guidebook',15,P.mid,{sans:1});
+  return o+pager(P);
+}
+
+/* ---------- render ---------- */
+function render(){
+  const D=derive(),P=PAL[st.display];
+  let body;
+  switch(st.screen){
+    case 'routes':body=screenRoutes(D,P);break;
+    case 'overview':body=screenOverview(D,P);break;
+    case 'path':body=screenPath(D,P);break;
+    case 'profile':body=screenProfile(D,P);break;
+    case 'stats':body=screenStats(D,P);break;
+    case 'summary':body=screenSummary(D,P);break;
+    default:body=st.variant==='ring'?faceRing(D,P):facePath(D,P);
+  }
+  svg.setAttribute('shape-rendering',P.crisp?'crispEdges':'geometricPrecision');
+  svg.style.background=P.bg;
+  svg.innerHTML=`<rect width="454" height="454" fill="${P.bg}"/>`+body;
+  $('#readout').textContent=`${Math.round(D.climbed)} / ${D.r.total} m ${D.r.down?'descended':'climbed'}  ·  ${clk(START+D.elapsed)}  ·  ${hm(D.left)} left`;
+  $('#pos').value=Math.round(st.f*1000);
+  $('#play').textContent=st.playing?'Pause':(st.f>=1?'Replay':'Play');
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.screen===st.screen)));
+  document.querySelectorAll('input[name=route]').forEach(i=>{i.checked=Number(i.value)===st.route;});
+}
+
+/* ---------- controls ---------- */
+(function init(){
+  const tabs=$('#tabs');let g=-1;
+  SCREENS.forEach(s=>{
+    if(s.group!==g){g=s.group;const l=document.createElement('span');l.className='glabel';l.textContent=g===0?'Watch face':'Watch app';tabs.appendChild(l);}
+    const b=document.createElement('button');b.type='button';b.dataset.screen=s.id;b.textContent=s.label;
+    b.addEventListener('click',()=>{st.screen=s.id;render();});
+    tabs.appendChild(b);
+  });
+  const rs=$('#routeSet');
+  ROUTES.forEach((r,i)=>{
+    const l=document.createElement('label');l.className='opt';
+    l.innerHTML=`<input type="radio" name="route" value="${i}"><span><b>${r.name}</b><small>${r.grade} · ${r.total} m ${r.down?'down':'up'} · ${hm(r.minutes)}</small></span>`;
+    rs.appendChild(l);
+  });
+  rs.addEventListener('change',e=>{st.route=Number(e.target.value);st.f=0;render();});
+  document.querySelectorAll('input[name=variant]').forEach(i=>i.addEventListener('change',()=>{st.variant=i.value;st.screen='face';render();}));
+  document.querySelectorAll('input[name=display]').forEach(i=>i.addEventListener('change',()=>{st.display=i.value;render();}));
+  $('#lyRest').addEventListener('change',e=>{st.layers.rest=e.target.checked;render();});
+  $('#lyHard').addEventListener('change',e=>{st.layers.hard=e.target.checked;render();});
+  $('#lyNext').addEventListener('change',e=>{st.layers.next=e.target.checked;render();});
+  $('#pace').addEventListener('input',e=>{st.pace=Number(e.target.value)/100;$('#paceVal').textContent=e.target.value+' %';render();});
+  $('#speed').addEventListener('change',e=>{st.speed=Number(e.target.value);});
+  $('#pos').addEventListener('input',e=>{st.f=Number(e.target.value)/1000;render();});
+  $('#play').addEventListener('click',()=>{
+    if(st.f>=1)st.f=0;
+    st.playing=!st.playing;last=performance.now();render();
+  });
+  function act(t){
+    const a=t.closest('[data-act]');if(!a)return;
+    if(a.dataset.act==='route'){st.route=Number(a.dataset.i);st.f=0;st.screen='overview';}
+    if(a.dataset.act==='start'){st.f=0;st.screen='path';st.playing=true;last=performance.now();}
+    render();
+  }
+  svg.addEventListener('click',e=>act(e.target));
+  svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e.target);}});
+})();
+
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(.25,(now-last)/1000);last=now;
+  if(st.playing){
+    const r=ROUTES[st.route];
+    const p=tAt(r,st.f)+st.speed*dt/st.pace;
+    if(p>=r.minutes){
+      st.f=1;st.playing=false;
+      if(['path','profile','stats'].includes(st.screen))st.screen='summary';
+    }else st.f=fAtT(r,p);
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+render();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
