@@ -66,6 +66,16 @@ The approximate altitude above sea level.
 - Rounded to 10 m, or 50 ft, since the position is known only to within 25 m. Metres or feet; proposed: following the watch's elevation setting.
 - The number is right-aligned in a box as wide as the widest altitude this route can show, measured once per route and unit, so it does not shift as the digits change. The unit follows the box.
 
+## poi
+
+The point of interest the uncertainty stretch covers, as one word.
+
+- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger red; bold capitals, no box.
+- Shown only while such a point lies within the stretch; nothing otherwise.
+- With several, the nearest to the climber's estimate wins; on a tie, danger before exit before rest.
+
+Options: dangers follow the profile's danger setting.
+
 ## Open
 
 - The difficulty colour map. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
