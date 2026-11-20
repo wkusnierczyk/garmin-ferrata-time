@@ -4,7 +4,7 @@ Status: settled with the owner on 2026-11-20 (#16)
 Reference mock: `design/demo/page-1.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
-The prototype's side-profile page (page A) stays as it is. Page 1, version 1 is a simpler page beside it: the profile alone, with the numbers moved into widgets around it.
+The prototype's side-profile page (page A) stays as it is. Page 1, version 1 is a simpler page beside it, and the app's first page: the profile alone, with the numbers moved into widgets around it.
 
 ## Layout
 
