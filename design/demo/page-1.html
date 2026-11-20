@@ -336,6 +336,13 @@ function poi(st, x, yt, opt) {
   return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
 }
 
+// The altitude group: the altitude widget with the poi widget under it, the poi word right-aligned
+// with the altitude number (not its unit). x is where the altitude's box starts, yt the top of its
+// digits.
+function altitudeGroup(st, x, yt, opt) {
+  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 12, opt);
+}
+
 // Page 1, version 1: profile and ascent sharing the start, the ascent's foot at the profile's first
 // point. The difficulty widget sits in the lower right corner of the rectangle they span: its bottom
 // on the rectangle's bottom, and its widest possible extent (two-character boxes in all three slots)
@@ -345,9 +352,7 @@ function page(st, opt) {
   const reach = boxWidth("K1", 1) / 2 + DIFFICULTY_GAP + boxWidth("K1", DIFFICULTY_K);
   return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, x0 + w - reach, y0, opt) +
     // In the rectangle's upper left, a small space right of the ascent line, level with its top.
-    altitude(st, x0 + RING_OUTER + 8, y0 - h, opt.feet) +
-    // Under the altitude, right-aligned with its number (not its unit).
-    poi(st, x0 + RING_OUTER + 8 + altBox(opt.feet), y0 - h + 0.7 * ALT_SIZE + 12, opt);
+    altitudeGroup(st, x0 + RING_OUTER + 8, y0 - h, opt);
 }
 
 const speed = document.getElementById("speed");
