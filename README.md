@@ -33,7 +33,7 @@ make run         # build, start the simulator, load it
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
 ```
 
-`tools/launcher_icon.py` draws the launcher icon (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`, needs Pillow).
+`tools/launcher_icon.py` renders the launcher icon from `tools/launcher_icon.svg`, a climber clipped to the cable (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`, needs `rsvg-convert`: `brew install librsvg`).
 
 ## What it is
 
