@@ -34,6 +34,7 @@ select { font: 15px var(--body); padding: 4px 6px; max-width: 360px; background:
 .legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; background: var(--screen); color: #e9f2ff; font: 600 14px/1 var(--display); border-radius: 3px; }
 .legend i { width: 18px; height: 6px; border-radius: 3px; display: inline-block; }
+.controls .group { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .readout { font: 600 20px/1 var(--display); font-variant-numeric: tabular-nums; }
 button { font: 500 14px var(--body); padding: 6px 14px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 4px; cursor: pointer; justify-self: start; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
@@ -62,6 +63,10 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label for="map">Difficulty colours</label>
       <select id="map"></select>
       <div class="legend" id="legend"></div>
+      <span class="group">Difficulty boxes show</span>
+      <label class="check"><input id="box-rests" type="checkbox" checked> Rests (R); otherwise a rest shows as W</label>
+      <label class="check"><input id="box-exits" type="checkbox" checked> Exits (E)</label>
+      <label class="check"><input id="box-dangers" type="checkbox" checked> Dangers (D), when the profile shows them</label>
       <label for="units">Altitude in</label>
       <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
       <label class="check"><input id="dangers" type="checkbox" checked> Danger points as red rings</label>
@@ -245,8 +250,9 @@ const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"];
 const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 5;
 
 // What a box shows for a section, or for a point on the route.
-function sectionBox(colours, i) {
-  const g = GRADE[i];
+// With rests left out of the widget, a rest stretch shows as walking ground.
+function sectionBox(colours, i, rests) {
+  const g = GRADE[i] < 0 && !rests ? 0 : GRADE[i];
   return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
 }
 const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
@@ -262,13 +268,14 @@ const DANGER_BOX = { text: "D", colour: END_RED, filled: false };
 function difficulty(st, x, y, opt) {
   const colours = opt.colours.c;
   const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
-  const points = EXIT_AT.map(i => ({ d: D[i], box: EXIT_BOX }));
-  if (opt.dangers) for (const p of DANGER_AT) points.push({ d: p.d, box: DANGER_BOX });
+  // Which kinds of point the widget shows: its own options, and dangers only if the profile has them.
+  const points = opt.boxExits ? EXIT_AT.map(i => ({ d: D[i], box: EXIT_BOX })) : [];
+  if (opt.dangers && opt.boxDangers) for (const p of DANGER_AT) points.push({ d: p.d, box: DANGER_BOX });
   // Candidates as [distance from the climber, box]; points win a tie with a section boundary.
   let left = null, right = null;
   const near = (best, dist, box) => (best === null || dist < best[0] ? [dist, box] : best);
-  if (st.cur > 0 && D[st.cur] >= lo) left = near(left, st.d - D[st.cur] + 0.01, sectionBox(colours, st.cur - 1));
-  if (st.cur < N - 1 && D[st.cur + 1] <= hi) right = near(right, D[st.cur + 1] - st.d + 0.01, sectionBox(colours, st.cur + 1));
+  if (st.cur > 0 && D[st.cur] >= lo) left = near(left, st.d - D[st.cur] + 0.01, sectionBox(colours, st.cur - 1, opt.boxRests));
+  if (st.cur < N - 1 && D[st.cur + 1] <= hi) right = near(right, D[st.cur + 1] - st.d + 0.01, sectionBox(colours, st.cur + 1, opt.boxRests));
   for (const p of points) {
     if (p.d >= lo && p.d <= st.d) left = near(left, st.d - p.d, p.box);
     if (p.d > st.d && p.d <= hi) right = near(right, p.d - st.d, p.box);
@@ -276,7 +283,7 @@ function difficulty(st, x, y, opt) {
   // The middle box is centred on x; the side boxes keep a narrow gap from its edges. All share the
   // bottom edge y.
   const draw = (bx, cx, k) => badge(cx, y, k, bx.text, bx.colour, bx.filled);
-  const mid = sectionBox(colours, st.cur), half = boxWidth(mid.text, 1) / 2, gap = DIFFICULTY_GAP, k = DIFFICULTY_K;
+  const mid = sectionBox(colours, st.cur, opt.boxRests), half = boxWidth(mid.text, 1) / 2, gap = DIFFICULTY_GAP, k = DIFFICULTY_K;
   let s = draw(mid, x, 1);
   if (left) s += draw(left[1], x - half - gap - boxWidth(left[1].text, k) / 2, k);
   if (right) s += draw(right[1], x + half + gap + boxWidth(right[1].text, k) / 2, k);
@@ -328,8 +335,11 @@ const live = document.getElementById("live"), pos = document.getElementById("pos
 const map = document.getElementById("map"), legend = document.getElementById("legend");
 for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `<option value="${k}">${m.name}</option>`);
 const units = document.getElementById("units");
+const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
+  boxDangers = document.getElementById("box-dangers");
 const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
-const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft" });
+const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
+  boxRests: boxRests.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(pos.value / 1000 * TM);
   live.innerHTML = page(st, opts());
@@ -358,6 +368,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }
