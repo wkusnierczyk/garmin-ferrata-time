@@ -53,9 +53,11 @@ A separate, feature-rich watch app (several screens) handles route choice, an ov
 | `design/DESIGN.md` | The design record: goals, face, app screens, data model, open questions, decisions |
 | `design/demo/index.html` | Self-contained interactive demo. Open it in a browser |
 | `design/demo/screenshots/` | Stills of every face layout and app screen |
-| `design/widgets.md` | The watch app's reusable drawing parts: profile, ascent, difficulty, altitude, poi, and the altitude group |
+| `design/widgets.md` | The watch app's reusable drawing parts: profile, ascent, difficulty, altitude, poi, difficulty column, and the altitude and difficulty column groups |
 | `design/page-1.md` | Page 1, version 1: the profile alone, with the widgets around it |
 | `design/demo/page-1.html` | Interactive mock of page 1, with its options as settings |
+| `design/page-2.md` | Page 2, version 1: the difficulty column with its altitudes |
+| `design/demo/page-2.html` | Interactive mock of page 2, with its options as settings |
 | `design/connect-iq-platform.md` | Platform limits, and what "companion app" means at Garmin |
 | `design/route-data.md` | Where real route paths and profiles can come from, and how they reach the watch |
 | `design/converter-site.md` | Proposal for a stateless GitHub Pages converter from GPX or OSM to route JSON |
