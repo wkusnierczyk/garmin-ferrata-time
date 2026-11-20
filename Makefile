@@ -6,6 +6,8 @@ SDK_BIN  ?= $(shell sed -e 's:/*$$::' "$(CIQ_HOME)/current-sdk.cfg" 2>/dev/null)
 # Override with: make build DEV_KEY=/path/to/developer_key
 MAIN_CHECKOUT := $(shell d=$$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && dirname "$$d")
 DEV_KEY  ?= $(if $(MAIN_CHECKOUT),$(MAIN_CHECKOUT),.)/../garmin-keys/developer_key
+# zsh leaves the ~ of DEV_KEY=~/... unexpanded, and the path is quoted below, so expand it here.
+KEY      := $(patsubst ~/%,$(HOME)/%,$(DEV_KEY))
 DEVICE   ?= epix2pro47mm
 SIM_PORT ?= 1234
 APP      := FerrataTime
@@ -21,9 +23,9 @@ all: build
 
 ## Build the .prg for DEVICE
 build:
-	@test -f "$(DEV_KEY)" || { echo "No developer key at $(DEV_KEY). Pass its path: make $(or $(MAKECMDGOALS),build) DEV_KEY=/path/to/developer_key"; exit 1; }
+	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make $(or $(MAKECMDGOALS),build) DEV_KEY=/path/to/developer_key"; exit 1; }
 	@echo "Building for $(DEVICE)..."
-	@$(MONKEYC) -f monkey.jungle -d $(DEVICE) -y "$(DEV_KEY)" -w -o $(OUTPUT)
+	@$(MONKEYC) -f monkey.jungle -d $(DEVICE) -y "$(KEY)" -w -o $(OUTPUT)
 	@echo "Build complete: $(OUTPUT)"
 
 ## Start the simulator unless it is running
