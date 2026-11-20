@@ -72,6 +72,11 @@ class Draw {
         dc.fillRoundedRectangle(s(x), s(y), s(w), s(h), s(r));
     }
 
+    // A progress bar's fill: rounded ends once it is wide enough for them, nothing before.
+    function bar(x as Numeric, y as Numeric, w as Numeric, h as Numeric, c as Number) as Void {
+        if (w >= h) { roundRect(x, y, w, h, h / 2, c); }
+    }
+
     function frame(x as Numeric, y as Numeric, w as Numeric, h as Numeric, c as Number, pen as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(pen);

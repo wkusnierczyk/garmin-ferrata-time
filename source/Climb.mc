@@ -28,10 +28,34 @@ module Climb {
 
     function count() as Number { return LEN.size(); }
 
-    // Cumulative distance, height and minutes at the start of section i (i == count() is the top).
-    function dAt(i as Number) as Number { var s = 0; for (var k = 0; k < i; k++) { s += LEN[k]; } return s; }
-    function uAt(i as Number) as Number { var s = 0; for (var k = 0; k < i; k++) { s += UP[k]; } return s; }
-    function mAt(i as Number) as Number { var s = 0; for (var k = 0; k < i; k++) { s += MIN[k]; } return s; }
+    // Cumulative distance, height and minutes at the start of each section, and at the top: built
+    // once, since the pages look them up many times a frame.
+    var cumD as Array<Number>? = null;
+    var cumU as Array<Number>? = null;
+    var cumM as Array<Number>? = null;
+
+    function cumulative(steps as Array<Number>) as Array<Number> {
+        var out = new [steps.size() + 1] as Array<Number>;
+        out[0] = 0;
+        for (var k = 0; k < steps.size(); k++) { out[k + 1] = out[k] + steps[k]; }
+        return out;
+    }
+
+    function dAt(i as Number) as Number {
+        var c = cumD;
+        if (c == null) { c = cumulative(LEN); cumD = c; }
+        return c[i];
+    }
+    function uAt(i as Number) as Number {
+        var c = cumU;
+        if (c == null) { c = cumulative(UP); cumU = c; }
+        return c[i];
+    }
+    function mAt(i as Number) as Number {
+        var c = cumM;
+        if (c == null) { c = cumulative(MIN); cumM = c; }
+        return c[i];
+    }
 
     function totalD() as Number { return dAt(count()); }
     function totalU() as Number { return uAt(count()); }

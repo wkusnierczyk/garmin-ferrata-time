@@ -133,8 +133,9 @@ module Pages {
         d.dashed(102, yp, 132 + st.d / td * 226 - 10, yp, 0x555555, 1);
         d.pointer(74, yp, 7, WHITE);
         d.text(208, 44, Graphics.FONT_XTINY, Climb.clockText(st.clock()), d.MUTED);
-        d.upMark(120, 82, 7, WHITE);
-        d.text(214, 80, Graphics.FONT_MEDIUM, st.climbed().format("%d") + " / " + Climb.totalU().format("%d") + " m", WHITE);
+        var head = st.climbed().format("%d") + " / " + Climb.totalU().format("%d") + " m";
+        d.upMark(214 - d.width(Graphics.FONT_MEDIUM, head) / 2 - 14, 82, 7, WHITE);
+        d.text(214, 80, Graphics.FONT_MEDIUM, head, WHITE);
         d.text(146, 350, Graphics.FONT_SMALL, st.altitude().format("%d") + " m", WHITE);
         d.text(146, 376, Graphics.FONT_XTINY, "altitude", d.MUTED);
         d.text(272, 350, Graphics.FONT_SMALL, Climb.durationText(st.left()), WHITE);
@@ -150,12 +151,12 @@ module Pages {
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var y = y0 - Climb.uAt(Climb.EXIT_AT[e]) / tu * h;
             d.dashed(x0 - 4, y, x0 + 30, y, d.EXIT, 2);
-            d.exitMark(x0 - 12, y);
+            d.exitMark(x0 + 42, y);
         }
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0) {
                 var y = y0 - Climb.uAt(i) / tu * h;
-                d.line(x0 - 20, y - 6, x0 - 20, y + 6, d.REST, 4);
+                d.line(x0 + 34, y - 6, x0 + 34, y + 6, d.REST, 4);
             }
         }
         var yt = y0 - (st.u + Climb.UNCERTAINTY) / tu * h, yb = y0 - (st.u - Climb.UNCERTAINTY) / tu * h;
@@ -186,12 +187,12 @@ module Pages {
         d.textLeft(116, 132, Graphics.FONT_XTINY, st.climbed().format("%d") + " m", WHITE);
         d.textRight(320, 132, Graphics.FONT_XTINY, (tu - st.climbed()).format("%d") + " to go", d.MUTED);
         d.roundRect(96, 146, 224, 8, 4, 0x222222);
-        d.roundRect(96, 146, 224 * st.u / tu + 1, 8, 4, WHITE);
+        d.bar(96, 146, 224 * st.u / tu, 8, WHITE);
         var da = (st.d / 10).toNumber() * 10;
         d.textLeft(96, 178, Graphics.FONT_XTINY, "~" + da.format("%d") + " m along", WHITE);
         d.textRight(320, 178, Graphics.FONT_XTINY, "~" + (td - da).format("%d") + " to go", d.MUTED);
         d.roundRect(96, 192, 224, 8, 4, 0x222222);
-        d.roundRect(96, 192, 224 * st.d / td + 1, 8, 4, d.DIM_GREY);
+        d.bar(96, 192, 224 * st.d / td, 8, d.DIM_GREY);
         d.text(208, 232, Graphics.FONT_TINY, Climb.durationText(st.left()) + " to top, " + Climb.clockText(st.finish()), WHITE);
         var e = st.nextExit();
         var exitLine = "no exits left";
@@ -230,12 +231,21 @@ module Pages {
         d.textLeft(130, y + 8, Graphics.FONT_TINY, "Top", WHITE);
         d.textRight(334, y + 8, Graphics.FONT_TINY, Climb.clockText(st.finish()), WHITE);
         y += 30;
-        for (var i = Climb.count() - 1; i >= st.cur; i--) {
+        // The climber's section comes first; above it, as many of the next ones as fit.
+        var last = st.cur, used = 0.0;
+        for (var i = st.cur; i < Climb.count(); i++) {
+            var hi = rowHeight(st, i);
+            if (used + hi + 4 > 270) { break; }
+            used += hi + 4;
+            last = i;
+        }
+        if (last < Climb.count() - 1) {
+            d.text(111, y + 2, Graphics.FONT_XTINY, ":", d.MUTED);
+            y += 18;
+        }
+        for (var i = last; i >= st.cur; i--) {
             var now = i == st.cur;
-            var mins = now ? (Climb.mAt(i + 1) - st.m) : Climb.MIN[i].toFloat();
-            var h = mins * 3.6;
-            if (h < 26) { h = 26.0; }
-            if (y + h > 380) { break; }
+            var h = rowHeight(st, i);
             var g = Climb.GRADE[i];
             if (g < 0) {
                 d.frame(104, y, 14, h, d.REST, 3);
@@ -251,6 +261,13 @@ module Pages {
             if (now) { d.pointer(98, y + h / 2, 7, WHITE); }
             y += h + 4;
         }
+    }
+
+    // A row's height on the what's next page: its minutes, the climber's own section only what is left.
+    function rowHeight(st as Climb.State, i as Number) as Float {
+        var mins = i == st.cur ? (Climb.mAt(i + 1) - st.m) : Climb.MIN[i].toFloat();
+        var h = mins * 3.6;
+        return h < 26 ? 26.0 : h;
     }
 
     // ---------------------------------------------------------------- F. time strip
@@ -310,7 +327,7 @@ module Pages {
         d.text(208, 214, Graphics.FONT_NUMBER_THAI_HOT, st.climbed().format("%d"), WHITE);
         d.text(208, 306, Graphics.FONT_MEDIUM, "m of " + Climb.totalU().format("%d"), d.MUTED);
         d.roundRect(98, 340, 220, 12, 6, 0x333333);
-        d.roundRect(98, 340, 220 * st.u / Climb.totalU() + 1, 12, 6, WHITE);
+        d.bar(98, 340, 220 * st.u / Climb.totalU(), 12, WHITE);
     }
 
     function bigNextHard(d as Draw, st as Climb.State) as Void {
