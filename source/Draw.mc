@@ -147,6 +147,38 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, justify);
     }
 
+    // Capital letters and digits stand about 0.72 of the font's ascent above the baseline (measured
+    // on the epix Pro's system fonts); the rest of the ascent is space above them.
+    const CAP = 0.72;
+
+    function ascent(font as Graphics.FontType) as Float {
+        return Graphics.getFontAscent(font) / k;
+    }
+
+    function capHeight(font as Graphics.FontType) as Float {
+        return ascent(font) * CAP;
+    }
+
+    // Text whose capitals start at y (their top), justified as given.
+    function textCapTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        textTop(x, y - ascent(font) * (1 - CAP), font, str, c, justify);
+    }
+
+    // Text whose capitals are centred on (x, y).
+    function textCapCentre(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
+        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // A round brush along a line: filled circles every 2 px, so ends and bends come out round.
+    function brush(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, r as Numeric, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        var dx = x2 - x1, dy = y2 - y1;
+        var n = (Math.sqrt(dx * dx + dy * dy) / 2).toNumber() + 1;
+        for (var i = 0; i <= n; i++) {
+            dc.fillCircle(s(x1 + dx * i / n), s(y1 + dy * i / n), s(r));
+        }
+    }
+
     // A font's height in design pixels.
     function height(font as Graphics.FontType) as Number {
         return (dc.getFontHeight(font) / k).toNumber();
