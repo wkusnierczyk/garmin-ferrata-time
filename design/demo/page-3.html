@@ -115,10 +115,11 @@ const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "
 const cum = a => a.reduce((o, v) => (o.push(o[o.length - 1] + v), o), [0]);
 const D = cum(LEN), U = cum(UP), M = cum(MIN);
 const N = LEN.length, TD = D[N], TU = U[N], TM = M[N];
-// The demo plays the climb at a constant vertical pace: each section takes as long as the metres it
-// climbs, a flat one as long as 5 m, so walks pass quickly and walls slowly. Returns the guidebook
+// The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs (a
+// flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each grade
+// above walking (1.1 to the power of the grade; rests count as walking). Returns the guidebook
 // minute reached at fraction f of the demo.
-const DEMO_W = UP.map(u => Math.max(u, 5)), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
+const DEMO_W = UP.map((u, i) => Math.max(u, 5) * Math.pow(1.1, Math.max(GRADE[i], 0))), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
 function demoMinute(f) {
   const t = f * DEMO_T;
   for (let i = 0; i < N; i++) if (t <= DEMO_C[i + 1]) return M[i] + (t - DEMO_C[i]) / DEMO_W[i] * MIN[i];
