@@ -61,15 +61,21 @@ module Climb {
     function totalU() as Number { return uAt(count()); }
     function totalM() as Number { return mAt(count()); }
 
-    // The demo plays the climb at a constant vertical pace: each section takes as long as the metres
-    // it climbs, a flat one as long as 5 m, so walks pass quickly and walls slowly. The guidebook
-    // minute reached at fraction f of the demo.
+    // The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs
+    // (a flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each
+    // grade above walking (rests count as walking). The guidebook minute reached at fraction f.
+    function demoWeight(i as Number) as Float {
+        var w = (UP[i] > 5 ? UP[i] : 5).toFloat();
+        for (var g = 0; g < GRADE[i]; g++) { w *= 1.1; }
+        return w;
+    }
+
     function demoMinute(f as Float) as Float {
-        var weights = 0;
-        for (var i = 0; i < count(); i++) { weights += UP[i] > 5 ? UP[i] : 5; }
+        var weights = 0.0;
+        for (var i = 0; i < count(); i++) { weights += demoWeight(i); }
         var t = f * weights;
         for (var i = 0; i < count(); i++) {
-            var w = UP[i] > 5 ? UP[i] : 5;
+            var w = demoWeight(i);
             if (t <= w) { return mAt(i) + t / w * MIN[i]; }
             t -= w;
         }
