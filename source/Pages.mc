@@ -132,7 +132,7 @@ module Pages {
         var x0 = 92.0, w = 260.0, y0 = 318.0, h = 226.0;
         Widgets.profile(d, st, x0, w, y0, h);
         Widgets.ascent(d, st, x0, y0, h, true);
-        Widgets.difficulty(d, st, x0 + w - Widgets.difficultyReach(), y0);
+        Widgets.difficulty(d, st, x0 + w - Widgets.difficultyReach(), y0, false);
         Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 8, y0 - h);
     }
 

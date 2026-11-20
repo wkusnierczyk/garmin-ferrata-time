@@ -9,7 +9,7 @@ The prototype's side-profile page (page A) stays as it is. Page 1, version 1 is 
 ## Layout
 
 - **profile** and **ascent** share the start point: the ascent line rises from the profile's first point, and its top is level with the profile's end. Together they span a rectangle, in the mock from (92, 92) to (352, 318).
-- **difficulty** in the rectangle's lower right: its bottom on the rectangle's bottom, its widest possible extent (two-character boxes in all three slots) ending at the rectangle's right edge, so the middle box does not move.
+- **difficulty**, without points (rests, exits, dangers), in the rectangle's lower right: its bottom on the rectangle's bottom, its widest possible extent (two-character boxes in all three slots) ending at the rectangle's right edge, so the middle box does not move.
 - The **altitude group** (altitude, with poi under it) in the rectangle's upper left: the top of the altitude's digits level with the rectangle's top, its box starting a small space right of the ascent line's ring.
 
 ## Removed from page A

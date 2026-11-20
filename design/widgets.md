@@ -56,7 +56,7 @@ What the climber is on, and what the uncertainty reaches.
 - Rest `R`, exit `E`, danger `D`: outlined boxes in their colours, letters in the same colour.
 - The letters are centred in the box both ways, on the capitals' height.
 
-Options: the profile's colour map and danger setting, so the two always agree; and which kinds of point it shows, each of rests, exits and dangers on or off (all on in the mock; to be settled). With rests off, a rest stretch shows as `W`.
+Options: the profile's colour map and danger setting, so the two always agree; and which kinds of point it shows, each of rests, exits and dangers on or off (all off by default: the poi word in the altitude group names them; the prototype shows none). With rests off, a rest stretch shows as `W`.
 
 ## altitude
 

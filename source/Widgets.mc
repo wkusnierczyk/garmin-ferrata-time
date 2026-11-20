@@ -152,19 +152,20 @@ module Widgets {
 
     // The section the climber is estimated in, in a larger box centred on x; the nearest thing behind
     // and ahead within the uncertainty stretch in smaller boxes beside it. All share the bottom yb.
-    function difficulty(d as Draw, st as Climb.State, x as Float, yb as Float) as Void {
+    // Without points, only sections count, and a rest shows as walking ground (W).
+    function difficulty(d as Draw, st as Climb.State, x as Float, yb as Float, points as Boolean) as Void {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
         var cur = st.cur;
         var left = NONE, right = NONE, leftDist = 1.0e9, rightDist = 1.0e9;
         // The neighbouring sections; a point at the same distance wins over them.
         if (cur > 0 && Climb.dAt(cur) >= lo) {
-            left = Climb.GRADE[cur - 1]; leftDist = st.d - Climb.dAt(cur) + 0.01;
+            left = section(cur - 1, points); leftDist = st.d - Climb.dAt(cur) + 0.01;
         }
         if (cur < Climb.count() - 1 && Climb.dAt(cur + 1) <= hi) {
-            right = Climb.GRADE[cur + 1]; rightDist = Climb.dAt(cur + 1) - st.d + 0.01;
+            right = section(cur + 1, points); rightDist = Climb.dAt(cur + 1) - st.d + 0.01;
         }
-        var n = Climb.EXIT_AT.size() + Climb.DANGER_AT.size();
+        var n = points ? Climb.EXIT_AT.size() + Climb.DANGER_AT.size() : 0;
         for (var j = 0; j < n; j++) {
             var p = 0.0, code = CODE_EXIT;
             if (j < Climb.EXIT_AT.size()) {
@@ -175,10 +176,16 @@ module Widgets {
             if (p >= lo && p <= st.d && st.d - p < leftDist) { left = code; leftDist = st.d - p; }
             if (p > st.d && p <= hi && p - st.d < rightDist) { right = code; rightDist = p - st.d; }
         }
-        var mid = Climb.GRADE[cur], half = boxWidth(mid, 1.0) / 2;
+        var mid = section(cur, points), half = boxWidth(mid, 1.0) / 2;
         badge(d, x, yb, 1.0, mid);
         if (left != NONE) { badge(d, x - half - BOX_GAP - boxWidth(left, SATELLITE) / 2, yb, SATELLITE, left); }
         if (right != NONE) { badge(d, x + half + BOX_GAP + boxWidth(right, SATELLITE) / 2, yb, SATELLITE, right); }
+    }
+
+    // A section's box code; a rest is walking ground when points are left out.
+    function section(i as Number, points as Boolean) as Number {
+        var g = Climb.GRADE[i];
+        return g < 0 && !points ? 0 : g;
     }
 
     // How far the difficulty widget can reach right of its centre: two-character boxes in every slot.
