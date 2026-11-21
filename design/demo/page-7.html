@@ -766,10 +766,6 @@ function symbol(x, y, word, size, filled, passed) {
   return `<path d="M${x - k} ${y - k}L${x + k} ${y + k}M${x + k} ${y - k}L${x - k} ${y + k}" stroke="${colour}" stroke-width="4" stroke-linecap="round"/>`;
 }
 
-// Page 7, version 1: the front view on the right; on the left, as on page 6: the current difficulty
-// in a filled box, above it the poi word (ending left of the box's centre, only while a point is near)
-// and the altitude (its number ending at the box's right edge, the unit past it) on one baseline,
-// below it what comes next on one line.
 // The current difficulty group: the current difficulty in a filled box centred on (cx, by); above it,
 // on one baseline, the altitude (its unit included) right-aligned with the box's right edge and the
 // point of interest (symbol or word, 10 % smaller) starting where the rounding of the box's left
