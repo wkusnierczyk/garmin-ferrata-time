@@ -215,7 +215,7 @@ module Pages {
     // larger, its box centred vertically on the screen.
     function frontPage(d as Draw, st as Climb.State) as Void {
         Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
-        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15, false, true);
+        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15, true);
     }
 
     // ---------------------------------------------------------------- page 8, version 1: the centre
@@ -224,7 +224,7 @@ module Pages {
     // safety signs; the ascent as a gauge around the edge.
     function centrePage(d as Draw, st as Climb.State) as Void {
         Widgets.ascentGauge(d, st, true);
-        Widgets.currentDifficultyGroup(d, st, 208.0, 208.0, 1.5, true, false);
+        Widgets.currentDifficultyGroup(d, st, 208.0, 208.0, 1.5, false);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

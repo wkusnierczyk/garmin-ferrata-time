@@ -11,6 +11,7 @@ module Widgets {
     const CLIMBER = 0xff6f3c;
     const REST = 0x3a86ff;
     const GREEN = 0x3fd77f;
+    // Red is the route's top (end dots, the stop symbol); danger is yellow, a warning (WARNING).
     const RED = 0xff4b4b;
     const SCALE = 0x777777;
     const WHITE = Graphics.COLOR_WHITE;
@@ -66,7 +67,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, RED, dd <= st.d);
+            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
@@ -162,7 +163,7 @@ module Widgets {
         } else if (code == CODE_EXIT) {
             text = "E"; colour = GREEN;
         } else if (code == CODE_DANGER) {
-            text = "D"; colour = RED;
+            text = "D"; colour = WARNING;
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
         var w = Math.round(boxWidth(code, k)), h = Math.round(BOX_H * k), top = yb - h;
@@ -291,7 +292,7 @@ module Widgets {
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var p = Climb.DANGER_AT[e].toFloat();
             var dist = (p - st.d).abs();
-            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = RED; }
+            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = WARNING; }
         }
         if (word.length() > 0) {
             d.textCapTop(x, yt, Graphics.FONT_XTINY, word, colour, Graphics.TEXT_JUSTIFY_RIGHT);
@@ -415,8 +416,6 @@ module Widgets {
 
     // The section names' distance from the column, clear of the points' rings on its right edge.
     const NAME_GAP = 18;
-    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
-    const POI_DANGER = 0xffd60a;
 
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
@@ -448,7 +447,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var de = Climb.DANGER_AT[e].toFloat();
-            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+            at.add(de); lo.add(de); hi.add(de); colour.add(WARNING); rank.add(0);
         }
         var td = Climb.totalD().toFloat();
         at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
@@ -713,7 +712,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st, byUp); }
     }
 
     function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
@@ -940,7 +939,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
         var s0 = pts[0], s1 = pts[pts.size() - 1];
         d.dot(s0[0], s0[1], 6, GREEN);
         d.dot(s1[0], s1[1], 6, RED);
@@ -1001,32 +1000,33 @@ module Widgets {
         return kind;
     }
 
-    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a triangle for
-    // danger, a square for a rest, a green cross for an exit. With signs (page 8) the danger triangle is
-    // yellow, a warning; a rest is a pause, two blue bars; the start is play, a green triangle pointing
-    // right; the top is stop, a red square.
+    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb, after safety
+    // signs and media controls: danger a yellow triangle (a warning), exit a green arrow pointing down
+    // to the right (a way off), a rest a pause (two blue bars), the start play (a green triangle
+    // pointing right), the top stop (a red square).
     const WARNING = 0xffd60a;
 
-    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float, signs as Boolean) as Void {
+    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float) as Void {
         var h = size / 2, cx = x + h;
         if (kind == 0) {
             var top = yb - h * 1.8;
-            d.dc.setColor(signs ? WARNING : RED, Graphics.COLOR_TRANSPARENT);
+            d.dc.setColor(WARNING, Graphics.COLOR_TRANSPARENT);
             d.dc.fillPolygon([[d.s(cx), d.s(top)], [d.s(cx + h * 1.1), d.s(yb)], [d.s(cx - h * 1.1), d.s(yb)]]);
-        } else if (kind == 2 && signs) {
+        } else if (kind == 2) {
             d.roundRect(cx - h * 0.8, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
             d.roundRect(cx + h * 0.2, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
-        } else if (kind == 2) {
-            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, REST);
         } else if (kind == POI_START) {
             d.dc.setColor(GREEN, Graphics.COLOR_TRANSPARENT);
             d.dc.fillPolygon([[d.s(cx - h * 0.7), d.s(yb - h * 1.6)], [d.s(cx + h * 0.9), d.s(yb - h * 0.8)], [d.s(cx - h * 0.7), d.s(yb)]]);
         } else if (kind == POI_TOP) {
             d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, RED);
         } else if (kind == 1) {
-            var k = h * 0.75, cy = yb - k - 2;
-            d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
-            d.line(cx + k, cy - k, cx - k, cy + k, GREEN, 4);
+            // The arrow across the square the cross took, round-ended: its shaft from the upper left,
+            // its head's two strokes back from the tip, along the bottom and up the right side.
+            var k = h * 0.75, a = k * 1.1, cy = yb - k - 2;
+            d.brush(cx - k, cy - k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k - a, cy + k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k, cy + k - a, cx + k, cy + k, 2, GREEN);
         }
     }
 
@@ -1034,10 +1034,9 @@ module Widgets {
     // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
     // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
     // corner rounding ends; below it what comes next, "K4 125 m", centred.
-    // With signs (page 8), the point symbols follow safety signs and include the start and the top.
     // With fit (page 7), the box widens to the line above; without it (page 8) it keeps 88 by 62 times k
     // and the symbol moves left only if the altitude would touch it.
-    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, signs as Boolean,
+    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float,
             fit as Boolean) as Void {
         var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
         // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
@@ -1052,11 +1051,11 @@ module Widgets {
         d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         // The symbol starts where the box's corner rounding ends (or, without fit, further left if the
         // altitude would touch it).
-        var kind = poiKind(st, signs);
+        var kind = poiKind(st, true);
         if (kind >= 0) {
             // The danger triangle, the widest symbol, spans 1.1 times its size.
             var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - 1.1 * size;
-            poiSymbol(d, kind, fit || x < clear ? x : clear, base, size, signs);
+            poiSymbol(d, kind, fit || x < clear ? x : clear, base, size);
         }
         nextShort(d, st, cx, by + bh / 2 + 26 * k);
     }
