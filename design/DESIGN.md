@@ -7,7 +7,7 @@ Owner: Wacek
 Platform: Garmin Connect IQ, Monkey C  
 Reference demo: `demo/index.html`
 
-"Ferrata Time" is a working title. This document records the design as settled so far, and separates what is decided from what is open. The demo is the behavioural reference for the layouts; where this document and the demo disagree, this document wins.
+The installed app is called **Ferrata**: it is an activity, not a watch face, so it does not take the family's "Time" name. "Ferrata Time" names the project and the repository. The watch face planned in sections 3 and 4, and in the constraints and decisions that mention it, predates the move to one watch app and is not planned for now; this document is brought up to date after the first prototype. This document records the design as settled so far, and separates what is decided from what is open. The demo is the behavioural reference for the layouts; where this document and the demo disagree, this document wins.
 
 ## Contents
 
