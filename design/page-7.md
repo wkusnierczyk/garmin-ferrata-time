@@ -13,4 +13,6 @@ The route seen from the front, as on a topo photo of the face. The app's seventh
 - Point symbols as on page 8 (`design/page-8.md`): danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause, start a green play, top a red stop.
 - Difficulty colours: heat with amber, no purple.
 
+The mock draws the group's box at its base width; on the watch it widens to fit the line above it (corner, symbol, gap, altitude and unit), as the owner chose on the wrist, and its letters and corner follow the watch's sizes.
+
 The demo route's sideways travel is made up (`Climb.SIDE`). A real route needs a frontal track traced from a topo; a GPS track gives the map view, not the face.
