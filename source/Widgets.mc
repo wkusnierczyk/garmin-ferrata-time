@@ -515,9 +515,14 @@ module Widgets {
 
     // A name cut to fit a width, ending in an ellipsis when cut.
     function fitName(d as Draw, name as String, w as Float) as String {
-        if (d.width(Graphics.FONT_XTINY, name) <= w) { return name; }
+        return fitIn(d, Graphics.FONT_XTINY, name, w);
+    }
+
+    // The same in a given font.
+    function fitIn(d as Draw, font as Graphics.FontType, name as String, w as Float) as String {
+        if (d.width(font, name) <= w) { return name; }
         var n = name.length();
-        while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
+        while (n > 1 && d.width(font, name.substring(0, n) + "…") > w) { n--; }
         return name.substring(0, n) + "…";
     }
 
@@ -737,7 +742,11 @@ module Widgets {
     // The current difficulty in a large filled box centred on (x, y), its letters size px tall (the
     // scalable font's size); a rest shows as W.
     function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
-        var g = section(st.cur, false);
+        bigDifficultyOf(d, section(st.cur, false), x, y, w, h, size);
+    }
+
+    // The same box for difficulty g.
+    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
         d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
         // A scalable bold font where the watch has one, the largest text font otherwise; the letters
         // centred on their capitals, as textCapMiddle does.
@@ -749,6 +758,68 @@ module Widgets {
         } else {
             d.textCapCentre(x, y, Graphics.FONT_LARGE, BOX_NAME[g], BLACK);
         }
+    }
+
+    // ---------------------------------------------------------------- selection gauge (page 9)
+
+    // The points' rings inside the gauge, 4 px clear of the sections.
+    const SEL_POI_R = G_R - G_PEN / 2 - 4 - 8.5;
+
+    // Whether the point at distance dist is in section i or at its foot or top.
+    function holds(i as Number, dist as Float) as Boolean {
+        return dist >= Climb.dAt(i) && dist <= Climb.dAt(i + 1);
+    }
+
+    // The gauge by ascent showing section sel, not the climber: sel at full colour, the others dimmed,
+    // no climber line; the points as rings inside the gauge, lit where sel shows their symbol
+    // (sectionPoints), dimmed elsewhere.
+    function selectionGauge(d as Draw, sel as Number) as Void {
+        for (var i = 0; i < Climb.count(); i++) {
+            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), true), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), true) + 0.5;
+            d.arc(G_R, s0, s1, d.grade(section(i, false), i != sel), G_PEN);
+        }
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                selectionPoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, (i - sel).abs() <= 1);
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
+            selectionPoint(d, de, GREEN, holds(sel, de));
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            selectionPoint(d, de, WARNING, holds(sel, de));
+        }
+    }
+
+    function selectionPoint(d as Draw, dist as Float, c as Number, lit as Boolean) as Void {
+        var p = d.onCircle(SEL_POI_R, gaugeAngle(dist, true));
+        d.dot(p[0], p[1], 8, BLACK);
+        d.ring(p[0], p[1], 7, lit ? c : d.darken(c, 0.33), 3);
+    }
+
+    // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,
+    // top: a point in it or at its foot or top; a rest that is the section itself or right before or
+    // after it; the route's top for the last section.
+    function sectionPoints(i as Number) as Array<Number> {
+        var kinds = [] as Array<Number>, n = Climb.count();
+        var danger = false, exit = false;
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { if (holds(i, Climb.DANGER_AT[e].toFloat())) { danger = true; } }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { if (holds(i, Climb.dAt(Climb.EXIT_AT[e]).toFloat())) { exit = true; } }
+        if (danger) { kinds.add(0); }
+        if (exit) { kinds.add(1); }
+        if (Climb.GRADE[i] < 0 || i > 0 && Climb.GRADE[i - 1] < 0 || i < n - 1 && Climb.GRADE[i + 1] < 0) { kinds.add(2); }
+        if (i == n - 1) { kinds.add(POI_TOP); }
+        return kinds;
+    }
+
+    // A chevron centred on (x, y) pointing left (dir -1) or right (1), round-ended; dimmed when there
+    // is nothing that way.
+    function chevron(d as Draw, x as Float, y as Float, dir as Number, on as Boolean) as Void {
+        var c = on ? WHITE : 0x444444, tip = x + dir * 7, back = x - dir * 7;
+        d.brush(back, y - 13, tip, y, 2.5, c);
+        d.brush(tip, y, back, y + 13, 2.5, c);
     }
 
     // What comes next: the next section of a different difficulty and the distance to its start along

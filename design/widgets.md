@@ -178,3 +178,15 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 - The difficulty colour map for the earlier pages. Pages 1 to 8 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
+
+## selection gauge (page 9)
+
+Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as rings just inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol (*section points*), dimmed elsewhere.
+
+## chevron (page 9)
+
+A left- or right-pointing chevron, round-ended, white; dimmed when there is nothing that way.
+
+## section points (page 9)
+
+The points a section includes or is next to, as symbols after its name: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; danger first, then exit, rest, top. They stand on the name's baseline.
