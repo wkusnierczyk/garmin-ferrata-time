@@ -1,6 +1,6 @@
 # Build verification (#10), cut down from Climber Time's build.yml
 # (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
-# release branch, and every pull request, compiles the app for the epix Pro (Gen 2) 47 mm. Every
+# release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
 # target device (#11), the store bundle (#12), the unit tests (#13) and the checks that need no
 # SDK (#14) come with the design and functionality.
 #
@@ -12,8 +12,9 @@
 #
 # It is a PRIVATE package. The job logs in to ghcr.io with the run's GITHUB_TOKEN, which needs
 # packages: read (below), and the package's settings grant this repository read access ("Manage
-# Actions access"). A pull request from a fork cannot pull it, so the job is skipped for one (its
-# if:), where it would only fail at the pull.
+# Actions access"). A fork's pull request is not granted that access here, so the job is skipped for
+# one (its if:), where it would only fail at the pull: a choice, since a package could be shared with
+# forks too.
 #
 # Pinned by digest, with the tag trailing: a tag is mutable, and a retag would swap the build
 # environment with no diff here to show it.
