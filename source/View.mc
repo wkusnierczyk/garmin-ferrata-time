@@ -1,5 +1,6 @@
 using Toybox.Graphics;
 using Toybox.Math;
+using Toybox.System;
 using Toybox.Timer;
 using Toybox.WatchUi;
 
@@ -11,17 +12,22 @@ class View extends WatchUi.View {
     const TICK_MS = 250;
     const LOOP_SECONDS = 120.0;
     const HOLD_AT_TOP_SECONDS = 4.0;
+    // The page dots show for this long after the app opens or the page changes, as the watch's own
+    // page indicator does.
+    const DOTS_MS = 2000;
 
     var page as Number = 0;
     var paused as Boolean = false;
     var seconds as Float = 0.0;
     var timer as Timer.Timer?;
+    var dotsUntil as Number = 0;
 
     function initialize() {
         View.initialize();
     }
 
     function onShow() as Void {
+        dotsUntil = System.getTimer() + DOTS_MS;
         var t = new Timer.Timer();
         t.start(method(:tick), TICK_MS, true);
         timer = t;
@@ -50,7 +56,7 @@ class View extends WatchUi.View {
     function onUpdate(dc as Graphics.Dc) as Void {
         var d = new Draw(dc);
         Pages.draw(page, d, new Climb.State(minute()));
-        pageDots(d);
+        if (System.getTimer() < dotsUntil) { pageDots(d); }
         if (paused) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
     }
 
@@ -66,6 +72,7 @@ class View extends WatchUi.View {
 
     function nextPage(step as Number) as Void {
         page = (page + step + Pages.COUNT) % Pages.COUNT;
+        dotsUntil = System.getTimer() + DOTS_MS;
         WatchUi.requestUpdate();
     }
 
