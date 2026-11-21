@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 17;
+    const COUNT = 18;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -18,17 +18,19 @@ module Pages {
             case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }
             case 3: { d.colours = d.HEAT_AMBER; stackByAscent(d, st); break; }
             case 4: { d.colours = d.HEAT_AMBER; stackByPath(d, st); break; }
-            case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st); break; }
-            case 6: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
-            case 7: { profile(d, st); break; }
-            case 8: { combined(d, st); break; }
-            case 9: { ladderPage(d, st); break; }
-            case 10: { whereAmI(d, st); break; }
-            case 11: { whatsNext(d, st); break; }
-            case 12: { timeStrip(d, st); break; }
-            case 13: { bigHeight(d, st); break; }
-            case 14: { bigNextHard(d, st); break; }
-            case 15: { bigTop(d, st); break; }
+            // Pages 6a and 6b: the gauge by length along the route, and by ascent.
+            case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st, false); break; }
+            case 6: { d.colours = d.HEAT_AMBER; gaugePage(d, st, true); break; }
+            case 7: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
+            case 8: { profile(d, st); break; }
+            case 9: { combined(d, st); break; }
+            case 10: { ladderPage(d, st); break; }
+            case 11: { whereAmI(d, st); break; }
+            case 12: { whatsNext(d, st); break; }
+            case 13: { timeStrip(d, st); break; }
+            case 14: { bigHeight(d, st); break; }
+            case 15: { bigNextHard(d, st); break; }
+            case 16: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -166,9 +168,9 @@ module Pages {
 
     // ---------------------------------------------------------------- pages 4 and 5: the difficulty stack
 
-    // Page 4: the stack by ascent, 2.5 px per metre climbed, altitudes every 20 m (100 ft).
+    // Page 4: the stack by ascent, 3 px per metre climbed, altitudes every 20 m (100 ft).
     function stackByAscent(d as Draw, st as Climb.State) as Void {
-        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true, 20, 100, 200);
+        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 3.0, true, 20, 100, 200);
     }
 
     // Page 5: the stack by path, 1 px per metre along the route, centred as a group (its tick labels,
@@ -180,14 +182,15 @@ module Pages {
         Widgets.stack(d, st, false, left, 64.0, 352.0, 1.0, true, 10, 50, Widgets.AG_R - 14);
     }
 
-    // ---------------------------------------------------------------- page 6, version 1: the gauge
+    // ---------------------------------------------------------------- pages 6a and 6b, version 1: the gauge
 
-    // design/page-6.md: the gauge; the current difficulty large in the middle; above it the poi word
+    // design/page-6.md: the gauge, each section's arc its length along the route (6a) or the metres it
+    // climbs (byUp, 6b); the current difficulty large in the middle; above it the poi word
     // (ending left of centre) and the altitude (its number ending at the box's right edge, the unit past
     // it) on one baseline; below it what comes next; at the bottom the ascent laid flat.
-    function gaugePage(d as Draw, st as Climb.State) as Void {
+    function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = 132.0, bh = 92.0, by = 186.0;
-        Widgets.gauge(d, st);
+        Widgets.gauge(d, st, byUp);
         Widgets.bigDifficulty(d, st, 208.0, by, bw, bh, 64);
         var font = Graphics.FONT_TINY, base = 100 + d.capHeight(font);
         Widgets.poi(d, st, 200.0, base - d.capHeight(Graphics.FONT_XTINY));
