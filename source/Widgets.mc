@@ -22,7 +22,6 @@ module Widgets {
     const NUMBER_SPACE = 5;
 
     // The difficulty widget's boxes: codes 0 to 5 are walk and K1 to K5, then rest, exit and danger.
-    const CODE_REST = -1;
     const CODE_EXIT = -2;
     const CODE_DANGER = -3;
     const NONE = -99;
@@ -82,8 +81,9 @@ module Widgets {
         var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
         var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
         var dd = lo;
+        // Every 8 m: smooth at this scale, and half the circles of every 4 m.
         while (dd < hi) {
-            dd += 4;
+            dd += 8;
             if (dd > hi) { dd = hi; }
             var nx = x0 + dd / td * w, ny = y0 - Climb.heightAtDistance(dd) / tu * h;
             d.brush(px, py, nx, ny, r, c);

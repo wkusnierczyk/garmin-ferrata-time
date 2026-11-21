@@ -5,6 +5,8 @@ Reference mock: `design/demo/page-1.html`
 
 The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Coordinates are in the design's 416 px screen. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
 
+The options below are the mocks'. The app draws each page with the settings it was settled with, so it does not yet carry every option: page 1, for example, has one switch for the difficulty widget's points and always shows danger points.
+
 Shared colours:
 
 | Use | Colour |

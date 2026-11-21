@@ -133,7 +133,7 @@ module Climb {
         }
 
         function altitude() as Number { return START_ALT + u.toNumber(); }
-        function climbed() as Number { return u.toNumber(); }
+        function climbed() as Number { return Math.round(u).toNumber(); }
         function elapsed() as Float { return m * PACE; }
         function left() as Float { return (totalM() - m) * PACE; }
         function clock() as Float { return START_CLOCK + elapsed(); }
