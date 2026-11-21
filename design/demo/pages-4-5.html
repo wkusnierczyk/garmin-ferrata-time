@@ -108,6 +108,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The climber is a white line across the column with the orange ring of the ascent widget on the column's right edge, clear of the letters.</li>
       <li>The demo plays at a vertical pace: walks pass quickly, walls slowly, and each grade above walking 10 % slower than the one below. A flat section takes as long as 5 m of climbing.</li>
       <li>Ticks run only along the route, not below its start or above its top. Ticks and labels are in the altitude unit: every 10 m by default, or every 10 ft in feet, which is dense; the step menu changes it. Resolution to be discussed.</li>
+      <li>On page 4 the label just above the climber, the next altitude to reach, is 20 % larger (22 px against 18), and always shown; the other labels make room around it.</li>
       <li>Not yet: a title above the stack, or the current difficulty and altitude below it, as in the sketch.</li>
     </ul>
   </section>
@@ -555,13 +556,24 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   // it would touch the one below.
   const vLo = Math.max(0, here - (ST_BOTTOM - cy) / scale), vHi = Math.min(up ? TU : TD, here + (cy - ST_TOP) / scale);
   const lo = fromU(up ? vLo : heightAt(vLo)), hi = fromU(up ? vHi : heightAt(vHi));
-  let lastLabel = Infinity;
+  // On page 4 the label just above the climber, the next altitude to reach, is 20% larger; it is always
+  // shown, and the others are left out around it.
+  const ticks = [], now = fromU(here);
   for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
     const y = Y(up ? toU(v) : firstAt(toU(v)));
     s += `<line x1="${ST_LEFT - 9}" y1="${y.toFixed(1)}" x2="${ST_LEFT - 3}" y2="${y.toFixed(1)}" stroke="#777" stroke-width="2"/>`;
-    if (lastLabel - y >= 18) {
-      s += `<text x="${ST_LEFT - 14}" y="${(y + 0.35 * 18).toFixed(1)}" text-anchor="end" fill="#99aaaa" font-size="18" font-weight="600" font-family="${NUMBER_FONT}">${v}</text>`;
-      lastLabel = y;
+    ticks.push({ v, y, fs: 18 });
+  }
+  const next = up ? ticks.findIndex(t => t.v > now) : -1;
+  if (next >= 0) ticks[next].fs = 22;
+  const label = t => `<text x="${ST_LEFT - 14}" y="${(t.y + 0.35 * t.fs).toFixed(1)}" text-anchor="end" fill="#99aaaa" font-size="${t.fs}" font-weight="600" font-family="${NUMBER_FONT}">${t.v}</text>`;
+  // Labels outward from the larger one (upward from the bottom where there is none), each kept clear
+  // of the last one shown.
+  const from = Math.max(next, 0), clear = (a, b) => Math.abs(a.y - b.y) >= (a.fs + b.fs) / 2;
+  for (const dir of [1, -1]) {
+    let last = dir < 0 && next >= 0 ? ticks[next] : null;
+    for (let k = dir > 0 ? from : from - 1; k >= 0 && k < ticks.length; k += dir) {
+      if (last === null || clear(last, ticks[k])) { s += label(ticks[k]); last = ticks[k]; }
     }
   }
   // The climber: a white line across the column, with the orange ring on its right edge, clear of the letters.

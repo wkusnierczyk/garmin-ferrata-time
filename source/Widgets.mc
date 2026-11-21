@@ -443,6 +443,25 @@ module Widgets {
         return name.substring(0, n) + "…";
     }
 
+    // The next altitude's label: 20 % taller than the other tick labels, in a scalable font where the
+    // watch has one (sized once, then corrected by the height it measures), the next system font
+    // otherwise.
+    var nextFont as Graphics.FontType? = null;
+
+    function nextLabelFont(d as Draw) as Graphics.FontType {
+        if (nextFont == null) {
+            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * 1.2;
+            var size = Math.round(want).toNumber();
+            var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size});
+            if (vf != null) {
+                var h = d.dc.getFontHeight(vf);
+                if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
+            }
+            nextFont = vf != null ? vf : Graphics.FONT_TINY;
+        }
+        return nextFont as Graphics.FontType;
+    }
+
     // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
     // from the centre: the screen's edge, or inside a gauge around it.
     function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
@@ -514,14 +533,32 @@ module Widgets {
         var uLo = byUp ? vLo : Climb.heightAtDistance(vLo), uHi = byUp ? vHi : Climb.heightAtDistance(vHi);
         var k = ft ? 3.28084 : 1.0;
         var aLo = (Climb.START_ALT + uLo) * k, aHi = (Climb.START_ALT + uHi) * k;
-        var lastLabel = 9999.0;
+        var ticks = [] as Array<Number>, ys = [] as Array<Float>;
         for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
             var u = a / k - Climb.START_ALT;
             var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
             d.rect(left - 9, y - 1, 6, 2, SCALE);
-            if (lastLabel - y >= d.capHeight(Graphics.FONT_XTINY) + 6) {
-                d.textCapMiddle(left - 14, y, Graphics.FONT_XTINY, a.format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
-                lastLabel = y;
+            ticks.add(a);
+            ys.add(y);
+        }
+        // By ascent the label just above the climber, the next altitude to reach, is 20 % larger and
+        // always shown; the others are left out around it, each kept clear of the last one shown.
+        var next = -1, now = (Climb.START_ALT + here) * k;
+        if (byUp) {
+            for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
+        }
+        var from = next >= 0 ? next : 0;
+        for (var dir = 1; dir >= -1; dir -= 2) {
+            var last = dir < 0 && next >= 0 ? next : -1;
+            for (var t = dir > 0 ? from : from - 1; t >= 0 && t < ticks.size(); t += dir) {
+                var font = t == next ? nextLabelFont(d) : Graphics.FONT_XTINY;
+                if (last >= 0) {
+                    var lastFont = last == next ? nextLabelFont(d) : Graphics.FONT_XTINY;
+                    var gap = (ys[last] - ys[t]).abs();
+                    if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 6) { continue; }
+                }
+                d.textCapMiddle(left - 14, ys[t], font, ticks[t].format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
+                last = t;
             }
         }
         // The climber: a white line across the column, the orange ring on its right edge.
