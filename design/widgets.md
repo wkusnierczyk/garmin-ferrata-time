@@ -105,6 +105,16 @@ In the app, ascent or path is a setting.
 
 Options: ascent or path; the scale; the tick step; names on or off; the colour map. Open: the tick resolution, the scales, and flat sections in the ascent stack (lines, or a minimum height).
 
+## ascent gauge
+
+The ascent widget bent around the screen's edge.
+
+- A thin grey arc from the start at the lower left, over the top, to the route's top at the lower right (284°), leaving the bottom free.
+- The climber's orange ring on it at the height climbed; the start and top as green and red dots.
+- The metres climbed just past the start end, the metres left just past the top end, in the gap at the bottom.
+
+Options: the end dots on or off.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.

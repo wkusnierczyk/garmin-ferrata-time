@@ -167,20 +167,16 @@ module Pages {
 
     // Page 4: the stack by ascent, 2.5 px per metre climbed, altitudes every 20 m (100 ft).
     function stackByAscent(d as Draw, st as Climb.State) as Void {
-        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true, 20, 100);
+        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true, 20, 100, 200);
     }
 
-    // Page 5: the stack by path, 1 px per metre along the route, with the ascent on its left; the two
-    // spread across 56 to 360 px with equal space before, between and after them, the stack counting
-    // its tick labels, its column and room for names.
+    // Page 5: the stack by path, 1 px per metre along the route, centred as a group (its tick labels,
+    // its column and room for names), with the ascent as a gauge around the edge; names stop inside it.
     function stackByPath(d as Draw, st as Climb.State) as Void {
-        var left = 56.0, right = 360.0, top = 64.0, bottom = 352.0;
-        var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
         var labels = Widgets.stackLabels(d);
-        var gap = (right - left - ascW - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES)) / 3;
-        var lx = left + gap + ascLeft;
-        Widgets.ascent(d, st, lx, bottom, bottom - top, true);
-        Widgets.stack(d, st, false, lx + Widgets.RING_OUTER + gap + labels, top, bottom, 1.0, true, 10, 50);
+        var left = 208 - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES) / 2 + labels;
+        Widgets.ascentGauge(d, st, true);
+        Widgets.stack(d, st, false, left, 64.0, 352.0, 1.0, true, 10, 50, Widgets.AG_R - 14);
     }
 
     // ---------------------------------------------------------------- page 6, version 1: the gauge

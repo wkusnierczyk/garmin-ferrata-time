@@ -54,12 +54,12 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
 <main>
   <section>
     <h1>Ferrata · pages 4 and 5, version 1</h1>
-    <p class="lede">The difficulty column again, now <b>to scale</b>, in two variants: on page 4 each section's box is as tall as the metres it <b>climbs</b>; on page 5, as tall as its <b>length along the route</b>, with the <b>ascent</b> widget on its left. In the app the box heights would be a setting. The window moves with the climber, who stays a quarter of the way up from its bottom. <b>Altitude ticks</b> on the left, the sections' <b>names</b> on the right. The current box is filled, the others outlined; those behind the climber dimmed.</p>
+    <p class="lede">The difficulty column again, now <b>to scale</b>, in two variants: on page 4 each section's box is as tall as the metres it <b>climbs</b>; on page 5, as tall as its <b>length along the route</b>, with the <b>ascent</b> as a gauge around the edge. In the app the box heights would be a setting. The window moves with the climber, who stays a quarter of the way up from its bottom. <b>Altitude ticks</b> on the left, the sections' <b>names</b> on the right. The current box is filled, the others outlined; those behind the climber dimmed.</p>
   </section>
   <section class="live">
     <div class="pair">
       <figure><div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 4: boxes by the metres climbed"></svg></div><figcaption>Page 4 · by ascent</figcaption></figure>
-      <figure><div class="dial"><svg id="live5" viewBox="0 0 416 416" role="img" aria-label="Page 5: boxes by path length, with the ascent"></svg></div><figcaption>Page 5 · by path, with the ascent</figcaption></figure>
+      <figure><div class="dial"><svg id="live5" viewBox="0 0 416 416" role="img" aria-label="Page 5: boxes by path length, with the ascent"></svg></div><figcaption>Page 5 · by path, with the ascent gauge</figcaption></figure>
     </div>
     <div class="controls">
       <label for="pos">Point of the climb</label>
@@ -93,7 +93,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
     <div class="row" id="row"></div>
   </section>
   <section>
-    <h2>Page 5 through the climb: by path, with the ascent</h2>
+    <h2>Page 5 through the climb: by path, with the ascent gauge</h2>
     <div class="row" id="row5"></div>
   </section>
   <section class="notes">
@@ -102,7 +102,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The window is 288 px tall on the 416 px screen. At 2.5 px per metre it shows about 115 m: about 29 m below the climber and 86 m above.</li>
       <li>Flat sections (the Ledge and the Bench rests) climb nothing, so they have no height: each is a line across the column at its altitude, with its name.</li>
       <li>Letters are centred on the part of a box that is in view, and left out when that part is too short for them. Names are centred the same way and cut with an ellipsis to fit the round screen.</li>
-      <li>Page 5 spreads the ascent and the stack across 56 to 360 px with equal space before, between and after them, as page 3 does. The stack counts as its tick labels, its column and 80 px for names; names may run on to the round edge, cut to fit. The ascent's line is as tall as the stack's window.</li>
+      <li>On page 5 the ascent is a gauge: a thin arc around the edge from the start at the lower left, over the top, to the top of the route at the lower right, with the climber's orange ring at the height climbed. The metres climbed sit just past the start end, the metres left just past the top end, in the gap at the bottom. The stack is centred as a group (tick labels, column, 80 px for names); names stop inside the gauge.</li>
       <li>By path, flat sections are real boxes, and walls are short. Altitude ticks sit where the route first reaches each altitude: they crowd on walls and spread on walks; a label is left out when it would touch the one below.</li>
       <li>The boxes meet with no gap. A border between two boxes is drawn in the colour of the one closer to the current box; next to the current box, in the current box's colour.</li>
       <li>The climber is a white line across the column with the orange ring of the ascent widget on the column's right edge, clear of the letters.</li>
@@ -489,7 +489,8 @@ function fit(t, px, w) {
 }
 // by "up": each box as tall as the metres its section climbs (page 4); by "path": as tall as its
 // length along the route (page 5).
-function stack(st, opt, by, ST_LEFT = 164) {
+// Names stop at radius nameR from the centre: the screen's edge, or inside a gauge around it.
+function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   const up = by === "up", colours = opt.colours.c, scale = up ? opt.scale : opt.pathScale;
   const at = i => up ? U[i] : D[i], size = i => up ? UP[i] : LEN[i], here = up ? st.u : st.d;
   const cy = ST_BOTTOM - (ST_BOTTOM - ST_TOP) / 4;
@@ -539,7 +540,7 @@ function stack(st, opt, by, ST_LEFT = 164) {
       if (i === N - 1) borders += line(yt + 1.5, colour);
     }
     // The name on the right, centred on the visible part, cut to fit the round screen.
-    const ny = size(i) === 0 ? yb : vm, room = 208 + Math.sqrt(Math.max(0, 200 * 200 - (ny - 208) ** 2)) - (right + 12);
+    const ny = size(i) === 0 ? yb : vm, room = 208 + Math.sqrt(Math.max(0, nameR * nameR - (ny - 208) ** 2)) - (right + 12);
     if (opt.names && room > 30 && (size(i) === 0 || vb - vt >= 16)) {
       names += `<text x="${right + 12}" y="${(ny + 0.35 * 20).toFixed(1)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="20" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 20, room)}</text>`;
     }
@@ -569,17 +570,33 @@ function stack(st, opt, by, ST_LEFT = 164) {
   return s;
 }
 function page4(st, opt) { return stack(st, { ...opt, step: opt.step4 }, "up"); }
-// Page 5: the stack by path, with the ascent widget on its left, the two spread across 56 to 360 px with equal
-// space before, between and after them. The stack's part is its tick labels, its column and a
-// name allowance (P6_NAMES); the names may run on to the round edge. The ascent is as tall as the
-// stack's window.
-const P6_LEFT = 56, P6_RIGHT = 360, P6_NAMES = 80;
+// The ascent as a gauge: a thin arc around the screen's edge from the start (lower left) over the
+// top to the top of the route (lower right), the climber's orange ring on it at the height climbed,
+// the start and top as green and red dots, and the metres climbed and left just past the arc's two
+// ends, in the gap at the bottom.
+const AG_R = 192, AG_FROM = 232, AG_SPAN = 284;
+function ascentGauge(st, opt) {
+  const at = f => { const a = (AG_FROM - f * AG_SPAN) * Math.PI / 180; return [208 + AG_R * Math.cos(a), 208 - AG_R * Math.sin(a)]; };
+  const [sx, sy] = at(0), [ex, ey] = at(1), [rx, ry] = at(st.u / TU);
+  let s = `<path d="M${sx.toFixed(1)} ${sy.toFixed(1)} A${AG_R} ${AG_R} 0 1 1 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${SCALE}" stroke-width="2"/>`;
+  s += `<circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="9" fill="#000"/>`;
+  if (opt.ends) s += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6" fill="${EXIT_GREEN}"/><circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="6" fill="${END_RED}"/>`;
+  s += `<circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="2.5"/>`;
+  // The numbers just past the ends, on the arc's continuation into the bottom gap.
+  const past = (f, t) => { const a = (AG_FROM - f * AG_SPAN + (f ? -11 : 11)) * Math.PI / 180;
+    const x = 208 + AG_R * Math.cos(a), y = 208 - AG_R * Math.sin(a);
+    return `<text x="${x.toFixed(1)}" y="${(y + 0.35 * 22).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="22" font-weight="600" font-family="${NUMBER_FONT}">${t}</text>`; };
+  const up = Math.round(st.u);
+  return s + past(0, up) + past(1, TU - up);
+}
+
+// Page 5: the stack by path, centred as a group (its tick labels, its column and room for names),
+// with the ascent as a gauge around the edge; names stop inside the gauge.
+const P5_NAMES = 80;
 function page5(st, opt) {
-  const ascLeft = ascNumbersWidth() + NUMBER_SPACE + RING_OUTER, ascW = ascLeft + RING_OUTER;
   const labels = textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), 18) + 14;
-  const stackW = labels + ST_W + 12 + P6_NAMES;
-  const gap = (P6_RIGHT - P6_LEFT - ascW - stackW) / 3, lx = P6_LEFT + gap + ascLeft;
-  return ascent(st, lx, ST_BOTTOM, ST_BOTTOM - ST_TOP, opt.ends) + stack(st, opt, "path", lx + RING_OUTER + gap + labels);
+  const left = 208 - (labels + ST_W + 12 + P5_NAMES) / 2 + labels;
+  return ascentGauge(st, opt) + stack(st, opt, "path", left, AG_R - 14);
 }
 
 // Page 1, version 1: profile and ascent sharing the start, the ascent's foot at the profile's first
