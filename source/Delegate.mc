@@ -1,8 +1,10 @@
+using Toybox.System;
 using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Up and down change page, start pauses the demo, holding Up opens Ask, back leaves.
+// Up and down change page, start pauses the demo, holding Up opens Ask, back leaves. On page 9 a tap
+// on a chevron steps the previewed section.
 class Delegate extends WatchUi.BehaviorDelegate {
 
     var view as View;
@@ -20,6 +22,17 @@ class Delegate extends WatchUi.BehaviorDelegate {
     function onPreviousPage() as Boolean {
         view.nextPage(-1);
         return true;
+    }
+
+    // A tap beside page 9's difficulty box, level with it, steps the section that way.
+    function onTap(evt as WatchUi.ClickEvent) as Boolean {
+        if (view.page != Pages.SECTION_PAGE) { return false; }
+        var xy = evt.getCoordinates(), k = 416.0 / System.getDeviceSettings().screenWidth;
+        var x = xy[0] * k, y = xy[1] * k;
+        if ((y - 186).abs() > 45) { return false; }
+        if (x < 208 - 66 - 10) { view.stepSection(-1); return true; }
+        if (x > 208 + 66 + 10) { view.stepSection(1); return true; }
+        return false;
     }
 
     function onSelect() as Boolean {

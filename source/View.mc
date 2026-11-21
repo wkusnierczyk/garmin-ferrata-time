@@ -13,6 +13,8 @@ class View extends WatchUi.View {
     const HOLD_AT_TOP_SECONDS = 4.0;
 
     var page as Number = 0;
+    // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons.
+    var sel as Number = -1;
     var paused as Boolean = false;
     var seconds as Float = 0.0;
     var timer as Timer.Timer?;
@@ -49,6 +51,7 @@ class View extends WatchUi.View {
 
     function onUpdate(dc as Graphics.Dc) as Void {
         var d = new Draw(dc);
+        Pages.selected = sel;
         Pages.draw(page, d, new Climb.State(minute()));
         pageDots(d);
         if (paused) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
@@ -66,6 +69,16 @@ class View extends WatchUi.View {
 
     function nextPage(step as Number) as Void {
         page = (page + step + Pages.COUNT) % Pages.COUNT;
+        sel = -1;
+        WatchUi.requestUpdate();
+    }
+
+    // Page 9: step the selected section back or on, from the climber's at first, within the route.
+    function stepSection(dir as Number) as Void {
+        var i = (sel >= 0 ? sel : new Climb.State(minute()).cur) + dir;
+        if (i < 0) { i = 0; }
+        if (i > Climb.count() - 1) { i = Climb.count() - 1; }
+        sel = i;
         WatchUi.requestUpdate();
     }
 
