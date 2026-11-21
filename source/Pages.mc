@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 18;
+    const COUNT = 19;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -24,15 +24,16 @@ module Pages {
             case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st, false); break; }
             case 6: { d.colours = d.HEAT_AMBER; gaugePage(d, st, true); break; }
             case 7: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
-            case 8: { profile(d, st); break; }
-            case 9: { combined(d, st); break; }
-            case 10: { ladderPage(d, st); break; }
-            case 11: { whereAmI(d, st); break; }
-            case 12: { whatsNext(d, st); break; }
-            case 13: { timeStrip(d, st); break; }
-            case 14: { bigHeight(d, st); break; }
-            case 15: { bigNextHard(d, st); break; }
-            case 16: { bigTop(d, st); break; }
+            case 8: { d.colours = d.HEAT_AMBER; centrePage(d, st); break; }
+            case 9: { profile(d, st); break; }
+            case 10: { combined(d, st); break; }
+            case 11: { ladderPage(d, st); break; }
+            case 12: { whereAmI(d, st); break; }
+            case 13: { whatsNext(d, st); break; }
+            case 14: { timeStrip(d, st); break; }
+            case 15: { bigHeight(d, st); break; }
+            case 16: { bigNextHard(d, st); break; }
+            case 17: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -214,7 +215,16 @@ module Pages {
     // larger, its box centred vertically on the screen.
     function frontPage(d as Draw, st as Climb.State) as Void {
         Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
-        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15);
+        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15, false, true);
+    }
+
+    // ---------------------------------------------------------------- page 8, version 1: the centre
+
+    // design/page-8.md: the current difficulty group in the middle, 50 % larger, with point symbols after
+    // safety signs; the ascent as a gauge around the edge.
+    function centrePage(d as Draw, st as Climb.State) as Void {
+        Widgets.ascentGauge(d, st, true);
+        Widgets.currentDifficultyGroup(d, st, 208.0, 208.0, 1.5, true, false);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

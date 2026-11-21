@@ -148,10 +148,11 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size.
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size, so at page 8's 150 % the symbol stands taller than the digits.
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 88 by 62 px times the scale, and the symbol moves left only if the altitude would touch it. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- With signs (page 8, `design/page-8.md`), the symbols follow safety signs and media controls: danger a yellow triangle, exit a green cross, rest a blue pause, and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
 ## Groups
@@ -175,5 +176,5 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 7 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 8 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).

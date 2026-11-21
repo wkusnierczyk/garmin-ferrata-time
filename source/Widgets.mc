@@ -967,9 +967,13 @@ module Widgets {
 
     // ---------------------------------------------------------------- current difficulty group
 
-    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, or -1 for none.
-    // The nearest wins; on a tie, danger before exit before rest.
-    function poiKind(st as Climb.State) as Number {
+    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, and with ends
+    // also 3 the top and 4 the start; -1 for none. The nearest wins; on a tie, danger, exit, top,
+    // rest, start.
+    const POI_TOP = 3;
+    const POI_START = 4;
+
+    function poiKind(st as Climb.State, ends as Boolean) as Number {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
         var best = 1.0e9, kind = -1;
@@ -989,19 +993,36 @@ module Widgets {
             var p = Climb.DANGER_AT[e].toFloat(), dist = (p - st.d).abs();
             if (p >= lo && p <= hi && dist <= best) { best = dist; kind = 0; }
         }
+        if (ends) {
+            var top = Climb.totalD().toFloat();
+            if (hi >= top - 0.001 && (top - st.d < best || (top - st.d == best && kind > 1))) { best = top - st.d; kind = POI_TOP; }
+            if (lo <= 0.001 && st.d < best) { best = st.d; kind = POI_START; }
+        }
         return kind;
     }
 
-    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a red triangle
-    // for danger, a blue square for a rest, a green cross for an exit.
-    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float) as Void {
+    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a triangle for
+    // danger, a square for a rest, a green cross for an exit. With signs (page 8) the danger triangle is
+    // yellow, a warning; a rest is a pause, two blue bars; the start is play, a green triangle pointing
+    // right; the top is stop, a red square.
+    const WARNING = 0xffd60a;
+
+    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float, signs as Boolean) as Void {
         var h = size / 2, cx = x + h;
         if (kind == 0) {
             var top = yb - h * 1.8;
-            d.dc.setColor(RED, Graphics.COLOR_TRANSPARENT);
+            d.dc.setColor(signs ? WARNING : RED, Graphics.COLOR_TRANSPARENT);
             d.dc.fillPolygon([[d.s(cx), d.s(top)], [d.s(cx + h * 1.1), d.s(yb)], [d.s(cx - h * 1.1), d.s(yb)]]);
+        } else if (kind == 2 && signs) {
+            d.roundRect(cx - h * 0.8, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
+            d.roundRect(cx + h * 0.2, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
         } else if (kind == 2) {
             d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, REST);
+        } else if (kind == POI_START) {
+            d.dc.setColor(GREEN, Graphics.COLOR_TRANSPARENT);
+            d.dc.fillPolygon([[d.s(cx - h * 0.7), d.s(yb - h * 1.6)], [d.s(cx + h * 0.9), d.s(yb - h * 0.8)], [d.s(cx - h * 0.7), d.s(yb)]]);
+        } else if (kind == POI_TOP) {
+            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, RED);
         } else if (kind == 1) {
             var k = h * 0.75, cy = yb - k - 2;
             d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
@@ -1013,21 +1034,30 @@ module Widgets {
     // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
     // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
     // corner rounding ends; below it what comes next, "K4 125 m", centred.
-    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float) as Void {
+    // With signs (page 8), the point symbols follow safety signs and include the start and the top.
+    // With fit (page 7), the box widens to the line above; without it (page 8) it keeps 88 by 62 times k
+    // and the symbol moves left only if the altitude would touch it.
+    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, signs as Boolean,
+            fit as Boolean) as Void {
         var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
         // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
         // the route's widest altitude and its unit, so the symbol always starts at the rounding.
         var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
-        var bw = 88 * k > need ? 88 * k : need;
+        var bw = fit && need > 88 * k ? need : 88 * k;
         bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
         var base = by - bh / 2 - 12 * k;
         var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
         var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
         d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
-        // The symbol starts where the box's corner rounding ends.
-        var kind = poiKind(st);
-        if (kind >= 0) { poiSymbol(d, kind, cx - bw / 2 + rx, base, size); }
+        // The symbol starts where the box's corner rounding ends (or, without fit, further left if the
+        // altitude would touch it).
+        var kind = poiKind(st, signs);
+        if (kind >= 0) {
+            // The danger triangle, the widest symbol, spans 1.1 times its size.
+            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - 1.1 * size;
+            poiSymbol(d, kind, fit || x < clear ? x : clear, base, size, signs);
+        }
         nextShort(d, st, cx, by + bh / 2 + 26 * k);
     }
 
