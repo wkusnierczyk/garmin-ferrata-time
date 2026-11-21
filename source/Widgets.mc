@@ -419,8 +419,6 @@ module Widgets {
 
     // The section names' distance from the column, clear of the points' rings on its right edge.
     const NAME_GAP = 18;
-    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
-    const POI_DANGER = 0xffd60a;
 
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
@@ -452,7 +450,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var de = Climb.DANGER_AT[e].toFloat();
-            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+            at.add(de); lo.add(de); hi.add(de); colour.add(WARNING); rank.add(0);
         }
         var td = Climb.totalD().toFloat();
         at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
