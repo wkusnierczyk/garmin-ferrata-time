@@ -22,7 +22,6 @@ module Widgets {
     const NUMBER_SPACE = 5;
 
     // The difficulty widget's boxes: codes 0 to 5 are walk and K1 to K5, then rest, exit and danger.
-    const CODE_REST = -1;
     const CODE_EXIT = -2;
     const CODE_DANGER = -3;
     const NONE = -99;
@@ -82,8 +81,9 @@ module Widgets {
         var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
         var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
         var dd = lo;
+        // Every 8 m: smooth at this scale, and half the circles of every 4 m.
         while (dd < hi) {
-            dd += 4;
+            dd += 8;
             if (dd > hi) { dd = hi; }
             var nx = x0 + dd / td * w, ny = y0 - Climb.heightAtDistance(dd) / tu * h;
             d.brush(px, py, nx, ny, r, c);
@@ -130,8 +130,11 @@ module Widgets {
     function ascentNumbersWidth(d as Draw) as Number {
         var w = ascentWidest;
         if (w == null) {
+            // The widest is among those with the most digits, from the first such number up.
             w = 0;
-            for (var n = 0; n <= Climb.totalU(); n++) {
+            var from = 1;
+            while (from * 10 <= Climb.totalU()) { from *= 10; }
+            for (var n = from; n <= Climb.totalU(); n++) {
                 var nw = d.width(Graphics.FONT_XTINY, n.format("%d"));
                 if (nw > w) { w = nw; }
             }
@@ -218,9 +221,10 @@ module Widgets {
 
     const ALT_FONT = Graphics.FONT_LARGE;
 
-    // The widest altitude the route can show, per unit, measured once.
-    var widest as Number? = null;
-    var widestFeet as Boolean = false;
+    // The widest altitude the route can show in a font, per unit, measured once per font: slot 0 for
+    // the altitude widget's, 1 for the column group's.
+    var widest as Array<Number?> = [null, null];
+    var widestFeet as Array<Boolean> = [false, false];
 
     function feet() as Boolean {
         return System.getDeviceSettings().elevationUnits == System.UNIT_STATUTE;
@@ -233,20 +237,24 @@ module Widgets {
         return (Math.round(m / 10) * 10).toNumber();
     }
 
-    function altitudeBox(d as Draw, ft as Boolean) as Number {
-        var w = widest;
-        if (w == null || widestFeet != ft) {
+    function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Number {
+        var w = widest[slot];
+        if (w == null || widestFeet[slot] != ft) {
             w = 0;
             var step = ft ? 50 : 10;
             var last = altitudeValue(Climb.totalU().toFloat(), ft);
             for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
-                var vw = d.width(ALT_FONT, v.format("%d"));
+                var vw = d.width(font, v.format("%d"));
                 if (vw > w) { w = vw; }
             }
-            widest = w;
-            widestFeet = ft;
+            widest[slot] = w;
+            widestFeet[slot] = ft;
         }
         return w;
+    }
+
+    function altitudeBox(d as Draw, ft as Boolean) as Number {
+        return widestAltitude(d, ft, ALT_FONT, 0);
     }
 
     // The approximate altitude, right-aligned in a box as wide as the route's widest, starting at x,
@@ -343,34 +351,20 @@ module Widgets {
             var colour = d.grade(g, false);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
             d.roundRect(cx - w / 2, top, w, h, 8 * f, colour);
-            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6, BLACK); }
+            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6 * f, BLACK); }
             d.textCapCentre(cx, top + h / 2, big ? Graphics.FONT_SMALL : Graphics.FONT_TINY, BOX_NAME[g], big ? BLACK : colour);
         }
     }
 
-    // The widest altitude the route can show in the column's font, per unit, measured once.
-    var colWidest as Number? = null;
-    var colWidestFeet as Boolean = false;
-
+    // The widest altitude the route can show in the column's font.
     function columnAltitudeBox(d as Draw, ft as Boolean) as Number {
-        var w = colWidest;
-        if (w == null || colWidestFeet != ft) {
-            w = 0;
-            var step = ft ? 50 : 10;
-            var last = altitudeValue(Climb.totalU().toFloat(), ft);
-            for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
-                var vw = d.width(COL_ALT_FONT, v.format("%d"));
-                if (vw > w) { w = vw; }
-            }
-            colWidest = w;
-            colWidestFeet = ft;
-        }
-        return w;
+        return widestAltitude(d, ft, COL_ALT_FONT, 1);
     }
 
-    // The difficulty column group's width: the larger box, the space, the altitudes and their unit.
+    // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
     function columnGroupWidth(d as Draw) as Float {
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, feet()) + 3 + d.width(Graphics.FONT_XTINY, "ft");
+        var ft = feet();
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
     }
 
     // How far the column reaches above and below its centre.
