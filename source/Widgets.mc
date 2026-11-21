@@ -443,9 +443,10 @@ module Widgets {
         return name.substring(0, n) + "…";
     }
 
-    // Ticks every stepM metres, or stepFt feet when the watch shows feet.
+    // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
+    // from the centre: the screen's edge, or inside a gauge around it.
     function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
-            scale as Float, names as Boolean, stepM as Number, stepFt as Number) as Void {
+            scale as Float, names as Boolean, stepM as Number, stepFt as Number, nameR as Number) as Void {
         var cy = bottom - (bottom - top) / 4, here = byUp ? st.u : st.d;
         var right = left + STACK_W, cx = left + STACK_W / 2;
         var n = Climb.count();
@@ -496,7 +497,7 @@ module Widgets {
                 var flat = stackSize(i, byUp) == 0;
                 if (!flat && vb - vt < 16) { continue; }
                 var ny = flat ? yb : (vt + vb) / 2;
-                var half = 200 * 200 - (ny - 208) * (ny - 208);
+                var half = nameR * nameR - (ny - 208) * (ny - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + 12)).toFloat();
                 if (room < 30) { continue; }
                 d.textCapMiddle(right + 12, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
@@ -527,5 +528,33 @@ module Widgets {
         d.rect(left - 12, cy - 1.5, STACK_W + 24, 3, WHITE);
         d.dot(right, cy, RING_R, BLACK);
         d.ring(right, cy, RING_R, CLIMBER, 3);
+    }
+
+    // ---------------------------------------------------------------- ascent gauge
+
+    // The ascent as a gauge: a thin arc around the screen's edge from the start (lower left) over the
+    // top to the route's top (lower right), the climber's orange ring at the height climbed, the start
+    // and top as green and red dots, and the metres climbed and left just past the arc's two ends, in
+    // the gap at the bottom.
+    const AG_R = 192;
+    const AG_FROM = 232;
+    const AG_SPAN = 284;
+
+    function ascentGauge(d as Draw, st as Climb.State, ends as Boolean) as Void {
+        var tu = Climb.totalU().toFloat(), up = st.climbed();
+        d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
+        d.dc.setPenWidth(d.s(2));
+        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, AG_FROM - AG_SPAN);
+        var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
+        d.dot(r[0], r[1], RING_R, BLACK);
+        if (ends) {
+            var p0 = d.onCircle(AG_R, AG_FROM), p1 = d.onCircle(AG_R, AG_FROM - AG_SPAN);
+            d.dot(p0[0], p0[1], 6, GREEN);
+            d.dot(p1[0], p1[1], 6, RED);
+        }
+        d.ring(r[0], r[1], RING_R, CLIMBER, 3);
+        var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
+        d.textCapCentre(n0[0], n0[1], Graphics.FONT_XTINY, up.format("%d"), WHITE);
+        d.textCapCentre(n1[0], n1[1], Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
     }
 }

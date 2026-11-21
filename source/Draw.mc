@@ -145,6 +145,13 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
+    // A point on the circle of radius r around the screen's centre, at degree a (0 at three o'clock,
+    // counter-clockwise positive).
+    function onCircle(r as Numeric, a as Numeric) as Array<Float> {
+        var t = Math.toRadians(a);
+        return [208 + r * Math.cos(t), 208 - r * Math.sin(t)] as Array<Float>;
+    }
+
     // Limit drawing to a rectangle, and lift the limit.
     function clip(x as Numeric, y as Numeric, w as Numeric, h as Numeric) as Void {
         dc.setClip(s(x), s(y), s(w), s(h));
