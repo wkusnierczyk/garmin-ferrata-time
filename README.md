@@ -23,7 +23,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 | Hold Up | the Ask list; choosing a question does nothing yet |
 | Back | leave |
 
-The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens or the page changes and hide after 2 seconds.
+The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
