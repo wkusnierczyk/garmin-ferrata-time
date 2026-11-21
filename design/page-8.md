@@ -24,4 +24,4 @@ After safety signs (ISO 7010) and media controls:
 | Start, while the uncertainty reaches it | a green play triangle, pointing right |
 | Top, while the uncertainty reaches it | a red stop square |
 
-The nearest wins; on a tie danger, exit, top, rest, start. Open: whether the other pages take the same colours and symbols (page 7 still has a red triangle and a blue square, and no start or top).
+The nearest wins; on a tie danger, exit, top, rest, start. Page 7 uses the same symbols, and every page the same colours: exit green, rest blue, danger yellow (#24).

@@ -11,6 +11,7 @@ module Widgets {
     const CLIMBER = 0xff6f3c;
     const REST = 0x3a86ff;
     const GREEN = 0x3fd77f;
+    // Red is the route's top (end dots, the stop symbol); danger is yellow, a warning (WARNING).
     const RED = 0xff4b4b;
     const SCALE = 0x777777;
     const WHITE = Graphics.COLOR_WHITE;
@@ -67,7 +68,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, RED, dd <= st.d);
+            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
@@ -159,7 +160,7 @@ module Widgets {
         } else if (code == CODE_EXIT) {
             text = "E"; colour = GREEN;
         } else if (code == CODE_DANGER) {
-            text = "D"; colour = RED;
+            text = "D"; colour = WARNING;
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
         var w = Math.round(boxWidth(code, k)), h = Math.round(BOX_H * k), top = yb - h;
@@ -283,7 +284,7 @@ module Widgets {
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var p = Climb.DANGER_AT[e].toFloat();
             var dist = (p - st.d).abs();
-            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = RED; }
+            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = WARNING; }
         }
         if (word.length() > 0) {
             d.textCapTop(x, yt, Graphics.FONT_XTINY, word, colour, Graphics.TEXT_JUSTIFY_RIGHT);
@@ -576,7 +577,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
     }
 
     function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State) as Void {
@@ -787,7 +788,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
         var s0 = pts[0], s1 = pts[pts.size() - 1];
         d.dot(s0[0], s0[1], 6, GREEN);
         d.dot(s1[0], s1[1], 6, RED);

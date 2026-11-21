@@ -12,7 +12,8 @@ Shared colours:
 | Climber | orange `#ff6f3c`, the launcher icon's |
 | Rest | blue `#3a86ff` |
 | Exit, start | green `#3fd77f` |
-| Danger, top | red `#ff4b4b` |
+| Danger | yellow `#ffd60a`, a warning |
+| Top | red `#ff4b4b` |
 | Passed or climbed | the colour at a third of its brightness |
 
 ## profile
@@ -24,7 +25,7 @@ The route seen from the side, from its start at the lower left to its top at the
 - Points on the route as hollow rings, black inside so the route breaks there, dimmed once the climber has passed them:
   - rests: blue, at the middle of the rest stretch;
   - exits: green, where the exit leaves;
-  - dangers: red, where the route has them.
+  - dangers: yellow, where the route has them.
 - The climber: an orange outline around the stretch of route they could be on, from the position's uncertainty (25 m up or down). It is short on steep ground and long on flat ground. Drawn as a wide orange line with a narrower black one inside it, under the sections.
 - The top: a hollow white ring.
 
@@ -70,7 +71,7 @@ The approximate altitude above sea level.
 
 The point of interest the uncertainty stretch covers, as one word.
 
-- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger red; bold capitals, no box.
+- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger yellow; bold capitals, no box.
 - Shown only while such a point lies within the stretch; nothing otherwise.
 - With several, the nearest to the climber's estimate wins; on a tie, danger before exit before rest.
 
@@ -145,7 +146,7 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 The current difficulty with what surrounds it, as one unit; all sizes scale together (page 7 draws it 15 % larger).
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols, on every page that uses the group: danger a yellow triangle, exit a green cross, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
 - With signs (page 8, `design/page-8.md`), the symbols follow safety signs and media controls: danger a yellow triangle, exit a green cross, rest a blue pause, and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
