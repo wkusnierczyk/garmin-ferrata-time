@@ -25,7 +25,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 | Hold Up | the Ask list; choosing a question does nothing yet |
 | Back | leave |
 
-The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
+The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
@@ -55,7 +55,7 @@ A separate, feature-rich watch app (several screens) handles route choice, an ov
 | `design/DESIGN.md` | The design record: goals, face, app screens, data model, open questions, decisions |
 | `design/demo/index.html` | Self-contained interactive demo. Open it in a browser |
 | `design/demo/screenshots/` | Stills of every face layout and app screen |
-| `design/widgets.md` | The watch app's reusable drawing parts: profile, ascent, difficulty, altitude, poi, difficulty column, difficulty stack, and the altitude and difficulty column groups |
+| `design/widgets.md` | The watch app's reusable drawing parts: profile, ascent, difficulty, altitude, poi, difficulty column, difficulty stack, ascent gauge, gauge, flat ascent, next, and the altitude and difficulty column groups |
 | `design/page-1.md` | Page 1, version 1: the profile alone, with the widgets around it |
 | `design/demo/page-1.html` | Interactive mock of page 1, with its options as settings |
 | `design/page-2.md` | Page 2, version 1: the difficulty column with its altitudes |
@@ -65,6 +65,8 @@ A separate, feature-rich watch app (several screens) handles route choice, an ov
 | `design/page-4.md` | Page 4, version 1: the difficulty stack by ascent, with points of interest |
 | `design/page-5.md` | Page 5, version 1: the difficulty stack by path, with the ascent gauge and points of interest |
 | `design/demo/pages-4-5.html` | Interactive mock of pages 4 and 5, the difficulty stack by ascent and by path |
+| `design/page-6.md` | Pages 6a and 6b, version 1: the gauge, by length and by ascent |
+| `design/demo/page-6.html` | Interactive mock of pages 6a and 6b, with their options |
 | `design/connect-iq-platform.md` | Platform limits, and what "companion app" means at Garmin |
 | `design/route-data.md` | Where real route paths and profiles can come from, and how they reach the watch |
 | `design/converter-site.md` | Proposal for a stateless GitHub Pages converter from GPX or OSM to route JSON |

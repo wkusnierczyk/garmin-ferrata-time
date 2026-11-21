@@ -120,6 +120,23 @@ The ascent widget bent around the screen's edge.
 
 Options: the end dots on or off.
 
+## gauge
+
+The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
+
+- Sections a hair apart; climbed parts dimmed.
+- Rests, exits and dangers as hollow rings on it, dimmed once passed.
+- The climber as a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
+- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs.
+
+## flat ascent
+
+The ascent widget laid flat: a line from the start (left) to the top (right), the climber's ring on it, the end dots, the metres climbed under its left stretch and the metres left under its right one, each centred on its stretch, kept clear of the ring, never past the line's end.
+
+## next
+
+The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m: "K4 in 125 m", the grade in its colour; "Top in …" after the last change. The mock can give the distance in metres up instead.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.
@@ -141,5 +158,5 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 5 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 6b use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).

@@ -664,6 +664,133 @@ module Widgets {
         d.ring(left, cy, RING_R, CLIMBER, 3);
     }
 
+    // ---------------------------------------------------------------- gauge, page 6
+
+    // The route around the screen's edge, from its start at the lower left over the top to its top at
+    // the lower right, each section's arc its length along the route, or the metres it climbs (byUp);
+    // climbed parts dimmed; rests, exits and dangers as rings, dimmed once passed; the climber as a
+    // thicker orange line on the gauge's inner side over the stretch they could be on, rounded at its
+    // ends, clear of the sections.
+    const G_R = 192;
+    const G_FROM = 232;
+    const G_SPAN = 284;
+    const G_PEN = 12;
+    // The climber's line: its width, and its radius 3 px inside the sections.
+    const G_INNER = 6;
+    const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
+
+    function gaugeAngle(dist as Float, byUp as Boolean) as Float {
+        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
+    }
+
+    function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
+        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
+        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        var a0 = gaugeAngle(lo, byUp), a1 = gaugeAngle(hi, byUp);
+        // The climber: an orange line inside the gauge, with round ends.
+        var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
+        d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
+        d.dot(p0[0], p0[1], G_INNER / 2, CLIMBER);
+        d.dot(p1[0], p1[1], G_INNER / 2, CLIMBER);
+        // The sections, a hair apart.
+        var ac = gaugeAngle(st.d, byUp);
+        for (var i = 0; i < Climb.count(); i++) {
+            var g = section(i, false);
+            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), byUp), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp) + 0.5;
+            if (Climb.dAt(i + 1) <= st.d) {
+                d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
+            } else if (Climb.dAt(i) >= st.d) {
+                d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
+            } else {
+                // Within the hair gap at the section's end, the climbed part stops at the gap.
+                var a = ac < s1 ? s1 : ac;
+                d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
+                d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
+            }
+        }
+        // The points.
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st, byUp); }
+    }
+
+    function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
+        var p = d.onCircle(G_R, gaugeAngle(dist, byUp));
+        d.dot(p[0], p[1], 8, BLACK);
+        d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
+    }
+
+    // The scalable bold font for big letters, per size in device pixels, loaded once each: the
+    // system's number fonts have no letters. Null where the watch has none.
+    var bigLetterFonts as Dictionary<Number, Graphics.VectorFont> = {};
+
+    function bigLetterFont(px as Number) as Graphics.VectorFont? {
+        var f = bigLetterFonts[px];
+        if (f == null && (Graphics has :getVectorFont)) {
+            f = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => px});
+            if (f != null) { bigLetterFonts[px] = f; }
+        }
+        return f;
+    }
+
+    // The current difficulty in a large filled box centred on (x, y); a rest shows as W.
+    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float) as Void {
+        var g = section(st.cur, false);
+        d.roundRect(x - w / 2, y - h / 2, w, h, 14, d.grade(g, false));
+        // A scalable bold font where the watch has one, the largest text font otherwise; the letters
+        // centred on their capitals, as textCapMiddle does.
+        var vf = bigLetterFont(d.s(64));
+        if (vf != null) {
+            var asc = Graphics.getFontAscent(vf);
+            d.dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
+            d.dc.drawText(d.s(x), d.s(y) - asc * (1 - d.CAP / 2), vf, BOX_NAME[g], Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            d.textCapCentre(x, y, Graphics.FONT_LARGE, BOX_NAME[g], BLACK);
+        }
+    }
+
+    // What comes next: the next section of a different difficulty and the distance to its start along
+    // the route, rounded to 5 m ("K4 in 125 m", the grade in its colour), or the top. Centred on x.
+    function nextUp(d as Draw, st as Climb.State, x as Float, y as Float) as Void {
+        var here = section(st.cur, false), i = st.cur + 1;
+        while (i < Climb.count() && section(i, false) == here) { i++; }
+        var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
+        var m = (Math.round(dist / 5) * 5).toNumber();
+        if (m < 0) { m = 0; }
+        var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
+        var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
+        var rest = " in " + m.format("%d") + " m";
+        var font = Graphics.FONT_TINY;
+        var w1 = d.width(font, what), w = w1 + d.width(font, rest);
+        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // The ascent widget laid flat: a line from the start (x0) to the top (x1) at y, the climber's ring
+    // on it, the metres climbed under its left stretch and the metres left under its right one, each
+    // centred on its stretch, kept clear of the ring, never past the line's end.
+    function ascentFlat(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y as Float, ends as Boolean) as Void {
+        var tu = Climb.totalU().toFloat(), rx = x0 + st.u / tu * (x1 - x0), up = st.climbed();
+        d.rect(x0, y - 1, x1 - x0, 2, SCALE);
+        d.dot(rx, y, RING_R, BLACK);
+        var gap = 26, ny = y + 24;
+        var lx = (x0 + rx) / 2;
+        if (lx > rx - gap) { lx = rx - gap; }
+        if (lx < x0) { lx = x0; }
+        var rxn = (rx + x1) / 2;
+        if (rxn < rx + gap) { rxn = rx + gap; }
+        if (rxn > x1) { rxn = x1; }
+        d.textCapCentre(lx, ny, Graphics.FONT_XTINY, up.format("%d"), WHITE);
+        d.textCapCentre(rxn, ny, Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+        if (ends) {
+            d.dot(x0, y, 6, GREEN);
+            d.dot(x1, y, 6, RED);
+        }
+        d.ring(rx, y, RING_R, CLIMBER, 3);
+    }
+
     // ---------------------------------------------------------------- ascent gauge
 
     // The ascent as a gauge: a thin arc around the screen's edge from the start (lower left) over the

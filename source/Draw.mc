@@ -139,8 +139,16 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    // A point on the circle of radius r around the screen's centre, at degree a (0 at three o'clock,
-    // counter-clockwise positive).
+    // An arc of the circle of radius r around the screen's centre, clockwise from degree a0 to a1
+    // (0 at three o'clock, counter-clockwise positive), ends cut square.
+    function arc(r as Numeric, a0 as Numeric, a1 as Numeric, c as Number, pen as Number) as Void {
+        if (a0 - a1 < 0.3) { return; }
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(s(pen));
+        dc.drawArc(s(208), s(208), s(r), Graphics.ARC_CLOCKWISE, a0, a1);
+    }
+
+    // A point on that circle at degree a.
     function onCircle(r as Numeric, a as Numeric) as Array<Float> {
         var t = Math.toRadians(a);
         return [208 + r * Math.cos(t), 208 - r * Math.sin(t)] as Array<Float>;
