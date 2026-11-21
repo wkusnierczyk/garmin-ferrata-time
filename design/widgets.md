@@ -119,9 +119,10 @@ Options: the end dots on or off.
 
 The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
 
-- Each section's arc is its length along the route (the mock can make it the metres climbed); sections a hair apart; climbed parts dimmed.
+- Sections a hair apart; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
-- The climber as the orange outline of the stretch they could be on, rounded at its ends, as on the profile.
+- The climber as a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
+- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs.
 
 ## flat ascent
 

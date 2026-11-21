@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap">
 <style>
-/* Layout: a short brief, one live dial, then the same page at four points of the climb. */
+/* Layout: the live dial held on the left; the brief, controls, stills and notes scroll on the right. */
 :root {
   --bg: #f3f4f2; --fg: #16191b; --muted: #5b6366; --line: #d6dad6;
   --screen: #000000; --bezel: #2a2d30; --bezel-edge: #45494d;
@@ -14,7 +14,15 @@
 :root[data-theme="dark"] { --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark }
 body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
-main { max-width: 1040px; margin: 0 auto; display: grid; gap: 36px; }
+main { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: start; }
+.faces { position: sticky; top: 24px; display: grid; gap: 20px; justify-items: center; }
+.faces .dial { width: min(320px, calc((100vh - 150px) / 2), 40vw); }
+.side { display: grid; gap: 36px; min-width: 0; }
+@media (max-width: 520px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .faces { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faces .dial { width: 100%; }
+}
 h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
 h1 { font-size: 40px; line-height: 1.05; }
 h2 { font-size: 24px; }
@@ -23,12 +31,6 @@ h2 { font-size: 24px; }
 .dial { background: var(--screen); border-radius: 50%; aspect-ratio: 1; max-width: 100%;
   box-shadow: 0 0 0 8px var(--bezel), 0 0 0 10px var(--bezel-edge); }
 .dial svg { display: block; width: 100%; height: 100%; }
-.live { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 32px; align-items: center; }
-.live .dial { width: 360px; }
-.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 760px; }
-.pair .dial { width: 100%; }
-@media (max-width: 900px) { .live { grid-template-columns: 1fr; } }
-@media (max-width: 560px) { .pair { grid-template-columns: 1fr; } }
 .controls { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .controls label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .controls input { width: 100%; max-width: 360px; }
@@ -48,15 +50,18 @@ figure .dial { width: min(220px, 100%); }
 figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
 .notes ul { margin: 8px 0 0; padding-left: 20px; max-width: 65ch; }
 .notes li + li { margin-top: 6px; }
-@media (max-width: 640px) { .live { grid-template-columns: 1fr; } .live .dial { width: min(360px, 100%); } }
 </style>
 <main>
+  <aside class="faces">
+    <figure><div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by length along the route"></svg></div><figcaption>Page 6 · gauge by length</figcaption></figure>
+    <figure><div class="dial"><svg id="live5" viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by ascent"></svg></div><figcaption>Page 6 · gauge by ascent</figcaption></figure>
+  </aside>
+  <div class="side">
   <section>
-    <h1>Ferrata · page 6, version 1, settled</h1>
-    <p class="lede">The route as a <b>gauge</b> around the edge, with its rests, exits and dangers, and the climber's orange outline. In the middle, the <b>current difficulty</b>, large. Above it, one line: the <b>poi</b> word while a point is near, and the <b>altitude</b> always. Below it, <b>what comes next</b>. At the bottom, the <b>ascent</b> laid flat, start on the left, top on the right.</p>
+    <h1>Ferrata · pages 6a and 6b, version 1, settled</h1>
+    <p class="lede">The route as a <b>gauge</b> around the edge, with its rests, exits and dangers, and the climber as an orange line inside it. Twice: <b>6a</b> with each section's arc its length along the route, <b>6b</b> the metres it climbs. In the middle, the <b>current difficulty</b>, large. Above it, one line: the <b>poi</b> word while a point is near, and the <b>altitude</b> always. Below it, <b>what comes next</b>. At the bottom, the <b>ascent</b> laid flat, start on the left, top on the right.</p>
   </section>
-  <section class="live">
-    <div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 6: the gauge, the current difficulty and what comes next"></svg></div><svg id="live5" hidden></svg>
+  <section>
     <div class="controls">
       <label for="pos">Point of the climb</label>
       <input id="pos" type="range" min="0" max="1000" value="450">
@@ -70,8 +75,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label class="check"><input id="box-rests" type="checkbox"> Rests as R; otherwise a rest shows as W</label>
       <label for="units">Altitude in</label>
       <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
-      <label for="gauge-by">Gauge: each section's arc as</label>
-      <select id="gauge-by"><option value="path" selected>its length along the route</option><option value="up">the metres it climbs</option></select>
+      <div hidden><select id="gauge-by"><option value="path" selected>path</option><option value="up">up</option></select></div>
       <label for="next-by">Next difficulty: distance</label>
       <select id="next-by"><option value="path" selected>along the route</option><option value="up">up (metres climbed)</option></select>
       <div hidden>
@@ -83,25 +87,32 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="step"><option value="5">5 (m or ft)</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
       <label class="check"><input id="names" type="checkbox" checked> Section names on the right</label>
       </div>
+      <label for="mark">The climber on the gauge</label>
+      <select id="mark"><option value="inner" selected>a thicker orange line inside the gauge (settled)</option><option value="outline">an orange outline around the stretch (the first version)</option></select>
       <label class="check"><input id="ends" type="checkbox" checked> The ascent's start and top as a green and a red dot </label>
       <div hidden><input id="outer" type="checkbox"><input id="each-unit" type="checkbox"></div>
       <div hidden><input id="box-exits" type="checkbox"><input id="box-dangers" type="checkbox"><input id="dangers" type="checkbox" checked></div>
     </div>
   </section>
   <section>
-    <h2>Through the climb</h2>
-    <div class="row" id="row"></div><div id="row5" hidden></div>
+    <h2>Through the climb: gauge by length</h2>
+    <div class="row" id="row"></div>
+  </section>
+  <section>
+    <h2>Through the climb: gauge by ascent</h2>
+    <div class="row" id="row5"></div>
   </section>
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li>The gauge runs 284° from the lower left, over the top, to the lower right, leaving the bottom for the ascent. By default each section's arc is its length along the route; a setting makes it the metres it climbs. Sections are separated by a hair's gap.</li>
-      <li>The climber is the orange outline of the stretch they could be on, as on the profile; no white dot.</li>
+      <li>The gauge runs 284° from the lower left, over the top, to the lower right, leaving the bottom for the ascent. Page 6a makes each section's arc its length along the route, page 6b the metres it climbs: walks and rests shrink there, walls take most of the arc. Sections are separated by a hair's gap.</li>
+      <li>The climber is a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on, leaving the sections uncovered. The first version's orange outline around the stretch stays as an option.</li>
       <li>The line above the difficulty is split at the centre: the poi word ends just left of it, the altitude's number is right-aligned with the difficulty box's right edge, its unit past it, so it stays put when the word comes and goes.</li>
       <li>"Next" is the next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m; after the last change it reads "Top in …". A setting gives the distance in metres up instead.</li>
       <li>The flat ascent puts the metres climbed under its left stretch and the metres left under its right one, kept clear of the ring.</li>
     </ul>
   </section>
+  </div>
 </main>
 <script>
 // The demo route, as in source/Climb.mc.
@@ -579,7 +590,7 @@ function page5(st, opt) {
 // its top at the lower right, leaving the bottom free. Sections in their colours, climbed parts
 // dimmed; rests, exits and dangers as rings on it, dimmed once passed; the climber as the orange
 // outline of the stretch they could be on. By path (each section's arc its length) or by ascent.
-const G_R = 192, G_FROM = 232, G_SPAN = 284, G_PEN = 12;
+const G_R = 192, G_FROM = 232, G_SPAN = 284, G_PEN = 12, G_INNER = 6;
 const gPoint = (a, r = G_R) => [208 + r * Math.cos(a * Math.PI / 180), 208 - r * Math.sin(a * Math.PI / 180)];
 function arc(a0, a1, colour, pen, r = G_R, cap = "butt") {
   if (Math.abs(a1 - a0) < 0.05) return "";
@@ -596,7 +607,12 @@ function gauge(st, opt) {
   // so the outline is rounded at its ends as on the profile.
   const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
   const a0 = A(lo), a1 = A(hi) - 0.01;
-  s += arc(a0, a1, CLIMBER, G_PEN + 10, G_R, "round") + arc(a0, a1, "#000", G_PEN + 4, G_R, "round");
+  if (opt.mark === "inner") {
+    // Or a thicker orange line on the gauge's inner side, over the same stretch, clear of the sections.
+    s += arc(a0, a1, CLIMBER, G_INNER, G_R - G_PEN / 2 - 3 - G_INNER / 2, "round");
+  } else {
+    s += arc(a0, a1, CLIMBER, G_PEN + 10, G_R, "round") + arc(a0, a1, "#000", G_PEN + 4, G_R, "round");
+  }
   // The sections, each with a hair of gap after it; climbed parts dimmed.
   const ac = A(st.d);
   for (let i = 0; i < N; i++) {
@@ -689,12 +705,14 @@ const scaleSel = document.getElementById("scale"), stepSel = document.getElement
 const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
-const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
+const ends = document.getElementById("ends"), dangers = document.getElementById("dangers"), markSel = document.getElementById("mark");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, nextBy: nextBy.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, mark: markSel.value, nextBy: nextBy.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
-  live.innerHTML = page6(st, opts());
+  // The same page twice: each section's arc as its length along the route, and as the metres it climbs.
+  live.innerHTML = page6(st, { ...opts(), gaugeBy: "path" });
+  live5.innerHTML = page6(st, { ...opts(), gaugeBy: "up" });
   const g = GRADE[st.cur];
   readout.textContent = `${Math.round(st.u)} of ${TU} m up · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
 }
@@ -709,12 +727,12 @@ show();
 
 const row = document.getElementById("row"), row5 = document.getElementById("row5");
 function stills() {
-  for (const [r, page, n] of [[row, page6, 6]]) {
+  for (const [r, by] of [[row, "path"], [row5, "up"]]) {
     r.innerHTML = "";
     for (const f of [0.03, 0.4, 0.65, 0.97]) {
       const st = state(demoMinute(f));
       r.insertAdjacentHTML("beforeend",
-        `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="Page ${n} at ${Math.round(f * 100)} percent">${page(st, opts())}</svg></div>` +
+        `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by ${by === "up" ? "ascent" : "length"}, at ${Math.round(f * 100)} percent">${page6(st, { ...opts(), gaugeBy: by })}</svg></div>` +
         `<figcaption>${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
     }
   }
@@ -722,7 +740,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy, markSel]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }

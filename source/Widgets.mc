@@ -533,35 +533,36 @@ module Widgets {
     // ---------------------------------------------------------------- gauge, page 6
 
     // The route around the screen's edge, from its start at the lower left over the top to its top at
-    // the lower right, each section's arc its length along the route; climbed parts dimmed; rests,
-    // exits and dangers as rings, dimmed once passed; the climber as the orange outline of the stretch
-    // they could be on, rounded at its ends.
+    // the lower right, each section's arc its length along the route, or the metres it climbs (byUp);
+    // climbed parts dimmed; rests, exits and dangers as rings, dimmed once passed; the climber as a
+    // thicker orange line on the gauge's inner side over the stretch they could be on, rounded at its
+    // ends, clear of the sections.
     const G_R = 192;
     const G_FROM = 232;
     const G_SPAN = 284;
     const G_PEN = 12;
+    // The climber's line: its width, and its radius 3 px inside the sections.
+    const G_INNER = 6;
+    const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
 
-    function gaugeAngle(dist as Float) as Float {
-        return G_FROM - dist / Climb.totalD() * G_SPAN;
+    function gaugeAngle(dist as Float, byUp as Boolean) as Float {
+        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
     }
 
-    function gauge(d as Draw, st as Climb.State) as Void {
+    function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
-        var a0 = gaugeAngle(lo), a1 = gaugeAngle(hi);
-        // The outline: an orange band, black inside, both with round ends.
-        var p0 = d.onCircle(G_R, a0), p1 = d.onCircle(G_R, a1);
-        d.arc(G_R, a0, a1, CLIMBER, G_PEN + 10);
-        d.dot(p0[0], p0[1], (G_PEN + 10) / 2, CLIMBER);
-        d.dot(p1[0], p1[1], (G_PEN + 10) / 2, CLIMBER);
-        d.arc(G_R, a0, a1, BLACK, G_PEN + 4);
-        d.dot(p0[0], p0[1], (G_PEN + 4) / 2, BLACK);
-        d.dot(p1[0], p1[1], (G_PEN + 4) / 2, BLACK);
+        var a0 = gaugeAngle(lo, byUp), a1 = gaugeAngle(hi, byUp);
+        // The climber: an orange line inside the gauge, with round ends.
+        var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
+        d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
+        d.dot(p0[0], p0[1], G_INNER / 2, CLIMBER);
+        d.dot(p1[0], p1[1], G_INNER / 2, CLIMBER);
         // The sections, a hair apart.
-        var ac = gaugeAngle(st.d);
+        var ac = gaugeAngle(st.d, byUp);
         for (var i = 0; i < Climb.count(); i++) {
             var g = section(i, false);
-            var s0 = gaugeAngle(Climb.dAt(i).toFloat()), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat()) + 0.5;
+            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), byUp), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp) + 0.5;
             if (Climb.dAt(i + 1) <= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
             } else if (Climb.dAt(i) >= st.d) {
@@ -573,14 +574,14 @@ module Widgets {
         }
         // The points.
         for (var i = 0; i < Climb.count(); i++) {
-            if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
+            if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
         }
-        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st, byUp); }
     }
 
-    function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State) as Void {
-        var p = d.onCircle(G_R, gaugeAngle(dist));
+    function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
+        var p = d.onCircle(G_R, gaugeAngle(dist, byUp));
         d.dot(p[0], p[1], 8, BLACK);
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
