@@ -702,8 +702,10 @@ module Widgets {
             } else if (Climb.dAt(i) >= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
             } else {
-                d.arc(G_R, s0, ac, d.grade(g, true), G_PEN);
-                d.arc(G_R, ac, s1, d.grade(g, false), G_PEN);
+                // Within the hair gap at the section's end, the climbed part stops at the gap.
+                var a = ac < s1 ? s1 : ac;
+                d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
+                d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
             }
         }
         // The points.
@@ -720,16 +722,30 @@ module Widgets {
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
 
+    // The scalable bold font for big letters, per size in device pixels, loaded once each: the
+    // system's number fonts have no letters. Null where the watch has none.
+    var bigLetterFonts as Dictionary<Number, Graphics.VectorFont> = {};
+
+    function bigLetterFont(px as Number) as Graphics.VectorFont? {
+        var f = bigLetterFonts[px];
+        if (f == null && (Graphics has :getVectorFont)) {
+            f = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => px});
+            if (f != null) { bigLetterFonts[px] = f; }
+        }
+        return f;
+    }
+
     // The current difficulty in a large filled box centred on (x, y); a rest shows as W.
     function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float) as Void {
         var g = section(st.cur, false);
         d.roundRect(x - w / 2, y - h / 2, w, h, 14, d.grade(g, false));
-        // The system's number fonts have no letters: a scalable bold font where the watch has one, the
-        // largest text font otherwise.
-        var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => d.s(64)});
+        // A scalable bold font where the watch has one, the largest text font otherwise; the letters
+        // centred on their capitals, as textCapMiddle does.
+        var vf = bigLetterFont(d.s(64));
         if (vf != null) {
+            var asc = Graphics.getFontAscent(vf);
             d.dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
-            d.dc.drawText(d.s(x), d.s(y), vf, BOX_NAME[g], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            d.dc.drawText(d.s(x), d.s(y) - asc * (1 - d.CAP / 2), vf, BOX_NAME[g], Graphics.TEXT_JUSTIFY_CENTER);
         } else {
             d.textCapCentre(x, y, Graphics.FONT_LARGE, BOX_NAME[g], BLACK);
         }
