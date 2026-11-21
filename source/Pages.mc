@@ -13,6 +13,8 @@ module Pages {
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
         switch (page) {
+            // A page's colour map goes on this frame's Draw (View makes a new one every frame), so
+            // the pages that set none keep heat.
             case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
             case 1: { d.colours = d.HEAT_AMBER; columnPage(d, st); break; }
             case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }
@@ -160,7 +162,9 @@ module Pages {
     function sideBySide(d as Draw, st as Climb.State) as Void {
         var left = 56.0, right = 360.0, cy = 228.0;
         var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
+        // Never negative: with wider fonts the widgets would touch rather than overlap.
         var gap = (right - left - ascW - Widgets.columnGroupWidth(d)) / 3;
+        if (gap < 0) { gap = 0.0; }
         var lx = left + gap + ascLeft, reach = Widgets.columnReach();
         Widgets.ascent(d, st, lx, cy + reach, 2 * reach, true);
         Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true);
@@ -175,10 +179,11 @@ module Pages {
     }
 
     // Page 5: the stack by path, 1 px per metre along the route, centred as a group (its tick labels,
-    // its column and room for names), with the ascent as a gauge around the edge; names stop inside it.
+    // its column, the names' gap and room for names), with the ascent as a gauge around the edge;
+    // names stop inside it.
     function stackByPath(d as Draw, st as Climb.State) as Void {
         var labels = Widgets.stackLabels(d);
-        var left = 208 - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES) / 2 + labels;
+        var left = 208 - (labels + Widgets.STACK_W + Widgets.NAME_GAP + Widgets.STACK_NAMES) / 2 + labels;
         Widgets.ascentGauge(d, st, true);
         Widgets.stack(d, st, false, left, 64.0, 352.0, 1.0, true, 10, 50, Widgets.AG_R - 14);
     }
