@@ -676,8 +676,43 @@ module Widgets {
     const G_INNER = 6;
     const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
 
+    // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
+    // to their length (or, byUp, the metres they climb), so no section is too short to draw or see.
+    // Within a section, angles follow the distance along it. Worked out once per kind.
+    const G_MIN = 3.0;
+    var gaugeStarts as Array<Array<Float>?> = [null, null];
+
+    function gaugeLayout(byUp as Boolean) as Array<Float> {
+        var kind = byUp ? 1 : 0, cached = gaugeStarts[kind];
+        if (cached != null) { return cached; }
+        var n = Climb.count(), fixed = new [n] as Array<Boolean>, span = new [n] as Array<Float>;
+        for (var i = 0; i < n; i++) { fixed[i] = false; }
+        var changed = true;
+        while (changed) {
+            changed = false;
+            var count = 0, total = 0.0;
+            for (var i = 0; i < n; i++) {
+                if (fixed[i]) { count++; } else { total += byUp ? Climb.UP[i] : Climb.LEN[i]; }
+            }
+            var free = G_SPAN - count * G_MIN;
+            for (var i = 0; i < n; i++) {
+                span[i] = fixed[i] ? G_MIN : (byUp ? Climb.UP[i] : Climb.LEN[i]) / total * free;
+                if (!fixed[i] && span[i] < G_MIN) { fixed[i] = true; changed = true; }
+            }
+        }
+        // The angle at each boundary, from the start at G_FROM.
+        var starts = new [n + 1] as Array<Float>;
+        starts[0] = G_FROM.toFloat();
+        for (var i = 0; i < n; i++) { starts[i + 1] = starts[i] - span[i]; }
+        gaugeStarts[kind] = starts;
+        return starts;
+    }
+
     function gaugeAngle(dist as Float, byUp as Boolean) as Float {
-        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
+        var starts = gaugeLayout(byUp), n = Climb.count(), i = 0;
+        while (i < n - 1 && dist > Climb.dAt(i + 1)) { i++; }
+        var f = Climb.LEN[i] > 0 ? (dist - Climb.dAt(i)) / Climb.LEN[i] : 0.0;
+        return starts[i] - f * (starts[i] - starts[i + 1]);
     }
 
     function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {

@@ -8,7 +8,7 @@ A preview of a section the user picks, built on page 6b. The app's ninth page, a
 
 ## Layout
 
-- The **selection gauge**: page 6b's gauge by ascent (each section's arc the metres it climbs), showing the selection, not the climber. The selected section at full colour, all others dimmed; no climber line. The points as rings just inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol, dimmed elsewhere.
+- The **selection gauge**: page 6b's gauge by ascent (each section's arc the metres it climbs, at least 3°, so a rest has an arc to light up), showing the selection, not the climber. The selected section at full colour, all others dimmed; no climber line. The points as rings just inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol, dimmed elsewhere.
 - In the middle, the selected section's **difficulty** in the large box (132 by 92 px), a rest as `W`.
 - **Chevrons** left and right of the box, 40 px from it, to step to the section before and after; dimmed on the first and last sections. On the watch a tap level with the box, beside it, steps that way.
 - Above the box, the section's **altitudes**, foot to top: "1380 to 1490 m", "to" and the unit grey, centred. A flat section reads the same altitude twice.
@@ -21,4 +21,3 @@ A preview of a section the user picks, built on page 6b. The app's ninth page, a
 ## Open
 
 - Buttons for stepping, besides taps, on watches without a touchscreen.
-- A marker for a selected flat section: by ascent it has no arc, so only its ring lights up.

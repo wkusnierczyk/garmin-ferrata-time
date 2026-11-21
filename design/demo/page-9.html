@@ -92,6 +92,8 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       </div>
       <label for="mark" hidden>The climber on the gauge</label>
       <select id="mark" hidden><option value="inner" selected>a thicker orange line inside the gauge (settled)</option><option value="outline">an orange outline around the stretch (the first version)</option></select>
+      <label for="min-deg">The gauge: each section at least</label>
+      <select id="min-deg"><option value="0">no minimum (to scale)</option><option value="2">2°</option><option value="3" selected>3°</option><option value="5">5°</option></select>
       <label class="check"><input id="ends" type="checkbox" checked> The ascent's start and top as a green and a red dot </label>
       <div hidden><input id="outer" type="checkbox"><input id="each-unit" type="checkbox"></div>
       <div hidden><input id="box-exits" type="checkbox"><input id="box-dangers" type="checkbox"><input id="dangers" type="checkbox" checked></div>
@@ -107,7 +109,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The page opens on the section the climber is in; the chevrons step one section back or on, the left one dimmed on the first section and the right one on the last. Moving the climber does not change the selection; the button goes back to the climber's section.</li>
       <li>The line above: the altitude at the section's foot and at its top, "1380 to 1490", "to" and the unit in grey, the whole centred. A flat section reads the same altitude twice.</li>
       <li>The line below: the section's name, cut with an ellipsis if too long, followed by the symbols, standing on the name's baseline (not the bottom of its letters: a descender such as the y in "gully" does not move them; on the watch, the font's ascent gives the baseline), of the points it holds (danger, exit, rest, top: yellow triangle, green arrow, blue pause, red square), the whole centred. A section shows the points it includes or is next to: a point in it or at its foot or top, and a rest that is the section itself or comes right before or after it.</li>
-      <li>The gauge shows the selection: page 6b's gauge (by ascent) with the selected section at full colour and all the others dimmed, and no climber line. Its points sit inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; they are at full colour where the selected section shows their symbol (below), dimmed elsewhere. A flat section (a rest) has no arc by ascent: its blue ring lights up instead.</li>
+      <li>The gauge shows the selection: page 6b's gauge (by ascent) with the selected section at full colour and all the others dimmed, and no climber line. Its points sit inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; they are at full colour where the selected section shows their symbol (below), dimmed elsewhere. Each section gets at least 3° of the sweep (the menu: none, 2, 3 or 5°), so a flat section such as a rest has an arc of its own to light up.</li>
       <li>The flat ascent at the bottom shows the climber, as on page 6b.</li>
     </ul>
   </section>
@@ -597,10 +599,33 @@ function arc(a0, a1, colour, pen, r = G_R, cap = "butt") {
   const large = Math.abs(a1 - a0) > 180 ? 1 : 0, sweep = a1 < a0 ? 1 : 0;
   return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${large} ${sweep} ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${colour}" stroke-width="${pen}" stroke-linecap="${cap}"/>`;
 }
+// The gauge's angles with a minimum per section (minDeg degrees): a section whose share of the
+// sweep (by its length, or by the metres it climbs) would be smaller gets the minimum, and the
+// others share what is left in proportion. Within a section, angles follow the distance along it.
+// Returns the angle at a distance along the route.
+function gaugeAngles(byPath, minDeg) {
+  const size = i => byPath ? LEN[i] : UP[i], fixed = new Array(N).fill(false);
+  let span;
+  for (let changed = true; changed;) {
+    changed = false;
+    const free = G_SPAN - fixed.filter(Boolean).length * minDeg;
+    let total = 0;
+    for (let i = 0; i < N; i++) if (!fixed[i]) total += size(i);
+    span = Array.from({ length: N }, (_, i) => fixed[i] ? minDeg : size(i) / total * free);
+    for (let i = 0; i < N; i++) if (!fixed[i] && span[i] < minDeg) { fixed[i] = true; changed = true; }
+  }
+  const start = [G_FROM];
+  for (let i = 0; i < N; i++) start.push(start[i] - span[i]);
+  return d => {
+    let i = 0;
+    while (i < N - 1 && d > D[i + 1]) i++;
+    return start[i] - (LEN[i] ? (d - D[i]) / LEN[i] : 0) * span[i];
+  };
+}
 function gauge(st, opt) {
   const colours = opt.colours.c, byPath = opt.gaugeBy === "path";
   // The angle at a distance along the route.
-  const A = d => G_FROM - (byPath ? d / TD : heightAt(d) / TU) * G_SPAN;
+  const A = gaugeAngles(byPath, opt.minDeg);
   let s = "";
   // The climber's outline: an orange band under the sections, black inside, both with round ends,
   // so the outline is rounded at its ends as on the profile.
@@ -684,7 +709,7 @@ function page6(st, opt) {
 // colour on the selected section (at either of its ends, or in it), dimmed elsewhere, inside the gauge. No climber line.
 const POI_R = G_R - G_PEN / 2 - 4 - 8.5;
 function gauge9(opt, sel) {
-  const colours = opt.colours.c, A = d => G_FROM - heightAt(d) / TU * G_SPAN;
+  const colours = opt.colours.c, A = gaugeAngles(false, opt.minDeg);
   let s = "";
   for (let i = 0; i < N; i++) {
     const s0 = A(D[i]), s1 = A(D[i + 1]) + 0.5;
@@ -793,9 +818,9 @@ const scaleSel = document.getElementById("scale"), stepSel = document.getElement
 const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
-const ends = document.getElementById("ends"), dangers = document.getElementById("dangers"), markSel = document.getElementById("mark");
+const ends = document.getElementById("ends"), dangers = document.getElementById("dangers"), markSel = document.getElementById("mark"), minDeg = document.getElementById("min-deg");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, mark: markSel.value, nextBy: nextBy.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, mark: markSel.value, minDeg: +minDeg.value, nextBy: nextBy.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
   if (sel === null) sel = st.cur;
@@ -836,7 +861,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy, markSel]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy, markSel, minDeg]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }
