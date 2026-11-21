@@ -146,6 +146,7 @@ The current difficulty with what surrounds it, as one unit; all sizes scale toge
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
 - Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends, or further left if a wide altitude would touch it. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- With signs (page 8, `design/page-8.md`), the symbols follow safety signs and media controls: danger a yellow triangle, exit a green cross, rest a blue pause, and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
 ## Groups
