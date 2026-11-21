@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 12;
+    const COUNT = 13;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -17,15 +17,16 @@ module Pages {
             // the pages that set none keep heat.
             case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
             case 1: { d.colours = d.HEAT_AMBER; columnPage(d, st); break; }
-            case 2: { profile(d, st); break; }
-            case 3: { combined(d, st); break; }
-            case 4: { ladderPage(d, st); break; }
-            case 5: { whereAmI(d, st); break; }
-            case 6: { whatsNext(d, st); break; }
-            case 7: { timeStrip(d, st); break; }
-            case 8: { bigHeight(d, st); break; }
-            case 9: { bigNextHard(d, st); break; }
-            case 10: { bigTop(d, st); break; }
+            case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }
+            case 3: { profile(d, st); break; }
+            case 4: { combined(d, st); break; }
+            case 5: { ladderPage(d, st); break; }
+            case 6: { whereAmI(d, st); break; }
+            case 7: { whatsNext(d, st); break; }
+            case 8: { timeStrip(d, st); break; }
+            case 9: { bigHeight(d, st); break; }
+            case 10: { bigNextHard(d, st); break; }
+            case 11: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -144,6 +145,23 @@ module Pages {
     // design/page-2.md: the difficulty column group, centred, with altitudes at the outer edges too.
     function columnPage(d as Draw, st as Climb.State) as Void {
         Widgets.columnGroup(d, st, 208.0, true);
+    }
+
+    // ---------------------------------------------------------------- page 3, version 1: side by side
+
+    // design/page-3.md: the ascent on the left and the difficulty column group on the right, with equal
+    // space before, between and after them across 56 to 360 px; the ascent as tall as the column; the
+    // current altitude centred at the top.
+    function sideBySide(d as Draw, st as Climb.State) as Void {
+        var left = 56.0, right = 360.0, cy = 228.0;
+        var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
+        // Never negative: with wider fonts the widgets would touch rather than overlap.
+        var gap = (right - left - ascW - Widgets.columnGroupWidth(d)) / 3;
+        if (gap < 0) { gap = 0.0; }
+        var lx = left + gap + ascLeft, reach = Widgets.columnReach();
+        Widgets.ascent(d, st, lx, cy + reach, 2 * reach, true);
+        Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true);
+        Widgets.altitudeCentred(d, st, 208.0, 40.0);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile
