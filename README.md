@@ -18,7 +18,7 @@ CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm
 
 A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded and no sensor is read; the route, the times and the position are invented. One product: the epix Pro (Gen 2) 47 mm.
 
-| Button | Does |
+| Input | Does |
 |---|---|
 | Up, down | change page |
 | Start | pause or resume the demo |

@@ -515,9 +515,14 @@ module Widgets {
 
     // A name cut to fit a width, ending in an ellipsis when cut.
     function fitName(d as Draw, name as String, w as Float) as String {
-        if (d.width(Graphics.FONT_XTINY, name) <= w) { return name; }
+        return fitIn(d, Graphics.FONT_XTINY, name, w);
+    }
+
+    // The same in a given font.
+    function fitIn(d as Draw, font as Graphics.FontType, name as String, w as Float) as String {
+        if (d.width(font, name) <= w) { return name; }
         var n = name.length();
-        while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
+        while (n > 1 && d.width(font, name.substring(0, n) + "…") > w) { n--; }
         return name.substring(0, n) + "…";
     }
 

@@ -9,6 +9,10 @@ module Pages {
     const COUNT = 20;
     // Page 9, the section preview, and the section it shows (-1: the climber's).
     const SECTION_PAGE = 9;
+    // Page 9's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
+    const SECTION_BY = 186.0;
+    const SECTION_BW = 132.0;
+    const SECTION_BH = 92.0;
     var selected as Number = -1;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
@@ -220,7 +224,7 @@ module Pages {
     // name and its points' symbols below; the flat ascent at the bottom shows the climber.
     function sectionPage(d as Draw, st as Climb.State) as Void {
         var i = selected >= 0 ? selected : st.cur, n = Climb.count();
-        var bw = 132.0, bh = 92.0, by = 186.0;
+        var bw = SECTION_BW, bh = SECTION_BH, by = SECTION_BY;
         Widgets.selectionGauge(d, i);
         Widgets.bigDifficultyOf(d, Widgets.section(i, false), 208.0, by, bw, bh, 64);
         Widgets.chevron(d, 208 - bw / 2 - 40, by, -1, i > 0);
@@ -232,14 +236,15 @@ module Pages {
         var to = " to ", unit = ft ? "ft" : "m";
         var w0 = d.width(font, a0), wt = d.width(font, to), w1 = d.width(font, a1);
         var x = 208 - (w0 + wt + w1 + 3 + d.width(small, unit)) / 2.0;
-        var base = 100 + d.capHeight(font), top = base - d.capHeight(font);
+        var top = 100.0, base = top + d.capHeight(font);
         d.textCapTop(x, top, font, a0, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
         d.textCapTop(x + w0, top, font, to, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         d.textCapTop(x + w0 + wt, top, font, a1, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
         d.textTop(x + w0 + wt + w1 + 3, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         // Below: the name and the symbols of its points, standing on the name's baseline, centred.
         var kinds = Widgets.sectionPoints(i), ss = 20.0, sg = 8.0;
-        var name = Climb.NAME[i], nw = d.width(font, name);
+        // Cut with an ellipsis to leave room for the symbols, as the mock does.
+        var name = Widgets.fitIn(d, font, Climb.NAME[i], 240 - kinds.size() * (ss + sg)), nw = d.width(font, name);
         var nx = 208 - (nw + kinds.size() * (ss + sg)) / 2, nb = 262 + d.capHeight(font) / 2;
         d.textCapTop(nx, nb - d.capHeight(font), font, name, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
         for (var p = 0; p < kinds.size(); p++) {

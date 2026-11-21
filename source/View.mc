@@ -83,8 +83,8 @@ class View extends WatchUi.View {
     // Page 9: step the selected section back or on, from the climber's at first, within the route.
     function stepSection(dir as Number) as Void {
         var i = (sel >= 0 ? sel : new Climb.State(minute()).cur) + dir;
-        if (i < 0) { i = 0; }
-        if (i > Climb.count() - 1) { i = Climb.count() - 1; }
+        // Nothing that way: leave the selection as it is (still following the climber if it was).
+        if (i < 0 || i > Climb.count() - 1) { return; }
         sel = i;
         WatchUi.requestUpdate();
     }
