@@ -35,7 +35,16 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
+    // Start pauses or resumes the demo. A tap on a touchscreen also comes as select, possibly before
+    // onTap sees it, so on page 9 select is left to the tap and the Start key itself pauses (onKey).
     function onSelect() as Boolean {
+        if (view.page == Pages.SECTION_PAGE) { return false; }
+        view.togglePause();
+        return true;
+    }
+
+    function onKey(evt as WatchUi.KeyEvent) as Boolean {
+        if (view.page != Pages.SECTION_PAGE || evt.getKey() != WatchUi.KEY_ENTER) { return false; }
         view.togglePause();
         return true;
     }
