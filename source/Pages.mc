@@ -13,6 +13,8 @@ module Pages {
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
         switch (page) {
+            // A page's colour map goes on this frame's Draw (View makes a new one every frame), so
+            // the pages that set none keep heat.
             case 0: { d.colours = d.HEAT_AMBER; profileAlone(d, st); break; }
             case 1: { d.colours = d.HEAT_AMBER; columnPage(d, st); break; }
             case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }

@@ -1,0 +1,76 @@
+# Build verification (#10), cut down from Climber Time's build.yml
+# (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
+# release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
+# target device (#11), the store bundle (#12), the unit tests (#13) and the checks that need no
+# SDK (#14) come with the design and functionality.
+#
+# A container, because the device definitions monkeyc compiles against are not in the public SDK
+# download: the SDK manager pulls them behind a Garmin sign-in, so they arrive in an image. The image
+# is our own, ghcr.io/wkusnierczyk/connectiq-tester (wkusnierczyk/connectiq-tester, after
+# matco/connectiq-tester; wkusnierczyk/garmin-watch-faces#37). Tag 9.3.0-2026-11-16: SDK 9.3.0,
+# 94 device definitions.
+#
+# It is a PRIVATE package. The job logs in to ghcr.io with the run's GITHUB_TOKEN, which needs
+# packages: read (below), and the package's settings grant this repository read access ("Manage
+# Actions access"). A fork's pull request is not granted that access here, so the job is skipped for
+# one (its if:), where it would only fail at the pull: a choice, since a package could be shared with
+# forks too.
+#
+# Pinned by digest, with the tag trailing: a tag is mutable, and a retag would swap the build
+# environment with no diff here to show it.
+#
+# No developer key. monkeyc accepts any key, so the job signs with a throwaway one generated per run;
+# the real key is the identity the published app is signed with and stays out of GitHub.
+name: build
+
+on:
+  push:
+    branches: [main, 'dev-*']
+  pull_request:
+
+# Read the repository, and pull the private tester image; nothing else.
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    container:
+      image: ghcr.io/wkusnierczyk/connectiq-tester@sha256:43c0f915cf5dbb721c87dabf36bcb0109ce33d42414e05c9472b53bc0b14914e  # 9.3.0-2026-11-16
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # The image is ubuntu:jammy plus the SDK. make, because make is how the build is spelled
+      # everywhere else (calling monkeyc here would be a second copy of its flags); git, so checkout
+      # clones rather than downloads a tarball; git-lfs, without which lfs: true fails outright.
+      - name: Install make, git and git-lfs
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends make git git-lfs
+
+      # lfs: true, because the launcher icon is an LFS object: without it a pointer file sits where
+      # the .png should be, and monkeyc compiles it without a word. Pinned to a commit SHA with the
+      # release trailing, for the reason the image is pinned by digest.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          lfs: true
+
+      - name: Generate a throwaway signing key
+        run: |
+          openssl genrsa -out /tmp/ci_key.pem 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER \
+            -in /tmp/ci_key.pem -out /tmp/ci_key -nocrypt
+
+      # HOME, because the image keeps the device definitions in /root/.Garmin/ConnectIQ/Devices and a
+      # container job runs with HOME=/github/home; monkeyc finds them by expanding ~. DEVICE is named
+      # rather than left to the Makefile's default, which is a developer's convenience.
+      - name: Build for the epix Pro (Gen 2) 47 mm
+        env:
+          HOME: /root
+        run: |
+          make build DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
+          ls -l FerrataTime.prg
