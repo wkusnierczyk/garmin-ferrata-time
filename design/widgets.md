@@ -83,11 +83,11 @@ Options: dangers follow the profile's danger setting.
 The difficulty widget turned upright: the sections around the climber.
 
 - Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
-- All boxes the same size (64 by 40 px), whatever their letters. The current one is 8 % larger, letters included, and filled in its colour with black letters.
+- All boxes the same size (64 by 40 px), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
 - Letters `W` and `K1` to `K5`. A rest shows as `W`; the mock can show it as `R`.
 
-Options: the colour map.
+Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
 
 ## Groups
 
@@ -100,7 +100,7 @@ Widgets that are placed together, as one reusable unit.
 - Rounded like the altitude widget (10 m or 50 ft), right-aligned in a box as wide as the widest the route can show, 10 px right of the column, the unit after each.
 - Column and altitudes are centred on the screen as one group.
 
-Options: the altitudes at the outer edges; metres or feet.
+Options: the altitudes at the outer edges; metres or feet; the unit after every altitude or only the last (the mock's switch; the app shows it after each).
 
 ### altitude group
 
