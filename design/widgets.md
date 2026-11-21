@@ -5,6 +5,8 @@ Reference mock: `design/demo/page-1.html`
 
 The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Coordinates are in the design's 416 px screen. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
 
+The options below are the mocks'. The app draws each page with the settings it was settled with, so it does not yet carry every option: page 1, for example, has one switch for the difficulty widget's points and always shows danger points.
+
 Shared colours:
 
 | Use | Colour |
@@ -108,5 +110,5 @@ Options: the altitudes at the outer edges; metres or feet.
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 and 2 use heat with amber and no purple (owner, 2026-11-21). No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Page 1 uses heat with amber and no purple (owner, 2026-11-21); the pages after it take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
