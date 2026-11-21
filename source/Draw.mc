@@ -6,7 +6,11 @@ import Toybox.Lang;
 // Drawing helpers in the design's 416 px coordinates, scaled to the screen.
 class Draw {
 
-    const GRADE_COLOUR = [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] as Array<Number>;
+    // Difficulty colours for walk and K1 to K5. The heat map, ending in purple, is the earlier pages';
+    // the revised pages use heat with amber and no purple (design/widgets.md).
+    const HEAT = [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] as Array<Number>;
+    const HEAT_AMBER = [0x6b7280, 0x8ecae6, 0xffe14d, 0xffb000, 0xff7a1a, 0xe63946] as Array<Number>;
+    var colours as Array<Number> = HEAT;
     const REST = 0x4fc3f7;
     const EXIT = 0xcfd8dc;
     const MUTED = 0x99aaaa;
@@ -24,7 +28,7 @@ class Draw {
 
     // A grade's colour; climbed parts are drawn at a third of it.
     function grade(g as Number, dim as Boolean) as Number {
-        var c = GRADE_COLOUR[g < 0 ? 0 : g];
+        var c = colours[g < 0 ? 0 : g];
         return dim ? darken(c, 0.33) : c;
     }
 
@@ -133,6 +137,45 @@ class Draw {
     function textRight(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Text with its top at y, justified as given (Graphics.TEXT_JUSTIFY_LEFT, _RIGHT or _CENTER).
+    function textTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(s(x), s(y), font, str, justify);
+    }
+
+    // Capital letters and digits stand about 0.72 of the font's ascent above the baseline (measured
+    // on the epix Pro's system fonts); the rest of the ascent is space above them.
+    const CAP = 0.72;
+
+    function ascent(font as Graphics.FontType) as Float {
+        return Graphics.getFontAscent(font) / k;
+    }
+
+    function capHeight(font as Graphics.FontType) as Float {
+        return ascent(font) * CAP;
+    }
+
+    // Text whose capitals start at y (their top), justified as given.
+    function textCapTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        textTop(x, y - ascent(font) * (1 - CAP), font, str, c, justify);
+    }
+
+    // Text whose capitals are centred on (x, y).
+    function textCapCentre(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
+        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // A round brush along a line: filled circles every 2 px, so ends and bends come out round.
+    function brush(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, r as Numeric, c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        var dx = x2 - x1, dy = y2 - y1;
+        var n = (Math.sqrt(dx * dx + dy * dy) / 2).toNumber() + 1;
+        for (var i = 0; i <= n; i++) {
+            var f = i.toFloat() / n;
+            dc.fillCircle(s(x1 + dx * f), s(y1 + dy * f), s(r));
+        }
     }
 
     // Width of a string in design pixels.

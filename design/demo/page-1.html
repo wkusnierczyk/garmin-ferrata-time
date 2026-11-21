@@ -1,0 +1,417 @@
+<title>Ferrata Page 1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* Layout: a short brief, one live dial, then the same page at four points of the climb. */
+:root {
+  --bg: #f3f4f2; --fg: #16191b; --muted: #5b6366; --line: #d6dad6;
+  --screen: #000000; --bezel: #2a2d30; --bezel-edge: #45494d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 36px; }
+h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: 40px; line-height: 1.05; }
+h2 { font-size: 24px; }
+.lede { max-width: 65ch; color: var(--muted); margin: 8px 0 0; }
+.lede b { color: var(--fg); font-weight: 500; }
+.dial { background: var(--screen); border-radius: 50%; aspect-ratio: 1; max-width: 100%;
+  box-shadow: 0 0 0 8px var(--bezel), 0 0 0 10px var(--bezel-edge); }
+.dial svg { display: block; width: 100%; height: 100%; }
+.live { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 32px; align-items: center; }
+.live .dial { width: 360px; }
+.controls { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.controls label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.controls input { width: 100%; max-width: 360px; }
+.controls label.check { display: flex; gap: 8px; align-items: center; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--fg); }
+.controls label.check input { width: auto; }
+select { font: 15px var(--body); padding: 4px 6px; max-width: 360px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; background: var(--screen); color: #e9f2ff; font: 600 14px/1 var(--display); border-radius: 3px; }
+.legend i { width: 18px; height: 6px; border-radius: 3px; display: inline-block; }
+.controls .group { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.readout { font: 600 20px/1 var(--display); font-variant-numeric: tabular-nums; }
+button { font: 500 14px var(--body); padding: 6px 14px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 4px; cursor: pointer; justify-self: start; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px; }
+figure { margin: 0; display: grid; gap: 10px; justify-items: center; }
+figure .dial { width: min(220px, 100%); }
+figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.notes ul { margin: 8px 0 0; padding-left: 20px; max-width: 65ch; }
+.notes li + li { margin-top: 6px; }
+@media (max-width: 640px) { .live { grid-template-columns: 1fr; } .live .dial { width: min(360px, 100%); } }
+</style>
+<main>
+  <section>
+    <h1>Ferrata · page 1, version 1, settled</h1>
+    <p class="lede">The side profile on its own. Page A stays as it is; this is a new, simpler page beside it. No inclination degrees. <b>Exits</b> are green rings on the route where they leave. On the left, a thin <b>height scale</b> with an orange ring at the climber's height, the profile outline's orange: the metres climbed below it, the metres left above it, each centred on its stretch. The rest of the drawing is page A's profile: grade colours, climbed parts dimmed, rests as blue rings on the route, the ring at the top. The <b>climber</b> is an orange outline around the stretch of route they could be on, in place of page A's white dot and grey band. With the text gone, the profile is drawn larger.</p>
+  </section>
+  <section class="live">
+    <div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="The route seen from the side"></svg></div>
+    <div class="controls">
+      <label for="pos">Point of the climb</label>
+      <input id="pos" type="range" min="0" max="1000" value="450">
+      <div class="readout" id="readout"></div>
+      <button id="play" type="button">Play the climb</button>
+      <label for="speed">Speed: the whole climb in</label>
+      <select id="speed"><option value="0.25">50 s</option><option value="0.5">25 s</option><option value="1" selected>12 s</option><option value="2">6 s</option><option value="4">3 s</option></select>
+      <label for="map">Difficulty colours</label>
+      <select id="map"></select>
+      <div class="legend" id="legend"></div>
+      <span class="group">Difficulty boxes show</span>
+      <label class="check"><input id="box-rests" type="checkbox"> Rests (R); otherwise a rest shows as W</label>
+      <label class="check"><input id="box-exits" type="checkbox"> Exits (E)</label>
+      <label class="check"><input id="box-dangers" type="checkbox"> Dangers (D), when the profile shows them</label>
+      <label for="units">Altitude in</label>
+      <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
+      <label class="check"><input id="dangers" type="checkbox" checked> Danger points as red rings</label>
+      <label class="check"><input id="ends" type="checkbox" checked> Start and end as a green and a red dot</label>
+    </div>
+  </section>
+  <section>
+    <h2>Through the climb</h2>
+    <div class="row" id="row"></div>
+  </section>
+  <section class="notes">
+    <h2>To look at</h2>
+    <ul>
+      <li>Rests are blue rings at the middle of each rest stretch, hollow like the exit rings, in a deeper blue than before so they don't read as green. The two rests in the demo are short (10 and 30 m along), so each ring covers its whole stretch.</li>
+      <li>Danger points are red rings on the route, hollow like the others; the demo has two made up, rockfall below the Dihedral and the exposed Bridge. Their red is the top dot's red, close to K4 in the heat map.</li>
+      <li>Difficulty indicators in the lower right corner of the rectangle the profile and ascent span: three slots. The larger middle box is the section the climber is estimated in. When the uncertainty stretch reaches past it, the nearest thing behind goes left and the nearest ahead goes right: the neighbouring section, or an exit or danger point inside the stretch. Grades (W, K1 to K5) are filled in the colour map's colours with black letters; rest (R), exit (E) and danger (D) are outlined in their own colours.</li>
+      <li>Six widgets: <b>profile</b> (the route's sections, the rest, exit and danger rings, the climber's outline; the colour map is its option), <b>ascent</b> (the line, its end dots, the climber's ring, the two numbers) <b>difficulty</b> (the middle box and its two satellites, following the profile's symbols and colours) <b>altitude</b> (the approximate altitude, right-aligned in a box as wide as the route's widest, with its unit), <b>poi</b> (the point of interest's word under it) and the <b>altitude group</b> that puts the two together. Profile and ascent share the start: the ascent's line rises from the profile's first point, and both tops are level. The profile is 260 px wide on the 416 px screen.</li>
+      <li>The climber's height on the line is an orange ring, 9 px to the middle of its stroke. Its black inside hides the line but not the end dots, and its outline is drawn over everything, so at either end it rings the green or red dot. Each number stays centred on its stretch, but kept 20 px from the ring until it reaches the line's end, where it stops, level with the end. The first and last stills show both cases.</li>
+      <li>The numbers are left of the line, right-aligned 5 px before the climber's ring.</li>
+      <li>The climber's outline is the launcher icon's orange, 3 px wide. Its length is how sure the position is (25 m up or down), so it is short on steep ground and long on flat ground. In the heat map it sits close to K3's orange, and in the one-hue map close to every grade.</li>
+      <li>The colour menu swaps the difficulty colours. The ski piste map reuses green and red, which this page also uses for exits and the line's ends.</li>
+      <li>The option beside the slider marks the line's ends: green at the start, red at the top.</li>
+      <li>The exit rings are hollow, black inside, so the route breaks where an exit leaves, as at the top.</li>
+    </ul>
+  </section>
+</main>
+<script>
+// The demo route, as in source/Climb.mc.
+const LEN = [120, 35, 10, 140, 25, 150, 30, 40, 45, 15, 60, 20, 70];
+const UP = [20, 90, 0, 30, 110, 10, 0, 5, 70, 85, 5, 60, 45];
+const GRADE = [0, 3, -1, 2, 4, 1, -1, 1, 3, 5, 4, 4, 2];
+const MIN = [12, 20, 10, 14, 20, 15, 10, 6, 12, 15, 8, 12, 12];
+const EXIT_AT = [5, 9];
+// Made-up danger points, in metres along the route: rockfall below the Dihedral, the exposed Bridge.
+const DANGER_AT = [{ d: 175, what: "Rockfall" }, { d: 640, what: "Exposed bridge" }];
+const UNCERTAINTY = 25;
+// The start's altitude above sea level, as in source/Climb.mc.
+const START_ALT = 1270;
+// Difficulty colours for walk, K1 to K5, one map per option in the mock's menu.
+const MAPS = {
+  heat:   { name: "Heat, as now", c: [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] },
+  heat2:  { name: "Heat with amber, no purple", c: [0x6b7280, 0x8ecae6, 0xffe14d, 0xffb000, 0xff7a1a, 0xe63946] },
+  piste:  { name: "Ski piste (K4 and K5 share black, drawn white)", c: [0x6b7280, 0x3fd77f, 0x3a86ff, 0xff4b4b, 0xeeeeee, 0xeeeeee] },
+  viridis:{ name: "Colour-blind safe (viridis)", c: [0x6b7280, 0x31688e, 0x26828e, 0x35b779, 0x90d743, 0xfde725] },
+  orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
+};
+
+const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
+const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
+const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
+  "Band", "Slabs", "Overhang", "Bridge", "Ladders", "Exit gully"];
+
+const cum = a => a.reduce((o, v) => (o.push(o[o.length - 1] + v), o), [0]);
+const D = cum(LEN), U = cum(UP), M = cum(MIN);
+const N = LEN.length, TD = D[N], TU = U[N], TM = M[N];
+// The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs (a
+// flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each grade
+// above walking (1.1 to the power of the grade; rests count as walking). Returns the guidebook
+// minute reached at fraction f of the demo.
+const DEMO_W = UP.map((u, i) => Math.max(u, 5) * Math.pow(1.1, Math.max(GRADE[i], 0))), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
+function demoMinute(f) {
+  const t = f * DEMO_T;
+  for (let i = 0; i < N; i++) if (t <= DEMO_C[i + 1]) return M[i] + (t - DEMO_C[i]) / DEMO_W[i] * MIN[i];
+  return TM;
+}
+
+const hex = c => "#" + c.toString(16).padStart(6, "0");
+// Climbed parts are drawn at a third of their colour.
+function darken(c) {
+  const f = 0.33, r = ((c >> 16) & 255) * f | 0, gg = ((c >> 8) & 255) * f | 0, b = (c & 255) * f | 0;
+  return (r << 16) | (gg << 8) | b;
+}
+function grade(colours, g, dim) {
+  const c = colours[g < 0 ? 0 : g];
+  return hex(dim ? darken(c) : c);
+}
+// A point's colour, dimmed once the climber has passed it.
+const mark = (c, passed) => passed ? hex(darken(parseInt(c.slice(1), 16))) : c;
+function heightAt(d) {
+  for (let i = 0; i < N; i++) if (d <= D[i + 1]) return U[i] + (d - D[i]) / LEN[i] * UP[i];
+  return TU;
+}
+function firstAt(u) {
+  if (u <= 0) return 0;
+  for (let i = 0; i < N; i++) if (UP[i] > 0 && U[i + 1] >= u) return D[i] + (u - U[i]) / UP[i] * LEN[i];
+  return TD;
+}
+function lastAt(u) {
+  if (u >= TU) return TD;
+  for (let i = N - 1; i >= 0; i--) if (U[i] <= u) {
+    if (UP[i] > 0 && U[i + 1] > u) return D[i] + (u - U[i]) / UP[i] * LEN[i];
+    return D[i + 1];
+  }
+  return 0;
+}
+function state(m) {
+  m = Math.min(m, TM);
+  let cur = N - 1;
+  for (let i = 0; i < N; i++) if (m < M[i + 1]) { cur = i; break; }
+  const f = Math.min(1, (m - M[cur]) / MIN[cur]);
+  return { m, cur, d: D[cur] + f * LEN[cur], u: U[cur] + f * UP[cur] };
+}
+
+// The numbers sit left of the height scale, right-aligned a small space before the climber's ring.
+const NUMBER_FONT = "Barlow Condensed, Arial Narrow, sans-serif";
+const RING_OUTER = 9 + 2.5 / 2, NUMBER_SPACE = 5;
+
+const line = (x1, y1, x2, y2, c, w) =>
+  `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+
+// The profile alone, in the design's 416 px coordinates.
+// The ascent widget: a vertical line for the route's height, the climber's height on it as an
+// orange ring, the metres climbed below the ring and the metres left above it, and optionally the
+// start and the top as a green and a red dot. The line stands at x, from y0 (start) up to y0 - h.
+function ascent(st, x, y0, h, ends) {
+  const Y = u => y0 - u / TU * h, ty = Y(st.u), up = Math.round(st.u);
+  const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" fill="#fff" font-size="22" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
+  // Back to front: the line, the ring's black inside (hiding the line, not the end dots), the end
+  // dots, the ring's orange outline.
+  let s = line(x, Y(0), x, Y(TU), SCALE, 2);
+  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="9" fill="#000"/>`;
+  // Centred on their stretches, kept clear of the ring when it nears either end, but never past the end.
+  const gap = 20;
+  s += num(Math.min(Math.max((ty + Y(0)) / 2, ty + gap), Y(0)), up) +
+    num(Math.max(Math.min((Y(TU) + ty) / 2, ty - gap), Y(TU)), TU - up);
+  if (ends) {
+    s += `<circle cx="${x}" cy="${Y(0)}" r="6" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="6" fill="${END_RED}"/>`;
+  }
+  // Sized to ring an end's dot when it reaches it.
+  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="2.5"/>`;
+  return s;
+}
+
+// The profile widget: the route seen from the side, from (x0, y0) at the start to (x0 + w, y0 - h)
+// at the top. The route's sections in their difficulty colours, climbed parts dimmed; three kinds of
+// points as rings (rests blue, exits green, dangers red), dimmed once passed; the climber as an
+// orange outline around the stretch they could be on. Options: the difficulty colour map
+// (opt.colours, one of MAPS) and whether to show danger points (opt.dangers).
+function profile(st, x0, w, y0, h, opt) {
+  const colours = opt.colours.c, dangers = opt.dangers;
+  const pen = 10;
+  const X = d => x0 + d / TD * w, Y = u => y0 - u / TU * h;
+  let s = "";
+  // The climber: an orange outline around the stretch of route they could be on, from how sure the
+  // position is. Drawn as a wide orange stroke with a narrower black one inside it.
+  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  let pts = [];
+  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(1)},${Y(heightAt(dd)).toFixed(1)}`);
+  pts.push(`${X(hi).toFixed(1)},${Y(heightAt(hi)).toFixed(1)}`);
+  const band = (c, wd) => `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${wd}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  s += band(CLIMBER, 28) + band("#000", 22);
+  // The sections.
+  const cx = X(st.d), cy = Y(st.u);
+  for (let i = 0; i < N; i++) {
+    const ax = X(D[i]), ay = Y(U[i]), bx = X(D[i + 1]), by = Y(U[i + 1]), g = GRADE[i];
+    if (g < 0) { continue; }
+    if (D[i + 1] <= st.d) s += line(ax, ay, bx, by, grade(colours, g, true), pen);
+    else if (D[i] >= st.d) s += line(ax, ay, bx, by, grade(colours, g, false), pen);
+    else s += line(ax, ay, cx, cy, grade(colours, g, true), pen) + line(cx, cy, bx, by, grade(colours, g, false), pen);
+  }
+  // Rests: blue rings on the middle of the rest stretch, hollow like the exits.
+  for (let i = 0; i < N; i++) if (GRADE[i] < 0) {
+    const md = (D[i] + D[i + 1]) / 2;
+    s += `<circle cx="${X(md).toFixed(1)}" cy="${Y(heightAt(md)).toFixed(1)}" r="8" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="3"/>`;
+  }
+  // Dangers: red rings on the route, hollow like the exits.
+  if (dangers) for (const p of DANGER_AT) {
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(END_RED, p.d <= st.d)}" stroke-width="3"/>`;
+  }
+  // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
+  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
+  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="6" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="3" fill="#000"/>`;
+  return s;
+}
+
+// A difficulty indicator: letters in a rounded box, centred on x with its bottom at yb, at size k
+// (1 for the middle box).
+// Grades are filled in their colour with black letters; rests, exits and dangers are outlined in
+// their colour with letters in it.
+const boxWidth = (text, k) => (text.length > 1 ? 58 : 46) * k;
+function badge(x, yb, k, text, colour, filled) {
+  const w = boxWidth(text, k), h = 38 * k, fs = 26 * k, y = yb - h / 2;
+  const box = filled
+    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${8 * k}" fill="${colour}"/>`
+    : `<rect x="${x - w / 2 + 1.5}" y="${y - h / 2 + 1.5}" width="${w - 3}" height="${h - 3}" rx="${7 * k}" fill="#000" stroke="${colour}" stroke-width="3"/>`;
+  // Centred on the capitals: the baseline sits half the cap height (0.7 em in Barlow Condensed) below the middle.
+  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+}
+const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"];
+// The satellites' size against the middle box, and their gap from it.
+const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 5;
+
+// What a box shows for a section, or for a point on the route.
+// With rests left out of the widget, a rest stretch shows as walking ground.
+function sectionBox(colours, i, rests) {
+  const g = GRADE[i] < 0 && !rests ? 0 : GRADE[i];
+  return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
+}
+const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
+const DANGER_BOX = { text: "D", colour: END_RED, filled: false };
+
+// The difficulty widget: a larger middle box and two smaller satellites, sharing a bottom edge at y,
+// the middle one centred on x. Its symbols and colours follow the profile's: grades from the profile's
+// colour map, rest, exit and danger in the profile's ring colours. Options: the colour map
+// (opt.colours) and whether danger points count (opt.dangers), the same as the profile's.
+// Three slots: the middle, larger, is the section the climber is estimated in. The uncertainty
+// stretch may reach past it: the nearest thing behind within the stretch (the previous section, or an
+// exit or danger point) goes left, the nearest ahead goes right. Empty slots stay empty.
+function difficulty(st, x, y, opt) {
+  const colours = opt.colours.c;
+  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  // Which kinds of point the widget shows: its own options, and dangers only if the profile has them.
+  const points = opt.boxExits ? EXIT_AT.map(i => ({ d: D[i], box: EXIT_BOX })) : [];
+  if (opt.dangers && opt.boxDangers) for (const p of DANGER_AT) points.push({ d: p.d, box: DANGER_BOX });
+  // Candidates as [distance from the climber, box]; points win a tie with a section boundary.
+  let left = null, right = null;
+  const near = (best, dist, box) => (best === null || dist < best[0] ? [dist, box] : best);
+  if (st.cur > 0 && D[st.cur] >= lo) left = near(left, st.d - D[st.cur] + 0.01, sectionBox(colours, st.cur - 1, opt.boxRests));
+  if (st.cur < N - 1 && D[st.cur + 1] <= hi) right = near(right, D[st.cur + 1] - st.d + 0.01, sectionBox(colours, st.cur + 1, opt.boxRests));
+  for (const p of points) {
+    if (p.d >= lo && p.d <= st.d) left = near(left, st.d - p.d, p.box);
+    if (p.d > st.d && p.d <= hi) right = near(right, p.d - st.d, p.box);
+  }
+  // The middle box is centred on x; the side boxes keep a narrow gap from its edges. All share the
+  // bottom edge y.
+  const draw = (bx, cx, k) => badge(cx, y, k, bx.text, bx.colour, bx.filled);
+  const mid = sectionBox(colours, st.cur, opt.boxRests), half = boxWidth(mid.text, 1) / 2, gap = DIFFICULTY_GAP, k = DIFFICULTY_K;
+  let s = draw(mid, x, 1);
+  if (left) s += draw(left[1], x - half - gap - boxWidth(left[1].text, k) / 2, k);
+  if (right) s += draw(right[1], x + half + gap + boxWidth(right[1].text, k) / 2, k);
+  return s;
+}
+
+// The altitude widget: the approximate altitude, a number and its unit. The number is right-aligned in
+// a box as wide as the widest altitude this route can show, the box starting at x; the unit follows
+// it. The top of the digits is at yt (cap height 0.7 em in Barlow Condensed). Rounded to 10 m, or
+// 50 ft, since the position is only known to within 25 m.
+const ALT_SIZE = 46;
+const altValue = (u, feet) => {
+  const m = START_ALT + u;
+  return feet ? Math.round(m * 3.28084 / 50) * 50 : Math.round(m / 10) * 10;
+};
+// Widest number per unit, measured once for the route.
+const altWidest = {};
+function altBox(feet) {
+  if (altWidest[feet] === undefined) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    ctx.font = `600 ${ALT_SIZE}px ${NUMBER_FONT}`;
+    let w = 0;
+    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width);
+    altWidest[feet] = w;
+  }
+  return altWidest[feet];
+}
+function altitude(st, x, yt, feet) {
+  const y = (yt + 0.7 * ALT_SIZE).toFixed(1), right = x + altBox(feet);
+  return `<text x="${right.toFixed(1)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
+    `<text x="${(right + 4).toFixed(1)}" y="${y}" font-family="${NUMBER_FONT}" font-size="25" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
+}
+
+// The poi widget: one word for the point of interest the uncertainty stretch covers, REST, EXIT or
+// DANGER in its colour, right-aligned at x with the top of its capitals at yt. Nothing when there is
+// none. With several, the nearest to the climber's estimate wins; on a tie, danger before exit
+// before rest.
+function poi(st, x, yt, opt) {
+  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  const found = [];
+  for (let i = 0; i < N; i++) if (GRADE[i] < 0 && D[i] <= hi && D[i + 1] >= lo) {
+    const dist = st.d < D[i] ? D[i] - st.d : st.d > D[i + 1] ? st.d - D[i + 1] : 0;
+    found.push({ dist, rank: 2, word: "REST", colour: REST });
+  }
+  for (const i of EXIT_AT) if (D[i] >= lo && D[i] <= hi) found.push({ dist: Math.abs(D[i] - st.d), rank: 1, word: "EXIT", colour: EXIT_GREEN });
+  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: END_RED });
+  if (!found.length) return "";
+  found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
+  const f = found[0], fs = 24;
+  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
+}
+
+// The altitude group: the altitude widget with the poi widget under it, the poi word right-aligned
+// with the altitude number (not its unit). x is where the altitude's box starts, yt the top of its
+// digits.
+function altitudeGroup(st, x, yt, opt) {
+  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 12, opt);
+}
+
+// Page 1, version 1: profile and ascent sharing the start, the ascent's foot at the profile's first
+// point. The difficulty widget sits in the lower right corner of the rectangle they span: its bottom
+// on the rectangle's bottom, and its widest possible extent (two-character boxes in all three slots)
+// ending at the rectangle's right edge, so the middle box stays put whatever the satellites show.
+function page(st, opt) {
+  const x0 = 92, w = 260, y0 = 318, h = 226;
+  const reach = boxWidth("K1", 1) / 2 + DIFFICULTY_GAP + boxWidth("K1", DIFFICULTY_K);
+  return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, x0 + w - reach, y0, opt) +
+    // In the rectangle's upper left, a small space right of the ascent line, level with its top.
+    altitudeGroup(st, x0 + RING_OUTER + 8, y0 - h, opt);
+}
+
+const speed = document.getElementById("speed");
+const live = document.getElementById("live"), pos = document.getElementById("pos"),
+  readout = document.getElementById("readout"), play = document.getElementById("play");
+const map = document.getElementById("map"), legend = document.getElementById("legend");
+for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `<option value="${k}">${m.name}</option>`);
+map.value = "heat2";
+const units = document.getElementById("units");
+const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
+  boxDangers = document.getElementById("box-dangers");
+const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
+const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
+  boxRests: boxRests.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+function show() {
+  const st = state(demoMinute(pos.value / 1000));
+  live.innerHTML = page(st, opts());
+  const g = GRADE[st.cur];
+  readout.textContent = `${Math.round(st.u)} of ${TU} m up · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
+}
+pos.addEventListener("input", show);
+let timer = null;
+play.addEventListener("click", () => {
+  if (timer) { clearInterval(timer); timer = null; play.textContent = "Play the climb"; return; }
+  play.textContent = "Stop";
+  timer = setInterval(() => { pos.value = (+pos.value + 4 * +speed.value) % 1001; show(); }, 50);
+});
+show();
+
+const row = document.getElementById("row");
+function stills() {
+  row.innerHTML = "";
+  for (const f of [0.03, 0.4, 0.65, 0.97]) {
+    const st = state(demoMinute(f));
+    row.insertAdjacentHTML("beforeend",
+      `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="Profile at ${Math.round(f * 100)} percent">${page(st, opts())}</svg></div>` +
+      `<figcaption>${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
+  }
+}
+ends.addEventListener("change", () => { show(); stills(); });
+dangers.addEventListener("change", () => { show(); stills(); });
+units.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers]) el.addEventListener("change", () => { show(); stills(); });
+function drawLegend() {
+  legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
+}
+map.addEventListener("change", () => { drawLegend(); show(); stills(); });
+drawLegend();
+stills();
+// Measure again once the web font has loaded, since the first measure may have used the fallback.
+document.fonts?.ready.then(() => { for (const k in altWidest) delete altWidest[k]; show(); stills(); });
+</script>

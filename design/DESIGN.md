@@ -90,6 +90,8 @@ Two layouts are in the demo. The choice between them is open (section 10).
 
 ## 5. Watch app
 
+The prototype's pages are being revised one by one, from reusable widgets (`design/widgets.md`); page 1 is settled (`design/page-1.md`). The tables below are the earlier concept.
+
 Screens in the demo:
 
 | Screen | Purpose |

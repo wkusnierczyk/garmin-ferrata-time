@@ -17,6 +17,8 @@ module Climb {
     // Exits leave at the start of these sections.
     const EXIT_AT = [5, 9] as Array<Number>;
     const EXIT_NAME = ["Band exit", "Last exit"] as Array<String>;
+    // Danger points, in metres along the route: rockfall on the Ledge traverse, the exposed Bridge.
+    const DANGER_AT = [175, 640] as Array<Number>;
 
     const START_ALT = 1270;
     // Own pace against the guidebook: 8 percent slower.
@@ -160,7 +162,7 @@ module Climb {
         }
 
         function altitude() as Number { return START_ALT + u.toNumber(); }
-        function climbed() as Number { return u.toNumber(); }
+        function climbed() as Number { return Math.round(u).toNumber(); }
         function elapsed() as Float { return m * PACE; }
         function left() as Float { return (totalM() - m) * PACE; }
         function clock() as Float { return START_CLOCK + elapsed(); }
