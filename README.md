@@ -23,7 +23,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 | Hold Up | the Ask list; choosing a question does nothing yet |
 | Back | leave |
 
-The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4) and by path with the ascent as a gauge (page 5, both in the works, `design/demo/pages-4-5.html`), the gauge (page 6, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen.
+The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
@@ -60,9 +60,11 @@ A separate, feature-rich watch app (several screens) handles route choice, an ov
 | `design/demo/page-2.html` | Interactive mock of page 2, with its options as settings |
 | `design/page-3.md` | Page 3, version 1: ascent and difficulty column side by side |
 | `design/demo/page-3.html` | Interactive mock of page 3, with its options as settings |
+| `design/page-4.md` | Page 4, version 1: the difficulty stack by ascent, with points of interest |
+| `design/page-5.md` | Page 5, version 1: the difficulty stack by path, with the ascent gauge and points of interest |
 | `design/demo/pages-4-5.html` | Interactive mock of pages 4 and 5, the difficulty stack by ascent and by path |
-| `design/page-6.md` | Page 6, version 1: the gauge |
-| `design/demo/page-6.html` | Interactive mock of page 6, with its options as settings |
+| `design/page-6.md` | Pages 6a and 6b, version 1: the gauge, by length and by ascent |
+| `design/demo/page-6.html` | Interactive mock of pages 6a and 6b, with their options |
 | `design/page-7.md` | Page 7, version 1: the route from the front |
 | `design/demo/page-7.html` | Interactive mock of page 7, with its options as settings |
 | `design/page-8.md` | Page 8, version 1: the current difficulty with the ascent gauge |

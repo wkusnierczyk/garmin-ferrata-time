@@ -417,9 +417,89 @@ module Widgets {
     const STACK_W = 60;
     const STACK_NAMES = 80;
 
+    // The section names' distance from the column, clear of the points' rings on its right edge.
+    const NAME_GAP = 18;
+    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
+    const POI_DANGER = 0xffd60a;
+
+    // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
         var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
-        return d.width(Graphics.FONT_XTINY, top.format("%d")) + 14.0;
+        return d.width(bigLabelFont(d, 0), top.format("%d")) + 14.0;
+    }
+
+    // The points of interest on the stack: rings on the column's right edge (x) at their place on it,
+    // rests blue (the middle of the rest), exits green, dangers yellow, the top red, dimmed once
+    // passed. A point is in the climber's range from one tick step (stepM metres along the stack's
+    // axis) before it to half a step after it. Points whose rings would touch show one ring: of those
+    // in range, the first of danger, exit, rest, top, with its name ("Danger", "Exit", "Rest", "Top")
+    // beside it in its colour; with none in range, the one nearest the climber, unnamed. Returns the
+    // y of each name shown.
+    function stackPoints(d as Draw, st as Climb.State, byUp as Boolean, top as Float, bottom as Float, cy as Float,
+            here as Float, scale as Float, x as Float, nameR as Number, stepM as Float) as Array<Float> {
+        // Each point: where it sits, its stretch (lo to hi metres along the route), colour, rank.
+        var at = [] as Array<Float>, lo = [] as Array<Float>, hi = [] as Array<Float>;
+        var colour = [] as Array<Number>, rank = [] as Array<Number>;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                var d0 = Climb.dAt(i).toFloat(), d1 = Climb.dAt(i + 1).toFloat();
+                at.add((d0 + d1) / 2); lo.add(d0); hi.add(d1); colour.add(REST); rank.add(2);
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(GREEN); rank.add(1);
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+        }
+        var td = Climb.totalD().toFloat();
+        at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
+        var words = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
+        // Their screen heights, distances from the climber and whether in range; the ones in view,
+        // ordered from the top down.
+        var n = at.size();
+        var ys = new [n] as Array<Float>, away = new [n] as Array<Float>, near = new [n] as Array<Boolean>;
+        var order = [] as Array<Number>;
+        for (var p = 0; p < n; p++) {
+            var a = byUp ? Climb.heightAtDistance(lo[p]) : lo[p], b = byUp ? Climb.heightAtDistance(hi[p]) : hi[p];
+            var ahead = a - here, behind = here - b;
+            near[p] = ahead <= stepM && behind <= stepM / 2;
+            away[p] = ahead > behind ? (ahead > 0 ? ahead : 0.0) : (behind > 0 ? behind : 0.0);
+            ys[p] = cy - ((byUp ? Climb.heightAtDistance(at[p]) : at[p]) - here) * scale;
+            if (ys[p] < top + 6 || ys[p] > bottom - 6) { continue; }
+            var k = order.size();
+            order.add(p);
+            while (k > 0 && ys[order[k - 1]] > ys[p]) { order[k] = order[k - 1]; k--; }
+            order[k] = p;
+        }
+        // Group the rings that would touch, and draw one per group.
+        var named = [] as Array<Float>;
+        var g = 0;
+        while (g < order.size()) {
+            var best = order[g], end = g + 1;
+            while (end < order.size() && ys[order[end]] - ys[order[end - 1]] < 18) { end++; }
+            for (var m = g; m < end; m++) {
+                var p = order[m];
+                var better = near[p] && !near[best] ||
+                    near[p] == near[best] && (near[p] ? rank[p] < rank[best] || rank[p] == rank[best] && away[p] < away[best] : away[p] < away[best]);
+                if (better) { best = p; }
+            }
+            var c = colour[best], y = ys[best];
+            d.dot(x, y, 8, BLACK);
+            d.ring(x, y, 7, at[best] <= st.d ? d.darken(c, 0.33) : c, 3);
+            if (near[best]) {
+                var half = nameR * nameR - (y - 208) * (y - 208);
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
+                if (room >= 30) {
+                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, words[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                    named.add(y);
+                }
+            }
+            g = end;
+        }
+        return named;
     }
 
     // Where boundary i sits along the stack's axis, and section i's size on it.
@@ -442,6 +522,33 @@ module Widgets {
         var n = name.length();
         while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
         return name.substring(0, n) + "…";
+    }
+
+    // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
+    // the ones just above and below it at one and a half. In a scalable font where the watch has one
+    // (sized once, then corrected by the height it measures), the nearest system font otherwise.
+    const BIG_SCALE = [2.0, 1.5];
+    var bigFonts as Array<Graphics.FontType?> = [null, null];
+
+    function bigLabelFont(d as Draw, which as Number) as Graphics.FontType {
+        if (bigFonts[which] == null) {
+            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
+            var size = Math.round(want).toNumber();
+            var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size});
+            if (vf != null) {
+                var h = d.dc.getFontHeight(vf);
+                if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
+            }
+            bigFonts[which] = vf != null ? vf : (which == 0 ? Graphics.FONT_LARGE : Graphics.FONT_SMALL);
+        }
+        return bigFonts[which] as Graphics.FontType;
+    }
+
+    // Tick label t's font, next being the next altitude's tick (or -1).
+    function tickFont(d as Draw, t as Number, next as Number) as Graphics.FontType {
+        if (next < 0) { return Graphics.FONT_XTINY; }
+        var off = (t - next).abs();
+        return off == 0 ? bigLabelFont(d, 0) : off == 1 ? bigLabelFont(d, 1) : Graphics.FONT_XTINY;
     }
 
     // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
@@ -489,7 +596,12 @@ module Widgets {
             if (i == n - 1) { d.rect(left, yt, STACK_W, 3, stackColour(d, st, i)); }
         }
         d.unclip();
-        // The names on the right, centred on the part in view, cut to fit the round screen.
+        var ft = feet(), step = ft ? stepFt : stepM;
+        // The points of interest, one ring for each group whose rings would touch; the y of each one
+        // that shows its name, for the section names to give way to.
+        var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
+        // The names on the right, centred on the part in view, cut to fit the round screen, clear of
+        // the points' rings.
         if (names) {
             for (var i = 0; i < n; i++) {
                 var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
@@ -498,16 +610,18 @@ module Widgets {
                 var flat = stackSize(i, byUp) == 0;
                 if (!flat && vb - vt < 16) { continue; }
                 var ny = flat ? yb : (vt + vb) / 2;
+                var touches = false;
+                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
+                if (touches) { continue; }
                 var half = nameR * nameR - (ny - 208) * (ny - 208);
-                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + 12)).toFloat();
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
                 if (room < 30) { continue; }
-                d.textCapMiddle(right + 12, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
+                d.textCapMiddle(right + NAME_GAP, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
         }
         // Altitude ticks on the left, every step, only along the route. By path a tick sits
         // where the route first reaches its altitude; a label touching the one below is left out.
-        var ft = feet(), step = ft ? stepFt : stepM;
         var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
         if (vLo < 0) { vLo = 0.0; }
         var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();
@@ -515,54 +629,73 @@ module Widgets {
         var uLo = byUp ? vLo : Climb.heightAtDistance(vLo), uHi = byUp ? vHi : Climb.heightAtDistance(vHi);
         var k = ft ? 3.28084 : 1.0;
         var aLo = (Climb.START_ALT + uLo) * k, aHi = (Climb.START_ALT + uHi) * k;
-        var lastLabel = 9999.0;
+        var ticks = [] as Array<Number>, ys = [] as Array<Float>;
         for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
             var u = a / k - Climb.START_ALT;
             var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
             d.rect(left - 9, y - 1, 6, 2, SCALE);
-            if (lastLabel - y >= d.capHeight(Graphics.FONT_XTINY) + 6) {
-                d.textCapMiddle(left - 14, y, Graphics.FONT_XTINY, a.format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
-                lastLabel = y;
+            ticks.add(a);
+            ys.add(y);
+        }
+        // The label of the next altitude to reach is twice as large and always shown, the ones just
+        // above and below it one and a half times; the others are left out around it, each kept clear
+        // of the last one shown. By path it is the first tick above the altitude now, which may sit
+        // further along the route than the climber.
+        var next = -1, now = (Climb.START_ALT + st.u) * k;
+        for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
+        var from = next >= 0 ? next : 0;
+        for (var dir = 1; dir >= -1; dir -= 2) {
+            var last = dir < 0 && next >= 0 ? next : -1;
+            for (var t = dir > 0 ? from : from - 1; t >= 0 && t < ticks.size(); t += dir) {
+                var font = tickFont(d, t, next);
+                if (last >= 0) {
+                    var lastFont = tickFont(d, last, next);
+                    var gap = (ys[last] - ys[t]).abs();
+                    if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 6) { continue; }
+                }
+                d.textCapMiddle(left - 14, ys[t], font, ticks[t].format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
+                last = t;
             }
         }
-        // The climber: a white line across the column, the orange ring on its right edge.
-        d.rect(left - 12, cy - 1.5, STACK_W + 24, 3, WHITE);
-        d.dot(right, cy, RING_R, BLACK);
-        d.ring(right, cy, RING_R, CLIMBER, 3);
+        // The climber: the orange ring on the column's left edge, with no line across the column, which
+        // hid the letters.
+        d.dot(left, cy, RING_R, BLACK);
+        d.ring(left, cy, RING_R, CLIMBER, 3);
     }
 
     // ---------------------------------------------------------------- gauge, page 6
 
     // The route around the screen's edge, from its start at the lower left over the top to its top at
-    // the lower right, each section's arc its length along the route; climbed parts dimmed; rests,
-    // exits and dangers as rings, dimmed once passed; the climber as the orange outline of the stretch
-    // they could be on, rounded at its ends.
+    // the lower right, each section's arc its length along the route, or the metres it climbs (byUp);
+    // climbed parts dimmed; rests, exits and dangers as rings, dimmed once passed; the climber as a
+    // thicker orange line on the gauge's inner side over the stretch they could be on, rounded at its
+    // ends, clear of the sections.
     const G_R = 192;
     const G_FROM = 232;
     const G_SPAN = 284;
     const G_PEN = 12;
+    // The climber's line: its width, and its radius 3 px inside the sections.
+    const G_INNER = 6;
+    const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
 
-    function gaugeAngle(dist as Float) as Float {
-        return G_FROM - dist / Climb.totalD() * G_SPAN;
+    function gaugeAngle(dist as Float, byUp as Boolean) as Float {
+        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
     }
 
-    function gauge(d as Draw, st as Climb.State) as Void {
+    function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
-        var a0 = gaugeAngle(lo), a1 = gaugeAngle(hi);
-        // The outline: an orange band, black inside, both with round ends.
-        var p0 = d.onCircle(G_R, a0), p1 = d.onCircle(G_R, a1);
-        d.arc(G_R, a0, a1, CLIMBER, G_PEN + 10);
-        d.dot(p0[0], p0[1], (G_PEN + 10) / 2, CLIMBER);
-        d.dot(p1[0], p1[1], (G_PEN + 10) / 2, CLIMBER);
-        d.arc(G_R, a0, a1, BLACK, G_PEN + 4);
-        d.dot(p0[0], p0[1], (G_PEN + 4) / 2, BLACK);
-        d.dot(p1[0], p1[1], (G_PEN + 4) / 2, BLACK);
+        var a0 = gaugeAngle(lo, byUp), a1 = gaugeAngle(hi, byUp);
+        // The climber: an orange line inside the gauge, with round ends.
+        var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
+        d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
+        d.dot(p0[0], p0[1], G_INNER / 2, CLIMBER);
+        d.dot(p1[0], p1[1], G_INNER / 2, CLIMBER);
         // The sections, a hair apart.
-        var ac = gaugeAngle(st.d);
+        var ac = gaugeAngle(st.d, byUp);
         for (var i = 0; i < Climb.count(); i++) {
             var g = section(i, false);
-            var s0 = gaugeAngle(Climb.dAt(i).toFloat()), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat()) + 0.5;
+            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), byUp), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp) + 0.5;
             if (Climb.dAt(i + 1) <= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
             } else if (Climb.dAt(i) >= st.d) {
@@ -574,14 +707,14 @@ module Widgets {
         }
         // The points.
         for (var i = 0; i < Climb.count(); i++) {
-            if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
+            if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
         }
-        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st, byUp); }
     }
 
-    function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State) as Void {
-        var p = d.onCircle(G_R, gaugeAngle(dist));
+    function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
+        var p = d.onCircle(G_R, gaugeAngle(dist, byUp));
         d.dot(p[0], p[1], 8, BLACK);
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
