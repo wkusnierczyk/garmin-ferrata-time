@@ -91,7 +91,7 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
     {"len": 120, "up": 20, "grade": 0, "min": 12, "name": "Approach", "side": -1.0}
   ],
   "sections": [
-    {"len": 35, "up": 90, "grade": 3, "min": 20, "name": "First wall", "side": -0.3}
+    {"len": 35, "up": 90, "grade": 6, "min": 20, "name": "First wall", "side": -0.3}
   ],
   "points": [
     {"kind": "approach", "at": -120, "alt": 1015, "lat": 46.8, "lon": 8.4, "name": "Car park"},
@@ -106,7 +106,7 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
 
 The numbers above are placeholders, not the Daubenhorn's.
 
-- `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. Each list replaces `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE` while the climber is on that part, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the start of the part shown: from the head during the ascent. `grade` keeps the demo's coding: 0 walking, 1 to 5 K1 to K5, -1 rest. Rests are encoded only this way; there is no `rest` point kind.
+- `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. Each list replaces `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE` while the climber is on that part, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the start of the part shown: from the head during the ascent. `grade` is the topo's grade as written, in half steps (owner, 2026-11-21: keep, do not round): 1 A, 2 A/B, 3 B, 4 B/C, 5 C, 6 C/D, 7 D, 8 D/E, 9 E, 10 E/F, 11 F, 12 F/G; 0 walking, -1 rest. Rests are encoded only this way; there is no `rest` point kind. A variant section carries the normal line's grade, the harder one in its name.
 - `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres from the head: negative on the approach, so the `approach` point sits at minus the approach's length. Exits and landmarks lie on section boundaries (the script checks), since the pages index exits by section. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point** and can sync altitude; a point with `lat` and `lon` can prompt by GPS.
 - Kinds: `approach`, `head`, `landmark` (a point partway with a known altitude, for a mid-climb sync: a bench, a ladder base, a bridge), `danger`, `exit`, `top`. The app ignores kinds it does not know, so later kinds do not break older apps (my call).
 - `up` may be negative, for down-climbs, traverses and clefts that lose height: the Daubenhorn loses height on its approach (Gemmi 2348 to 2070) and twice on the ferrata (owner's recording). **Climbed** is height gained: the sum of the positive `up`, as Garmin reports ascent, and the route's total is the same sum. The pages that stack sections by height (the difficulty columns, the stack, the gauge by ascent) stack by gained height, so a section that loses height draws as flat there; the profile (page 1) draws the real height, down as well as up. The position estimate maps the **net** height measured since the head onto the route ahead (section 7).
@@ -149,6 +149,12 @@ summary ─▶ Save or Discard
 - GPS proximity never acts on its own: it vibrates and opens the menu; the climber chooses.
 - After the summary: save or discard, as in Garmin's own activities.
 - The approach and the ascent are separate laps.
+
+### Grades on the watch
+
+- The watch shows grades on the topos' scale, A to F with half steps ("C/D"), by default. A setting, changeable on the watch, switches to the K scale (A K1, B K2, C K3, D K4, E K5, F K6, half steps as "K3/4"); the owner is indifferent, so A to F is the default.
+- The pages' colours follow the half steps: each half step sits between its two neighbours on the existing scale.
+- "Hard" (the pages' next hard section, the hardest ahead) is D and above, as K4 and above was in the demo (my call).
 
 ## 6. Altitude sync
 
