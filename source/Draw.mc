@@ -142,10 +142,13 @@ class Draw {
     // An arc of the circle of radius r around the screen's centre, clockwise from degree a0 to a1
     // (0 at three o'clock, counter-clockwise positive), ends cut square.
     function arc(r as Numeric, a0 as Numeric, a1 as Numeric, c as Number, pen as Number) as Void {
-        if (a0 - a1 < 0.3) { return; }
+        // The watch draws arcs in whole degrees, and one whose ends fall on the same degree comes out
+        // as a full circle: round both ends, and leave out an arc shorter than a degree.
+        var i0 = Math.round(a0).toNumber(), i1 = Math.round(a1).toNumber();
+        if (i0 - i1 < 1) { return; }
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(s(pen));
-        dc.drawArc(s(208), s(208), s(r), Graphics.ARC_CLOCKWISE, a0, a1);
+        dc.drawArc(s(208), s(208), s(r), Graphics.ARC_CLOCKWISE, i0, i1);
     }
 
     // A point on that circle at degree a.

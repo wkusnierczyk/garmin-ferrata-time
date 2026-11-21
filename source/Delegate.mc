@@ -1,8 +1,10 @@
+using Toybox.System;
 using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Up and down change page, start pauses the demo, holding Up opens Ask, back leaves.
+// Up and down change page, start pauses the demo, holding Up opens Ask, back leaves. On page 9 a tap
+// on a chevron steps the previewed section.
 class Delegate extends WatchUi.BehaviorDelegate {
 
     var view as View;
@@ -22,7 +24,28 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    // A tap beside page 9's difficulty box, level with it, steps the section that way.
+    function onTap(evt as WatchUi.ClickEvent) as Boolean {
+        if (view.page != Pages.SECTION_PAGE) { return false; }
+        var xy = evt.getCoordinates(), k = 416.0 / System.getDeviceSettings().screenWidth;
+        var x = xy[0] * k, y = xy[1] * k;
+        var half = Pages.SECTION_BW / 2 + 10;
+        if ((y - Pages.SECTION_BY).abs() > 45) { return false; }
+        if (x < 208 - half) { view.stepSection(-1); return true; }
+        if (x > 208 + half) { view.stepSection(1); return true; }
+        return false;
+    }
+
+    // Start pauses or resumes the demo. A tap on a touchscreen also comes as select, possibly before
+    // onTap sees it, so on page 9 select is left to the tap and the Start key itself pauses (onKey).
     function onSelect() as Boolean {
+        if (view.page == Pages.SECTION_PAGE) { return false; }
+        view.togglePause();
+        return true;
+    }
+
+    function onKey(evt as WatchUi.KeyEvent) as Boolean {
+        if (view.page != Pages.SECTION_PAGE || evt.getKey() != WatchUi.KEY_ENTER) { return false; }
         view.togglePause();
         return true;
     }

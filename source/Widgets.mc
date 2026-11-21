@@ -11,6 +11,7 @@ module Widgets {
     const CLIMBER = 0xff6f3c;
     const REST = 0x3a86ff;
     const GREEN = 0x3fd77f;
+    // Red is the route's top (end dots, the stop symbol); danger is yellow, a warning (WARNING).
     const RED = 0xff4b4b;
     const SCALE = 0x777777;
     const WHITE = Graphics.COLOR_WHITE;
@@ -66,7 +67,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, RED, dd <= st.d);
+            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
@@ -162,7 +163,7 @@ module Widgets {
         } else if (code == CODE_EXIT) {
             text = "E"; colour = GREEN;
         } else if (code == CODE_DANGER) {
-            text = "D"; colour = RED;
+            text = "D"; colour = WARNING;
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
         var w = Math.round(boxWidth(code, k)), h = Math.round(BOX_H * k), top = yb - h;
@@ -291,7 +292,7 @@ module Widgets {
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var p = Climb.DANGER_AT[e].toFloat();
             var dist = (p - st.d).abs();
-            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = RED; }
+            if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = WARNING; }
         }
         if (word.length() > 0) {
             d.textCapTop(x, yt, Graphics.FONT_XTINY, word, colour, Graphics.TEXT_JUSTIFY_RIGHT);
@@ -415,8 +416,6 @@ module Widgets {
 
     // The section names' distance from the column, clear of the points' rings on its right edge.
     const NAME_GAP = 18;
-    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
-    const POI_DANGER = 0xffd60a;
 
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
@@ -448,7 +447,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var de = Climb.DANGER_AT[e].toFloat();
-            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+            at.add(de); lo.add(de); hi.add(de); colour.add(WARNING); rank.add(0);
         }
         var td = Climb.totalD().toFloat();
         at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
@@ -516,9 +515,14 @@ module Widgets {
 
     // A name cut to fit a width, ending in an ellipsis when cut.
     function fitName(d as Draw, name as String, w as Float) as String {
-        if (d.width(Graphics.FONT_XTINY, name) <= w) { return name; }
+        return fitIn(d, Graphics.FONT_XTINY, name, w);
+    }
+
+    // The same in a given font.
+    function fitIn(d as Draw, font as Graphics.FontType, name as String, w as Float) as String {
+        if (d.width(font, name) <= w) { return name; }
         var n = name.length();
-        while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
+        while (n > 1 && d.width(font, name.substring(0, n) + "…") > w) { n--; }
         return name.substring(0, n) + "…";
     }
 
@@ -679,33 +683,85 @@ module Widgets {
     const G_INNER = 6;
     const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
 
+    // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
+    // to their length (or, byUp, the metres they climb), so no section is too short to draw or see.
+    // Within a section, angles follow the distance along it. Worked out once per kind.
+    const G_MIN = 3.0;
+    var gaugeStarts as Array<Array<Float>?> = [null, null];
+
+    function gaugeLayout(byUp as Boolean) as Array<Float> {
+        var kind = byUp ? 1 : 0, cached = gaugeStarts[kind];
+        if (cached != null) { return cached; }
+        var n = Climb.count(), fixed = new [n] as Array<Boolean>, span = new [n] as Array<Float>;
+        for (var i = 0; i < n; i++) { fixed[i] = false; }
+        var changed = true;
+        while (changed) {
+            changed = false;
+            var count = 0, total = 0.0;
+            for (var i = 0; i < n; i++) {
+                if (fixed[i]) { count++; } else { total += byUp ? Climb.UP[i] : Climb.LEN[i]; }
+            }
+            var free = G_SPAN - count * G_MIN;
+            for (var i = 0; i < n; i++) {
+                // An entirely flat route by ascent: what is left is shared evenly.
+                var share = total > 0 ? (byUp ? Climb.UP[i] : Climb.LEN[i]) / total : 1.0 / (n - count);
+                span[i] = fixed[i] ? G_MIN : share * free;
+                if (!fixed[i] && span[i] < G_MIN) { fixed[i] = true; changed = true; }
+            }
+        }
+        // The angle at each boundary, from the start at G_FROM.
+        var starts = new [n + 1] as Array<Float>;
+        starts[0] = G_FROM.toFloat();
+        for (var i = 0; i < n; i++) { starts[i + 1] = starts[i] - span[i]; }
+        gaugeStarts[kind] = starts;
+        return starts;
+    }
+
     function gaugeAngle(dist as Float, byUp as Boolean) as Float {
-        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
+        var starts = gaugeLayout(byUp), n = Climb.count(), i = 0;
+        while (i < n - 1 && dist > Climb.dAt(i + 1)) { i++; }
+        var f = Climb.LEN[i] > 0 ? (dist - Climb.dAt(i)) / Climb.LEN[i] : 0.0;
+        return starts[i] - f * (starts[i] - starts[i + 1]);
+    }
+
+    // Section i's arc on whole degrees, its two ends [from, to] with to < from: each boundary rounded
+    // once, and the arc stopping 1° short of the next section's start, so every gap is one degree.
+    function sectionArc(i as Number, byUp as Boolean) as Array<Number> {
+        var s0 = Math.round(gaugeAngle(Climb.dAt(i).toFloat(), byUp)).toNumber();
+        var s1 = Math.round(gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp)).toNumber() + 1;
+        return [s0, s1] as Array<Number>;
     }
 
     function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
-        var a0 = gaugeAngle(lo, byUp), a1 = gaugeAngle(hi, byUp);
+        // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
+        var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
         // The climber: an orange line inside the gauge, with round ends.
         var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
         d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
         d.dot(p0[0], p0[1], G_INNER / 2, CLIMBER);
         d.dot(p1[0], p1[1], G_INNER / 2, CLIMBER);
         // The sections, a hair apart.
-        var ac = gaugeAngle(st.d, byUp);
+        var ac = Math.round(gaugeAngle(st.d, byUp)).toNumber();
         for (var i = 0; i < Climb.count(); i++) {
-            var g = section(i, false);
-            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), byUp), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp) + 0.5;
+            var g = section(i, false), arc = sectionArc(i, byUp), s0 = arc[0], s1 = arc[1];
             if (Climb.dAt(i + 1) <= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
             } else if (Climb.dAt(i) >= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
             } else {
-                // Within the hair gap at the section's end, the climbed part stops at the gap.
-                var a = ac < s1 ? s1 : ac;
-                d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
-                d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
+                // The climber's section, climbed part dimmed. A part under a degree is not drawn on
+                // its own: the whole section takes the other part's colour instead of leaving a sliver.
+                var a = ac < s1 ? s1 : (ac > s0 ? s0 : ac);
+                if (s0 - a < 1) {
+                    d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
+                } else if (a - s1 < 1) {
+                    d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
+                } else {
+                    d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
+                    d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
+                }
             }
         }
         // The points.
@@ -713,7 +769,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st, byUp); }
     }
 
     function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
@@ -738,7 +794,11 @@ module Widgets {
     // The current difficulty in a large filled box centred on (x, y), its letters size px tall (the
     // scalable font's size); a rest shows as W.
     function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
-        var g = section(st.cur, false);
+        bigDifficultyOf(d, section(st.cur, false), x, y, w, h, size);
+    }
+
+    // The same box for difficulty g.
+    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
         d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
         // A scalable bold font where the watch has one, the largest text font otherwise; the letters
         // centred on their capitals, as textCapMiddle does.
@@ -750,6 +810,68 @@ module Widgets {
         } else {
             d.textCapCentre(x, y, Graphics.FONT_LARGE, BOX_NAME[g], BLACK);
         }
+    }
+
+    // ---------------------------------------------------------------- selection gauge (page 9)
+
+    // The points' rings inside the gauge, 4 px clear of the sections.
+    const SEL_POI_R = G_R - G_PEN / 2 - 4 - 8.5;
+
+    // Whether the point at distance dist is in section i or at its foot or top.
+    function holds(i as Number, dist as Float) as Boolean {
+        return dist >= Climb.dAt(i) && dist <= Climb.dAt(i + 1);
+    }
+
+    // The gauge by ascent showing section sel, not the climber: sel at full colour, the others dimmed,
+    // no climber line; the points as rings inside the gauge, lit where sel shows their symbol
+    // (sectionPoints), dimmed elsewhere.
+    function selectionGauge(d as Draw, sel as Number) as Void {
+        for (var i = 0; i < Climb.count(); i++) {
+            var arc = sectionArc(i, true);
+            d.arc(G_R, arc[0], arc[1], d.grade(section(i, false), i != sel), G_PEN);
+        }
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                selectionPoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, (i - sel).abs() <= 1);
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
+            selectionPoint(d, de, GREEN, holds(sel, de));
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            selectionPoint(d, de, WARNING, holds(sel, de));
+        }
+    }
+
+    function selectionPoint(d as Draw, dist as Float, c as Number, lit as Boolean) as Void {
+        var p = d.onCircle(SEL_POI_R, gaugeAngle(dist, true));
+        d.dot(p[0], p[1], 8, BLACK);
+        d.ring(p[0], p[1], 7, lit ? c : d.darken(c, 0.33), 3);
+    }
+
+    // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,
+    // top: a point in it or at its foot or top; a rest that is the section itself or right before or
+    // after it; the route's top for the last section.
+    function sectionPoints(i as Number) as Array<Number> {
+        var kinds = [] as Array<Number>, n = Climb.count();
+        var danger = false, exit = false;
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { if (holds(i, Climb.DANGER_AT[e].toFloat())) { danger = true; } }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { if (holds(i, Climb.dAt(Climb.EXIT_AT[e]).toFloat())) { exit = true; } }
+        if (danger) { kinds.add(0); }
+        if (exit) { kinds.add(1); }
+        if (Climb.GRADE[i] < 0 || i > 0 && Climb.GRADE[i - 1] < 0 || i < n - 1 && Climb.GRADE[i + 1] < 0) { kinds.add(2); }
+        if (i == n - 1) { kinds.add(POI_TOP); }
+        return kinds;
+    }
+
+    // A chevron centred on (x, y) pointing left (dir -1) or right (1), round-ended; dimmed when there
+    // is nothing that way.
+    function chevron(d as Draw, x as Float, y as Float, dir as Number, on as Boolean) as Void {
+        var c = on ? WHITE : 0x444444, tip = x + dir * 7, back = x - dir * 7;
+        d.brush(back, y - 13, tip, y, 2.5, c);
+        d.brush(tip, y, back, y + 13, 2.5, c);
     }
 
     // What comes next: the next section of a different difficulty and the distance to its start along
@@ -940,7 +1062,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
         var s0 = pts[0], s1 = pts[pts.size() - 1];
         d.dot(s0[0], s0[1], 6, GREEN);
         d.dot(s1[0], s1[1], 6, RED);
@@ -967,9 +1089,13 @@ module Widgets {
 
     // ---------------------------------------------------------------- current difficulty group
 
-    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, or -1 for none.
-    // The nearest wins; on a tie, danger before exit before rest.
-    function poiKind(st as Climb.State) as Number {
+    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, and with ends
+    // also 3 the top and 4 the start; -1 for none. The nearest wins; on a tie, danger, exit, top,
+    // rest, start.
+    const POI_TOP = 3;
+    const POI_START = 4;
+
+    function poiKind(st as Climb.State, ends as Boolean) as Number {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
         var best = 1.0e9, kind = -1;
@@ -989,23 +1115,41 @@ module Widgets {
             var p = Climb.DANGER_AT[e].toFloat(), dist = (p - st.d).abs();
             if (p >= lo && p <= hi && dist <= best) { best = dist; kind = 0; }
         }
+        if (ends) {
+            var top = Climb.totalD().toFloat();
+            if (hi >= top - 0.001 && (top - st.d < best || (top - st.d == best && kind > 1))) { best = top - st.d; kind = POI_TOP; }
+            if (lo <= 0.001 && st.d < best) { best = st.d; kind = POI_START; }
+        }
         return kind;
     }
 
-    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a red triangle
-    // for danger, a blue square for a rest, a green cross for an exit.
+    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb, after safety
+    // signs and media controls: danger a yellow triangle (a warning), exit a green arrow pointing down
+    // to the right (a way off), a rest a pause (two blue bars), the start play (a green triangle
+    // pointing right), the top stop (a red square).
+    const WARNING = 0xffd60a;
+
     function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float) as Void {
         var h = size / 2, cx = x + h;
         if (kind == 0) {
             var top = yb - h * 1.8;
-            d.dc.setColor(RED, Graphics.COLOR_TRANSPARENT);
+            d.dc.setColor(WARNING, Graphics.COLOR_TRANSPARENT);
             d.dc.fillPolygon([[d.s(cx), d.s(top)], [d.s(cx + h * 1.1), d.s(yb)], [d.s(cx - h * 1.1), d.s(yb)]]);
         } else if (kind == 2) {
-            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, REST);
+            d.roundRect(cx - h * 0.8, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
+            d.roundRect(cx + h * 0.2, yb - h * 1.8, h * 0.6, h * 1.8, h * 0.12, REST);
+        } else if (kind == POI_START) {
+            d.dc.setColor(GREEN, Graphics.COLOR_TRANSPARENT);
+            d.dc.fillPolygon([[d.s(cx - h * 0.7), d.s(yb - h * 1.6)], [d.s(cx + h * 0.9), d.s(yb - h * 0.8)], [d.s(cx - h * 0.7), d.s(yb)]]);
+        } else if (kind == POI_TOP) {
+            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, RED);
         } else if (kind == 1) {
-            var k = h * 0.75, cy = yb - k - 2;
-            d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
-            d.line(cx + k, cy - k, cx - k, cy + k, GREEN, 4);
+            // The arrow across the square the cross took, round-ended: its shaft from the upper left,
+            // its head's two strokes back from the tip, along the bottom and up the right side.
+            var k = h * 0.75, a = k * 1.1, cy = yb - k - 2;
+            d.brush(cx - k, cy - k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k - a, cy + k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k, cy + k - a, cx + k, cy + k, 2, GREEN);
         }
     }
 
@@ -1013,21 +1157,29 @@ module Widgets {
     // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
     // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
     // corner rounding ends; below it what comes next, "K4 125 m", centred.
-    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float) as Void {
+    // With fit (page 7), the box widens to the line above; without it (page 8) it keeps 88 by 62 times k
+    // and the symbol moves left only if the altitude would touch it.
+    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float,
+            fit as Boolean) as Void {
         var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
         // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
         // the route's widest altitude and its unit, so the symbol always starts at the rounding.
         var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
-        var bw = 88 * k > need ? 88 * k : need;
+        var bw = fit && need > 88 * k ? need : 88 * k;
         bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
         var base = by - bh / 2 - 12 * k;
         var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
         var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
         d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
-        // The symbol starts where the box's corner rounding ends.
-        var kind = poiKind(st);
-        if (kind >= 0) { poiSymbol(d, kind, cx - bw / 2 + rx, base, size); }
+        // The symbol starts where the box's corner rounding ends (or, without fit, further left if the
+        // altitude would touch it).
+        var kind = poiKind(st, true);
+        if (kind >= 0) {
+            // The danger triangle, the widest symbol, spans 1.1 times its size.
+            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - 1.1 * size;
+            poiSymbol(d, kind, fit || x < clear ? x : clear, base, size);
+        }
         nextShort(d, st, cx, by + bh / 2 + 26 * k);
     }
 

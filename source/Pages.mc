@@ -6,7 +6,14 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 18;
+    const COUNT = 20;
+    // Page 9, the section preview, and the section it shows (-1: the climber's).
+    const SECTION_PAGE = 9;
+    // Page 9's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
+    const SECTION_BY = 186.0;
+    const SECTION_BW = 132.0;
+    const SECTION_BH = 92.0;
+    var selected as Number = -1;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -24,15 +31,17 @@ module Pages {
             case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st, false); break; }
             case 6: { d.colours = d.HEAT_AMBER; gaugePage(d, st, true); break; }
             case 7: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
-            case 8: { profile(d, st); break; }
-            case 9: { combined(d, st); break; }
-            case 10: { ladderPage(d, st); break; }
-            case 11: { whereAmI(d, st); break; }
-            case 12: { whatsNext(d, st); break; }
-            case 13: { timeStrip(d, st); break; }
-            case 14: { bigHeight(d, st); break; }
-            case 15: { bigNextHard(d, st); break; }
-            case 16: { bigTop(d, st); break; }
+            case 8: { d.colours = d.HEAT_AMBER; centrePage(d, st); break; }
+            case 9: { d.colours = d.HEAT_AMBER; sectionPage(d, st); break; }
+            case 10: { profile(d, st); break; }
+            case 11: { combined(d, st); break; }
+            case 12: { ladderPage(d, st); break; }
+            case 13: { whereAmI(d, st); break; }
+            case 14: { whatsNext(d, st); break; }
+            case 15: { timeStrip(d, st); break; }
+            case 16: { bigHeight(d, st); break; }
+            case 17: { bigNextHard(d, st); break; }
+            case 18: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -208,13 +217,58 @@ module Pages {
         Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
     }
 
+    // ---------------------------------------------------------------- page 9, version 1: a section preview
+
+    // design/page-9.md: page 6b's gauge showing the selected section (the climber's until the user
+    // steps), its difficulty in the middle between chevrons, its altitudes from foot to top above, its
+    // name and its points' symbols below; the flat ascent at the bottom shows the climber.
+    function sectionPage(d as Draw, st as Climb.State) as Void {
+        var i = selected >= 0 ? selected : st.cur, n = Climb.count();
+        var bw = SECTION_BW, bh = SECTION_BH, by = SECTION_BY;
+        Widgets.selectionGauge(d, i);
+        Widgets.bigDifficultyOf(d, Widgets.section(i, false), 208.0, by, bw, bh, 64);
+        Widgets.chevron(d, 208 - bw / 2 - 40, by, -1, i > 0);
+        Widgets.chevron(d, 208 + bw / 2 + 40, by, 1, i < n - 1);
+        // Above: "1380 to 1490 m", "to" and the unit grey, centred.
+        var ft = Widgets.feet(), k = ft ? 3.28084 : 1.0, font = Graphics.FONT_TINY, small = Graphics.FONT_XTINY;
+        var a0 = Math.round((Climb.START_ALT + Climb.uAt(i)) * k).toNumber().format("%d");
+        var a1 = Math.round((Climb.START_ALT + Climb.uAt(i + 1)) * k).toNumber().format("%d");
+        var to = " to ", unit = ft ? "ft" : "m";
+        var w0 = d.width(font, a0), wt = d.width(font, to), w1 = d.width(font, a1);
+        var x = 208 - (w0 + wt + w1 + 3 + d.width(small, unit)) / 2.0;
+        var top = 100.0, base = top + d.capHeight(font);
+        d.textCapTop(x, top, font, a0, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapTop(x + w0, top, font, to, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapTop(x + w0 + wt, top, font, a1, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textTop(x + w0 + wt + w1 + 3, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        // Below: the name and the symbols of its points, standing on the name's baseline, centred.
+        var kinds = Widgets.sectionPoints(i), ss = 20.0, sg = 8.0;
+        // Cut with an ellipsis to leave room for the symbols, as the mock does.
+        var name = Widgets.fitIn(d, font, Climb.NAME[i], 240 - kinds.size() * (ss + sg)), nw = d.width(font, name);
+        var nx = 208 - (nw + kinds.size() * (ss + sg)) / 2, nb = 262 + d.capHeight(font) / 2;
+        d.textCapTop(nx, nb - d.capHeight(font), font, name, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        for (var p = 0; p < kinds.size(); p++) {
+            Widgets.poiSymbol(d, kinds[p], nx + nw + sg + p * (ss + sg), nb, ss);
+        }
+        Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
+    }
+
     // ---------------------------------------------------------------- page 7, version 1: from the front
 
     // design/page-7.md: the front view on the right; on the left the current difficulty group, 15 %
     // larger, its box centred vertically on the screen.
     function frontPage(d as Draw, st as Climb.State) as Void {
         Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
-        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15);
+        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15, true);
+    }
+
+    // ---------------------------------------------------------------- page 8, version 1: the centre
+
+    // design/page-8.md: the current difficulty group in the middle, 50 % larger, with point symbols after
+    // safety signs; the ascent as a gauge around the edge.
+    function centrePage(d as Draw, st as Climb.State) as Void {
+        Widgets.ascentGauge(d, st, true);
+        Widgets.currentDifficultyGroup(d, st, 208.0, 208.0, 1.5, false);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

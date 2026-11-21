@@ -14,7 +14,8 @@ Shared colours:
 | Climber | orange `#ff6f3c`, the launcher icon's |
 | Rest | blue `#3a86ff` |
 | Exit, start | green `#3fd77f` |
-| Danger, top | red `#ff4b4b` |
+| Danger | yellow `#ffd60a`, a warning |
+| Top | red `#ff4b4b` |
 | Passed or climbed | the colour at a third of its brightness |
 
 ## profile
@@ -26,7 +27,7 @@ The route seen from the side, from its start at the lower left to its top at the
 - Points on the route as hollow rings, black inside so the route breaks there, dimmed once the climber has passed them:
   - rests: blue, at the middle of the rest stretch;
   - exits: green, where the exit leaves;
-  - dangers: red, where the route has them.
+  - dangers: yellow, where the route has them.
 - The climber: an orange outline around the stretch of route they could be on, from the position's uncertainty (25 m up or down). It is short on steep ground and long on flat ground. Drawn as a wide orange line with a narrower black one inside it, under the sections.
 - The top: a hollow white ring.
 
@@ -72,7 +73,7 @@ The approximate altitude above sea level.
 
 The point of interest the uncertainty stretch covers, as one word.
 
-- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger red; bold capitals, no box.
+- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger yellow; bold capitals, no box.
 - Shown only while such a point lies within the stretch; nothing otherwise.
 - With several, the nearest to the climber's estimate wins; on a tie, danger before exit before rest.
 
@@ -124,10 +125,11 @@ Options: the end dots on or off.
 
 The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
 
+- Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
 - The climber as a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
-- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs.
+- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart.
 
 ## flat ascent
 
@@ -148,10 +150,10 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size.
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size, so at page 8's 150 % the symbol stands taller than the digits.
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 88 by 62 px times the scale, and the symbol moves left only if the altitude would touch it. Symbols, after safety signs and media controls, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
 ## Groups
@@ -175,5 +177,17 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 7 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 8 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
+
+## selection gauge (page 9)
+
+Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as rings just inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol (*section points*), dimmed elsewhere.
+
+## chevron (page 9)
+
+A left- or right-pointing chevron, round-ended, white; dimmed when there is nothing that way.
+
+## section points (page 9)
+
+The points a section includes or is next to, as symbols after its name: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; danger first, then exit, rest, top. They stand on the name's baseline.
