@@ -1054,7 +1054,8 @@ module Widgets {
         // altitude would touch it).
         var kind = poiKind(st, signs);
         if (kind >= 0) {
-            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - size;
+            // The danger triangle, the widest symbol, spans 1.1 times its size.
+            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - 1.1 * size;
             poiSymbol(d, kind, fit || x < clear ? x : clear, base, size, signs);
         }
         nextShort(d, st, cx, by + bh / 2 + 26 * k);
