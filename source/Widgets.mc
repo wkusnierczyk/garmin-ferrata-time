@@ -811,4 +811,86 @@ module Widgets {
         d.dot(p[0], p[1], 8, BLACK);
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
+
+    // ---------------------------------------------------------------- current difficulty group
+
+    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, or -1 for none.
+    // The nearest wins; on a tie, danger before exit before rest.
+    function poiKind(st as Climb.State) as Number {
+        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
+        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        var best = 1.0e9, kind = -1;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
+                var dist = 0.0;
+                if (st.d < Climb.dAt(i)) { dist = Climb.dAt(i) - st.d; }
+                if (st.d > Climb.dAt(i + 1)) { dist = st.d - Climb.dAt(i + 1); }
+                if (dist < best) { best = dist; kind = 2; }
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var p = Climb.dAt(Climb.EXIT_AT[e]).toFloat(), dist = (p - st.d).abs();
+            if (p >= lo && p <= hi && (dist < best || (dist == best && kind > 1))) { best = dist; kind = 1; }
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var p = Climb.DANGER_AT[e].toFloat(), dist = (p - st.d).abs();
+            if (p >= lo && p <= hi && dist <= best) { best = dist; kind = 0; }
+        }
+        return kind;
+    }
+
+    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a red triangle
+    // for danger, a blue square for a rest, a green cross for an exit.
+    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float) as Void {
+        var h = size / 2, cx = x + h;
+        if (kind == 0) {
+            var top = yb - h * 1.8;
+            d.dc.setColor(RED, Graphics.COLOR_TRANSPARENT);
+            d.dc.fillPolygon([[d.s(cx), d.s(top)], [d.s(cx + h * 1.1), d.s(yb)], [d.s(cx - h * 1.1), d.s(yb)]]);
+        } else if (kind == 2) {
+            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, REST);
+        } else if (kind == 1) {
+            var k = h * 0.75, cy = yb - k - 2;
+            d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
+            d.line(cx + k, cy - k, cx - k, cy + k, GREEN, 4);
+        }
+    }
+
+    // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
+    // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
+    // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
+    // corner rounding ends; below it what comes next, "K4 125 m", centred.
+    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float) as Void {
+        var bw = 88 * k, bh = 62 * k, rx = bh / 6.5;
+        bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
+        var base = by - bh / 2 - 12 * k, ft = feet();
+        var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
+        var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
+        d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        // The symbol starts where the box's corner rounding ends, or further left if a wide altitude
+        // (four digits in feet) would otherwise touch it.
+        var kind = poiKind(st), size = 18 * k;
+        if (kind >= 0) {
+            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - size;
+            poiSymbol(d, kind, x < clear ? x : clear, base, size);
+        }
+        nextShort(d, st, cx, by + bh / 2 + 26 * k);
+    }
+
+    // What comes next without "in": "K4 125 m", the grade in its colour, centred on x.
+    function nextShort(d as Draw, st as Climb.State, x as Float, y as Float) as Void {
+        var here = section(st.cur, false), i = st.cur + 1;
+        while (i < Climb.count() && section(i, false) == here) { i++; }
+        var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
+        var m = (Math.round(dist / 5) * 5).toNumber();
+        if (m < 0) { m = 0; }
+        var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
+        var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
+        var rest = " " + m.format("%d") + " m";
+        var font = Graphics.FONT_TINY;
+        var w1 = d.width(font, what), w = w1 + d.width(font, rest);
+        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+    }
 }

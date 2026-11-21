@@ -70,6 +70,13 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label class="check"><input id="box-rests" type="checkbox"> Rests as R; otherwise a rest shows as W</label>
       <label for="units">Altitude in</label>
       <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
+      <label for="group-scale">Current difficulty group size</label>
+      <select id="group-scale"><option value="1">as before</option><option value="1.1">10 % larger</option><option value="1.15" selected>15 % larger</option><option value="1.2">20 % larger</option></select>
+      <label for="poi-as">Point of interest above the box, as</label>
+      <select id="poi-as"><option value="symbol" selected>a symbol: red triangle, blue square, green cross</option><option value="word">a word: DANGER, REST, EXIT</option></select>
+      <label for="symbols-fill">Triangle and square</label>
+      <select id="symbols-fill"><option value="outline">outlined</option><option value="filled" selected>filled</option></select>
+      <label class="check"><input id="route-symbols" type="checkbox"> Symbols on the route too, in place of the rings</label>
       <label for="gauge-by">Gauge: each section's arc as</label>
       <select id="gauge-by"><option value="path" selected>its length along the route</option><option value="up">the metres it climbs</option></select>
       <label for="next-by">Next difficulty: distance</label>
@@ -98,6 +105,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The view is from the front: across is the route's sideways travel, up its height, so walks and traverses lie nearly flat and walls stand up. The demo route has no real shape, so its sideways travel is made up, after the style of a topo photo: walks and traverses run nearly flat, walls go nearly straight up with a small wander. A real route would bring its own track.</li>
       <li>The view is fitted into the right part of the screen (184 to 368 px across, 64 to 352 px down), keeping its shape: one scale across and up.</li>
       <li>The climber's outline follows the route over the stretch they could be on: on switchbacks it covers several turns.</li>
+      <li>The left column is now a widget, the <b>current difficulty group</b>, drawn 15 % larger (a menu tries other sizes). On the line above the box, the altitude, unit included, is right-aligned with the box's right edge, and the point of interest starts where the rounding of the box's left corners ends, its bottom on the altitude's baseline. Below the box, what comes next reads "K4 125 m". Variant: the point of interest above the box as a symbol instead of a word, since the words are small here: a red triangle for danger, a blue square for a rest, a green cross for an exit. The triangle and square are filled (the owner's choice; outlined is still an option); the symbol sits where the word ended, on the altitude's baseline. An option puts the symbols on the route too, in place of the rings.</li>
       <li>The left column is page 6's middle, smaller: the difficulty box; above it the poi word and the altitude on one baseline (the altitude's number ending at the box's right edge, its unit past it); below it what comes next, on one line. Place names, as in the sketch, are left out: the demo route has none.</li>
     </ul>
   </section>
@@ -351,8 +359,18 @@ function poi(st, x, yt, opt) {
   if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: END_RED });
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
-  const f = found[0], fs = 24;
-  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
+  // Scaled by opt.poiScale (page 7 draws it 10 % smaller), its baseline where a 24 px word's would be.
+  const f = found[0], scale = opt.poiScale || 1, fs = 24 * scale, base = yt + 0.7 * 24;
+  // Right-aligned at x, or left-aligned there when opt.poiLeft.
+  // A symbol sits on the text's baseline: its bottom where the letters' bottom would be.
+  if (opt.poiSymbols) {
+    // Its drawn bottom includes half its stroke: 1.5 px for an outlined triangle or square, 2 px for
+    // the cross's round ends, none when filled.
+    const size = 20 * scale, stroke = f.word === "EXIT" ? 2 : opt.symbolsFilled ? 0 : 1.5;
+    const bottom = (f.word === "EXIT" ? size / 2 * 0.75 : size / 2 * 0.8) + stroke;
+    return symbol(opt.poiLeft ? x + size / 2 : x - size / 2, base - bottom, f.word, size, opt.symbolsFilled, false);
+  }
+  return `<text x="${x.toFixed(1)}" y="${base.toFixed(1)}" text-anchor="${opt.poiLeft ? "start" : "end"}" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
 }
 
 // The altitude group: the altitude widget with the poi widget under it, the poi word right-aligned
@@ -724,7 +742,9 @@ function plan(st, opt) {
     else if (D[i] >= st.d) s += polyline(D[i], D[i + 1], grade(colours, g, false), pen);
     else s += polyline(D[i], st.d, grade(colours, g, true), pen) + polyline(st.d, D[i + 1], grade(colours, g, false), pen);
   }
+  const words = { [REST]: "REST", [EXIT_GREEN]: "EXIT", [END_RED]: "DANGER" };
   const ring = (d, colour) => { const [x, y] = planAt(d);
+    if (opt.routeSymbols) return symbol(x, y, words[colour], 16, opt.symbolsFilled, d <= st.d);
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
@@ -734,29 +754,46 @@ function plan(st, opt) {
   return s;
 }
 
+// The points as symbols (page 7 variant): a red triangle for danger, a blue square for a rest, a
+// green cross for an exit, centred on (x, y), size px across; triangle and square outlined or filled;
+// dimmed once passed.
+function symbol(x, y, word, size, filled, passed) {
+  const h = size / 2, colour = mark(word === "DANGER" ? END_RED : word === "REST" ? REST : EXIT_GREEN, passed);
+  const paint = filled ? `fill="${colour}"` : `fill="#000" stroke="${colour}" stroke-width="3" stroke-linejoin="round"`;
+  if (word === "DANGER") return `<polygon points="${x},${(y - h).toFixed(1)} ${(x + h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)} ${(x - h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)}" ${paint}/>`;
+  if (word === "REST") return `<rect x="${(x - h * 0.8).toFixed(1)}" y="${(y - h * 0.8).toFixed(1)}" width="${(h * 1.6).toFixed(1)}" height="${(h * 1.6).toFixed(1)}" ${paint}/>`;
+  const k = h * 0.75;
+  return `<path d="M${x - k} ${y - k}L${x + k} ${y + k}M${x + k} ${y - k}L${x - k} ${y + k}" stroke="${colour}" stroke-width="4" stroke-linecap="round"/>`;
+}
+
 // Page 7, version 1: the front view on the right; on the left, as on page 6: the current difficulty
 // in a filled box, above it the poi word (ending left of the box's centre, only while a point is near)
 // and the altitude (its number ending at the box's right edge, the unit past it) on one baseline,
 // below it what comes next on one line.
-function page7(st, opt) {
-  const colours = opt.colours.c, g = Math.max(GRADE[st.cur], 0), cx = 116;
-  // The box centred vertically on the screen; the lines above and below move with it.
-  const bw = 88, bh = 62, by = 208, fs = 46;
-  let s = plan(st, opt);
-  s += `<rect x="${cx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="10" fill="${grade(colours, g, false)}"/>` +
+// The current difficulty group: the current difficulty in a filled box centred on (cx, by); above it,
+// on one baseline, the altitude (its unit included) right-aligned with the box's right edge and the
+// point of interest (symbol or word, 10 % smaller) starting where the rounding of the box's left
+// corners ends, bottoms aligned; below it, what comes next ("K4 125 m"), centred. All sizes times k.
+function difficultyGroup(st, opt, cx, by, k = 1) {
+  const colours = opt.colours.c, g = Math.max(GRADE[st.cur], 0);
+  const bw = 88 * k, bh = 62 * k, fs = 46 * k, rx = 10 * k;
+  let s = `<rect x="${cx - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="${rx}" fill="${grade(colours, g, false)}"/>` +
     `<text x="${cx}" y="${(by + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="#000" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${BOX_NAME[g]}</text>`;
-  // The line above, on one baseline.
-  const afs = 26, base = by - bh / 2 - 12;
-  s += poi(st, cx - 8, base - 0.7 * 24, opt);
-  s += `<text x="${cx + bw / 2}" y="${base.toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${afs}" font-weight="600" fill="#fff">${altValue(st.u, opt.feet)}</text>` +
-    `<text x="${cx + bw / 2 + 3}" y="${base.toFixed(1)}" font-family="${NUMBER_FONT}" font-size="16" font-weight="600" fill="#99aaaa">${opt.feet ? "ft" : "m"}</text>`;
-  // What comes next, on one line under the box, centred on it.
+  const afs = 26 * k, base = by - bh / 2 - 12 * k;
+  s += poi(st, cx - bw / 2 + rx, base - 0.7 * 24, { ...opt, poiLeft: true, poiScale: 0.9 * k });
+  s += `<text x="${cx + bw / 2}" y="${base.toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-weight="600" fill="#fff"><tspan font-size="${afs}">${altValue(st.u, opt.feet)}</tspan><tspan font-size="${16 * k}" fill="#99aaaa" dx="${3 * k}">${opt.feet ? "ft" : "m"}</tspan></text>`;
   let i = st.cur + 1;
   while (i < N && Math.max(GRADE[i], 0) === g) i++;
-  const dist = i < N ? D[i] - st.d : TD - st.d, m = Math.max(0, Math.round(dist / 5) * 5), nfs = 24;
+  const dist = i < N ? D[i] - st.d : TD - st.d, m = Math.max(0, Math.round(dist / 5) * 5), nfs = 24 * k;
   const what = i < N ? BOX_NAME[Math.max(GRADE[i], 0)] : "Top", colour = i < N ? grade(colours, Math.max(GRADE[i], 0), false) : "#fff";
-  s += `<text x="${cx}" y="${(by + bh / 2 + 26 + 0.35 * nfs).toFixed(1)}" text-anchor="middle" font-size="${nfs}" font-weight="700" font-family="${NUMBER_FONT}"><tspan fill="${colour}">${what}</tspan><tspan fill="#fff"> in ${m} m</tspan></text>`;
+  s += `<text x="${cx}" y="${(by + bh / 2 + 26 * k + 0.35 * nfs).toFixed(1)}" text-anchor="middle" font-size="${nfs}" font-weight="700" font-family="${NUMBER_FONT}"><tspan fill="${colour}">${what}</tspan><tspan fill="#fff"> ${m} m</tspan></text>`;
   return s;
+}
+
+// Page 7, version 1: the front view on the right; on the left the current difficulty group, 15 %
+// larger, its box centred vertically on the screen.
+function page7(st, opt) {
+  return plan(st, opt) + difficultyGroup(st, opt, 116, 208, opt.groupScale);
 }
 
 // Page 1, version 1: profile and ascent sharing the start, the ascent's foot at the profile's first
@@ -780,13 +817,15 @@ map.value = "heat2";
 const units = document.getElementById("units");
 const pathScale = document.getElementById("path-scale"), live5 = document.getElementById("live5");
 const gaugeBy = document.getElementById("gauge-by"), nextBy = document.getElementById("next-by");
+const groupScale = document.getElementById("group-scale");
+const poiAs = document.getElementById("poi-as"), symbolsFill = document.getElementById("symbols-fill"), routeSymbols = document.getElementById("route-symbols");
 const scaleSel = document.getElementById("scale"), stepSel = document.getElementById("step"), names = document.getElementById("names");
 const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
 const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, nextBy: nextBy.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, gaugeBy: gaugeBy.value, nextBy: nextBy.value, groupScale: +groupScale.value, poiSymbols: poiAs.value === "symbol", symbolsFilled: symbolsFill.value === "filled", routeSymbols: routeSymbols.checked, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
   live.innerHTML = page7(st, opts());
@@ -817,7 +856,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names, gaugeBy, nextBy, poiAs, symbolsFill, routeSymbols, groupScale]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }

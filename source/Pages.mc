@@ -202,22 +202,11 @@ module Pages {
 
     // ---------------------------------------------------------------- page 7, version 1: from the front
 
-    // design/page-7.md: the front view on the right; on the left page 6's middle, smaller: the current
-    // difficulty centred vertically, the poi word and the altitude above it on one baseline, what
-    // comes next below it.
+    // design/page-7.md: the front view on the right; on the left the current difficulty group, 15 %
+    // larger, its box centred vertically on the screen.
     function frontPage(d as Draw, st as Climb.State) as Void {
-        var cx = 116.0, bw = 88.0, bh = 62.0, by = 208.0;
         Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
-        Widgets.bigDifficulty(d, st, cx, by, bw, bh, 44);
-        var font = Graphics.FONT_XTINY, base = by - bh / 2 - 12;
-        var ft = Widgets.feet(), ax = cx + bw / 2, alt = Widgets.altitudeValue(st.u, ft).format("%d");
-        // The poi word ends a little before the altitude's number, whatever its width.
-        var poiRight = cx - 8, altLeft = ax - d.width(Graphics.FONT_TINY, alt) - 8;
-        Widgets.poi(d, st, poiRight < altLeft ? poiRight : altLeft, base - d.capHeight(font));
-        d.textCapTop(ax, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, Graphics.COLOR_WHITE,
-            Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textTop(ax + 3, base - d.ascent(font), font, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
-        Widgets.nextUp(d, st, cx, by + bh / 2 + 26);
+        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

@@ -140,6 +140,14 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 - The climber as the orange outline of the stretch they could be on, rounded at its ends.
 - Fitted into a box, one scale across and up.
 
+## current difficulty group
+
+The current difficulty with what surrounds it, as one unit; all sizes scale together (page 7 draws it 15 % larger).
+
+- The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends, or further left if a wide altitude would touch it. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.
