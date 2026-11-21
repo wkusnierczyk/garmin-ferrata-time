@@ -74,6 +74,7 @@ A separate, feature-rich watch app (several screens) handles route choice, an ov
 | `design/converter-site.md` | Proposal for a stateless GitHub Pages converter from GPX or OSM to route JSON |
 | `design/sensing.md` | Why position and altitude are unreliable on a wall, and what the design does about it |
 | `design/ground-truth-plan.md` | How recorded activities will be used to test the assumptions |
+| `design/real-functionality.md` | The design for 0.2.0: a real route on the watch, live progress, the climb recorded as a Garmin activity |
 
 `docs/` is kept for user-facing pages, once there is something to use.
 
