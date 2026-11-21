@@ -443,23 +443,31 @@ module Widgets {
         return name.substring(0, n) + "…";
     }
 
-    // The next altitude's label: 20 % taller than the other tick labels, in a scalable font where the
-    // watch has one (sized once, then corrected by the height it measures), the next system font
-    // otherwise.
-    var nextFont as Graphics.FontType? = null;
+    // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
+    // the ones just above and below it at one and a half. In a scalable font where the watch has one
+    // (sized once, then corrected by the height it measures), the nearest system font otherwise.
+    const BIG_SCALE = [2.0, 1.5];
+    var bigFonts as Array<Graphics.FontType?> = [null, null];
 
-    function nextLabelFont(d as Draw) as Graphics.FontType {
-        if (nextFont == null) {
-            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * 1.2;
+    function bigLabelFont(d as Draw, which as Number) as Graphics.FontType {
+        if (bigFonts[which] == null) {
+            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
             var size = Math.round(want).toNumber();
             var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size});
             if (vf != null) {
                 var h = d.dc.getFontHeight(vf);
                 if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
             }
-            nextFont = vf != null ? vf : Graphics.FONT_TINY;
+            bigFonts[which] = vf != null ? vf : (which == 0 ? Graphics.FONT_LARGE : Graphics.FONT_SMALL);
         }
-        return nextFont as Graphics.FontType;
+        return bigFonts[which] as Graphics.FontType;
+    }
+
+    // Tick label t's font, next being the next altitude's tick (or -1).
+    function tickFont(d as Draw, t as Number, next as Number) as Graphics.FontType {
+        if (next < 0) { return Graphics.FONT_XTINY; }
+        var off = (t - next).abs();
+        return off == 0 ? bigLabelFont(d, 0) : off == 1 ? bigLabelFont(d, 1) : Graphics.FONT_XTINY;
     }
 
     // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
@@ -541,8 +549,9 @@ module Widgets {
             ticks.add(a);
             ys.add(y);
         }
-        // By ascent the label just above the climber, the next altitude to reach, is 20 % larger and
-        // always shown; the others are left out around it, each kept clear of the last one shown.
+        // By ascent the label just above the climber, the next altitude to reach, is twice as large and
+        // always shown, the ones just above and below it one and a half times; the others are left
+        // out around it, each kept clear of the last one shown.
         var next = -1, now = (Climb.START_ALT + here) * k;
         if (byUp) {
             for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
@@ -551,9 +560,9 @@ module Widgets {
         for (var dir = 1; dir >= -1; dir -= 2) {
             var last = dir < 0 && next >= 0 ? next : -1;
             for (var t = dir > 0 ? from : from - 1; t >= 0 && t < ticks.size(); t += dir) {
-                var font = t == next ? nextLabelFont(d) : Graphics.FONT_XTINY;
+                var font = tickFont(d, t, next);
                 if (last >= 0) {
-                    var lastFont = last == next ? nextLabelFont(d) : Graphics.FONT_XTINY;
+                    var lastFont = tickFont(d, last, next);
                     var gap = (ys[last] - ys[t]).abs();
                     if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 6) { continue; }
                 }
@@ -561,10 +570,10 @@ module Widgets {
                 last = t;
             }
         }
-        // The climber: a white line across the column, the orange ring on its right edge.
-        d.rect(left - 12, cy - 1.5, STACK_W + 24, 3, WHITE);
-        d.dot(right, cy, RING_R, BLACK);
-        d.ring(right, cy, RING_R, CLIMBER, 3);
+        // The climber: the orange ring on the column's left edge, with no line across the column, which
+        // hid the letters.
+        d.dot(left, cy, RING_R, BLACK);
+        d.ring(left, cy, RING_R, CLIMBER, 3);
     }
 
     // ---------------------------------------------------------------- ascent gauge

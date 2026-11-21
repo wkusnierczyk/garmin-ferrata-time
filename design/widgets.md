@@ -96,11 +96,11 @@ The difficulty column to scale: the sections as boxes in a window that moves wit
 
 In the app, ascent or path is a setting.
 
-- The climber stays a quarter of the way up from the window's bottom, marked by a white line across the column with the climber's orange ring on the column's right edge, clear of the letters.
+- The climber stays a quarter of the way up from the window's bottom, marked by the climber's orange ring on the column's left edge. No line crosses the column: it hid the letters (the mock keeps a tick across the current box, and the ring on the right, as options).
 - The boxes meet with no gap. The current one is filled, letters black and larger; the others are black with their sides in their colour, letters in it; those behind the climber at 55 % of their colour.
 - A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
 - Letters are centred on the part of a box in view, left out when it is too short for them.
-- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. In the path stack a tick sits where the route first reaches its altitude, so ticks crowd on walls and spread on walks; a label that would touch the one below is left out. In the ascent stack the label just above the climber, the next altitude to reach, is 20 % larger (a scalable Roboto Condensed Bold sized to 1.2 times the extra-tiny system font) and always shown; the other labels make room around it.
+- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. In the path stack a tick sits where the route first reaches its altitude, so ticks crowd on walls and spread on walks; a label that would touch the one below is left out. In the ascent stack the label just above the climber, the next altitude to reach, is twice the other labels' height and always shown, and the labels just above and below it one and a half times (a scalable Roboto Condensed Bold sized from the extra-tiny system font); the other labels make room around them.
 - Section names on the right, centred on the part in view, greyed behind the climber, cut with an ellipsis to fit the round screen.
 
 Options: ascent or path; the scale; the tick step; names on or off; the colour map. Open: the tick resolution, the scales, and flat sections in the ascent stack (lines, or a minimum height).
