@@ -735,13 +735,14 @@ module Widgets {
         return f;
     }
 
-    // The current difficulty in a large filled box centred on (x, y); a rest shows as W.
-    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float) as Void {
+    // The current difficulty in a large filled box centred on (x, y), its letters size px tall (the
+    // scalable font's size); a rest shows as W.
+    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
         var g = section(st.cur, false);
-        d.roundRect(x - w / 2, y - h / 2, w, h, 14, d.grade(g, false));
+        d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
         // A scalable bold font where the watch has one, the largest text font otherwise; the letters
         // centred on their capitals, as textCapMiddle does.
-        var vf = bigLetterFont(d.s(64));
+        var vf = bigLetterFont(d.s(size));
         if (vf != null) {
             var asc = Graphics.getFontAscent(vf);
             d.dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
@@ -817,5 +818,232 @@ module Widgets {
         var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
         d.textCapCentre(n0[0], n0[1], Graphics.FONT_XTINY, up.format("%d"), WHITE);
         d.textCapCentre(n1[0], n1[1], Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+    }
+
+    // ---------------------------------------------------------------- front view, page 7
+
+    // The route seen from the front, as on a topo photo of the face (Climb.SIDE): up is height, across
+    // is sideways travel. Points every few metres as [x across, y up, distance along], built once,
+    // and fitted once into a box keeping one scale across and up.
+    var front as Array<Array<Float>>? = null;
+
+    function frontPoints() as Array<Array<Float>> {
+        var pts = front;
+        if (pts == null) {
+            pts = [[0.0, 0.0, 0.0] as Array<Float>] as Array<Array<Float>>;
+            var x = 0.0;
+            for (var i = 0; i < Climb.count(); i++) {
+                var len = Climb.LEN[i], up = Climb.UP[i];
+                var steps = ((len > up ? len : up) / 4.0 + 0.5).toNumber();
+                if (steps < 2) { steps = 2; }
+                for (var k = 1; k <= steps; k++) {
+                    var t = k.toFloat() / steps, t0 = (k - 1).toFloat() / steps;
+                    // A wall wanders a few metres either way as it climbs.
+                    var wander = up > len ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
+                    x += Climb.SIDE[i] * len / steps + wander;
+                    pts.add([x, Climb.uAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
+                }
+            }
+            front = pts;
+        }
+        return pts;
+    }
+
+    // The view's points on the screen, fitted once into [x0, x1] by [y0, y1], as [x, y, distance].
+    // One box only: page 7's. The box is fixed at the first call; the model points are then let go.
+    var frontScreen as Array<Array<Float>>? = null;
+
+    function frontOnScreen(x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Array<Array<Float>> {
+        var out = frontScreen;
+        if (out == null) {
+            var pts = frontPoints();
+            var minX = pts[0][0], maxX = pts[0][0], minY = pts[0][1], maxY = pts[0][1];
+            for (var j = 1; j < pts.size(); j++) {
+                if (pts[j][0] < minX) { minX = pts[j][0]; }
+                if (pts[j][0] > maxX) { maxX = pts[j][0]; }
+                if (pts[j][1] < minY) { minY = pts[j][1]; }
+                if (pts[j][1] > maxY) { maxY = pts[j][1]; }
+            }
+            var kx = (x1 - x0) / (maxX - minX), ky = (y1 - y0) / (maxY - minY);
+            var k = kx < ky ? kx : ky;
+            var ox = (x0 + x1) / 2 - k * (minX + maxX) / 2, oy = (y0 + y1) / 2 + k * (minY + maxY) / 2;
+            out = [] as Array<Array<Float>>;
+            for (var j = 0; j < pts.size(); j++) {
+                out.add([ox + k * pts[j][0], oy - k * pts[j][1], pts[j][2]] as Array<Float>);
+            }
+            frontScreen = out;
+            front = null;
+        }
+        return out;
+    }
+
+    // The first point at or past a distance along the route.
+    function frontIndex(pts as Array<Array<Float>>, dist as Float) as Number {
+        var lo = 0, hi = pts.size() - 1;
+        while (lo < hi) {
+            var mid = (lo + hi) / 2;
+            if (pts[mid][2] < dist) { lo = mid + 1; } else { hi = mid; }
+        }
+        return lo;
+    }
+
+    // The screen point at a distance along the route.
+    function frontAt(pts as Array<Array<Float>>, dist as Float) as Array<Float> {
+        var j = frontIndex(pts, dist);
+        if (j == 0) { return pts[0]; }
+        var a = pts[j - 1], b = pts[j], span = b[2] - a[2];
+        var t = span > 0 ? (dist - a[2]) / span : 0.0;
+        if (t > 1) { t = 1.0; }
+        return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])] as Array<Float>;
+    }
+
+    // The route between two distances as a thick line with round ends and joints.
+    function frontStretch(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, pen as Number, c as Number) as Void {
+        if (d1 <= d0) { return; }
+        var dc = d.dc, r = d.s(pen) / 2;
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(d.s(pen));
+        var p = frontAt(pts, d0);
+        dc.fillCircle(d.s(p[0]), d.s(p[1]), r);
+        for (var j = frontIndex(pts, d0); j < pts.size(); j++) {
+            var last = pts[j][2] >= d1;
+            var q = last ? frontAt(pts, d1) : pts[j];
+            dc.drawLine(d.s(p[0]), d.s(p[1]), d.s(q[0]), d.s(q[1]));
+            dc.fillCircle(d.s(q[0]), d.s(q[1]), r);
+            p = q;
+            if (last) { break; }
+        }
+    }
+
+    // The front view in the box [x0, x1] by [y0, y1]: the sections in their colours, climbed parts
+    // dimmed; rests, exits and dangers as rings, dimmed once passed; the start and the top as a green
+    // and a red dot; the climber as the orange outline of the stretch they could be on.
+    function frontView(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Void {
+        var pts = frontOnScreen(x0, x1, y0, y1);
+        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
+        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
+        frontBrush(d, pts, lo, hi, 11, CLIMBER);
+        frontBrush(d, pts, lo, hi, 8, BLACK);
+        for (var i = 0; i < Climb.count(); i++) {
+            var g = section(i, false), a = Climb.dAt(i).toFloat(), b = Climb.dAt(i + 1).toFloat();
+            if (b <= st.d) {
+                frontStretch(d, pts, a, b, 8, d.grade(g, true));
+            } else if (a >= st.d) {
+                frontStretch(d, pts, a, b, 8, d.grade(g, false));
+            } else {
+                frontStretch(d, pts, a, st.d, 8, d.grade(g, true));
+                frontStretch(d, pts, st.d, b, 8, d.grade(g, false));
+            }
+        }
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        var s0 = pts[0], s1 = pts[pts.size() - 1];
+        d.dot(s0[0], s0[1], 6, GREEN);
+        d.dot(s1[0], s1[1], 6, RED);
+    }
+
+    // The route between two distances, painted with a round brush of radius r.
+    function frontBrush(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, r as Number, c as Number) as Void {
+        if (d1 <= d0) { return; }
+        var p = frontAt(pts, d0);
+        for (var j = frontIndex(pts, d0); j < pts.size(); j++) {
+            var last = pts[j][2] >= d1;
+            var q = last ? frontAt(pts, d1) : pts[j];
+            d.brush(p[0], p[1], q[0], q[1], r, c);
+            p = q;
+            if (last) { break; }
+        }
+    }
+
+    function frontPoint(d as Draw, pts as Array<Array<Float>>, dist as Float, c as Number, st as Climb.State) as Void {
+        var p = frontAt(pts, dist);
+        d.dot(p[0], p[1], 8, BLACK);
+        d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
+    }
+
+    // ---------------------------------------------------------------- current difficulty group
+
+    // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, or -1 for none.
+    // The nearest wins; on a tie, danger before exit before rest.
+    function poiKind(st as Climb.State) as Number {
+        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
+        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        var best = 1.0e9, kind = -1;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
+                var dist = 0.0;
+                if (st.d < Climb.dAt(i)) { dist = Climb.dAt(i) - st.d; }
+                if (st.d > Climb.dAt(i + 1)) { dist = st.d - Climb.dAt(i + 1); }
+                if (dist < best) { best = dist; kind = 2; }
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var p = Climb.dAt(Climb.EXIT_AT[e]).toFloat(), dist = (p - st.d).abs();
+            if (p >= lo && p <= hi && (dist < best || (dist == best && kind > 1))) { best = dist; kind = 1; }
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var p = Climb.DANGER_AT[e].toFloat(), dist = (p - st.d).abs();
+            if (p >= lo && p <= hi && dist <= best) { best = dist; kind = 0; }
+        }
+        return kind;
+    }
+
+    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a red triangle
+    // for danger, a blue square for a rest, a green cross for an exit.
+    function poiSymbol(d as Draw, kind as Number, x as Float, yb as Float, size as Float) as Void {
+        var h = size / 2, cx = x + h;
+        if (kind == 0) {
+            var top = yb - h * 1.8;
+            d.dc.setColor(RED, Graphics.COLOR_TRANSPARENT);
+            d.dc.fillPolygon([[d.s(cx), d.s(top)], [d.s(cx + h * 1.1), d.s(yb)], [d.s(cx - h * 1.1), d.s(yb)]]);
+        } else if (kind == 2) {
+            d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, REST);
+        } else if (kind == 1) {
+            var k = h * 0.75, cy = yb - k - 2;
+            d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
+            d.line(cx + k, cy - k, cx - k, cy + k, GREEN, 4);
+        }
+    }
+
+    // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
+    // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
+    // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
+    // corner rounding ends; below it what comes next, "K4 125 m", centred.
+    function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float) as Void {
+        var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
+        // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
+        // the route's widest altitude and its unit, so the symbol always starts at the rounding.
+        var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        var bw = 88 * k > need ? 88 * k : need;
+        bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
+        var base = by - bh / 2 - 12 * k;
+        var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
+        var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
+        d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        // The symbol starts where the box's corner rounding ends.
+        var kind = poiKind(st);
+        if (kind >= 0) { poiSymbol(d, kind, cx - bw / 2 + rx, base, size); }
+        nextShort(d, st, cx, by + bh / 2 + 26 * k);
+    }
+
+    // What comes next without "in": "K4 125 m", the grade in its colour, centred on x.
+    function nextShort(d as Draw, st as Climb.State, x as Float, y as Float) as Void {
+        var here = section(st.cur, false), i = st.cur + 1;
+        while (i < Climb.count() && section(i, false) == here) { i++; }
+        var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
+        var m = (Math.round(dist / 5) * 5).toNumber();
+        if (m < 0) { m = 0; }
+        var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
+        var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
+        var rest = " " + m.format("%d") + " m";
+        var font = Graphics.FONT_TINY;
+        var w1 = d.width(font, what), w = w1 + d.width(font, rest);
+        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 }

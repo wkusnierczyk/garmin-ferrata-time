@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 17;
+    const COUNT = 18;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -23,15 +23,16 @@ module Pages {
             // Pages 6a and 6b: the gauge by length along the route, and by ascent.
             case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st, false); break; }
             case 6: { d.colours = d.HEAT_AMBER; gaugePage(d, st, true); break; }
-            case 7: { profile(d, st); break; }
-            case 8: { combined(d, st); break; }
-            case 9: { ladderPage(d, st); break; }
-            case 10: { whereAmI(d, st); break; }
-            case 11: { whatsNext(d, st); break; }
-            case 12: { timeStrip(d, st); break; }
-            case 13: { bigHeight(d, st); break; }
-            case 14: { bigNextHard(d, st); break; }
-            case 15: { bigTop(d, st); break; }
+            case 7: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
+            case 8: { profile(d, st); break; }
+            case 9: { combined(d, st); break; }
+            case 10: { ladderPage(d, st); break; }
+            case 11: { whereAmI(d, st); break; }
+            case 12: { whatsNext(d, st); break; }
+            case 13: { timeStrip(d, st); break; }
+            case 14: { bigHeight(d, st); break; }
+            case 15: { bigNextHard(d, st); break; }
+            case 16: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -195,7 +196,7 @@ module Pages {
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = 132.0, bh = 92.0, by = 186.0;
         Widgets.gauge(d, st, byUp);
-        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh);
+        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh, 64);
         var font = Graphics.FONT_TINY, base = 100 + d.capHeight(font);
         Widgets.poi(d, st, 200.0, base - d.capHeight(Graphics.FONT_XTINY));
         var ft = Widgets.feet(), ax = 208 + bw / 2;
@@ -205,6 +206,15 @@ module Pages {
             Graphics.TEXT_JUSTIFY_LEFT);
         Widgets.nextUp(d, st, 208.0, 262.0);
         Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
+    }
+
+    // ---------------------------------------------------------------- page 7, version 1: from the front
+
+    // design/page-7.md: the front view on the right; on the left the current difficulty group, 15 %
+    // larger, its box centred vertically on the screen.
+    function frontPage(d as Draw, st as Climb.State) as Void {
+        Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
+        Widgets.currentDifficultyGroup(d, st, 116.0, 208.0, 1.15);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

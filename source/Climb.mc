@@ -17,6 +17,10 @@ module Climb {
     // Exits leave at the start of these sections.
     const EXIT_AT = [5, 9] as Array<Number>;
     const EXIT_NAME = ["Band exit", "Last exit"] as Array<String>;
+    // A made-up front view, as on a topo photo of the face: each section moves sideways by this share
+    // of its length (the sign is left or right; the rest goes into the face) while it rises by its
+    // height. A real route needs a frontal track traced from a topo; a GPS track gives the map view.
+    const SIDE = [-1.0, -0.3, -1.0, -0.6, 0.2, 1.0, 1.0, -1.0, -0.4, 0.2, -1.0, 0.2, 0.6] as Array<Float>;
     // Danger points, in metres along the route: rockfall on the Ledge traverse, the exposed Bridge.
     const DANGER_AT = [175, 640] as Array<Number>;
 

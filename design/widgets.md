@@ -137,6 +137,23 @@ The ascent widget laid flat: a line from the start (left) to the top (right), th
 
 The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m: "K4 in 125 m", the grade in its colour; "Top in …" after the last change. The mock can give the distance in metres up instead.
 
+## front view
+
+The route seen from the front, as on a topo photo of the face: up is height, across is sideways travel; traverses and walks run nearly flat, walls go nearly straight up.
+
+- The sections in their difficulty colours, climbed parts dimmed, round joints.
+- Rests, exits and dangers as hollow rings, dimmed once passed; the start and the top as a green and a red dot.
+- The climber as the orange outline of the stretch they could be on, rounded at its ends.
+- Fitted into a box, one scale across and up.
+
+## current difficulty group
+
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size.
+
+- The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
+- Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.
@@ -158,5 +175,5 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 6b use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 7 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
