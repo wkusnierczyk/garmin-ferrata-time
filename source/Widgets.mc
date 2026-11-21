@@ -850,6 +850,7 @@ module Widgets {
     }
 
     // The view's points on the screen, fitted once into [x0, x1] by [y0, y1], as [x, y, distance].
+    // One box only: page 7's. The box is fixed at the first call; the model points are then let go.
     var frontScreen as Array<Array<Float>>? = null;
 
     function frontOnScreen(x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Array<Array<Float>> {
@@ -871,6 +872,7 @@ module Widgets {
                 out.add([ox + k * pts[j][0], oy - k * pts[j][1], pts[j][2]] as Array<Float>);
             }
             frontScreen = out;
+            front = null;
         }
         return out;
     }

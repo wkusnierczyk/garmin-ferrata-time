@@ -148,7 +148,7 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; all sizes scale together (page 7 draws it 15 % larger).
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size.
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
 - Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols: a red triangle for danger, a blue square for a rest, a green cross for an exit.
