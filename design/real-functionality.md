@@ -1,7 +1,7 @@
 # Real functionality (0.2.0)
 
 Status: agreed with the owner 2026-11-21, not yet built
-Builds on: the 0.1.0 prototype (pages 1 to 9, demo clock)
+Builds on: the 0.1.0 prototype (pages 1 to 9 as revised for 0.1.0 in #16 to #28, and the demo clock)
 
 0.1.0 is a demo: one made-up route in `source/Climb.mc`, and a clock that walks the climber up it. 0.2.0 makes the app usable on a real via ferrata: a real route on the watch, the climber's real progress, and the climb saved as a Garmin activity.
 
@@ -57,8 +57,8 @@ Anti-goals (a failure even if it works):
 
 - Changing the watch's altimeter calibration. The app keeps its own offset; the device's settings and Garmin's auto-calibration are untouched.
 - Syncing altitude, or switching approach to ascent, without the climber confirming.
-- Progress going backwards, or a confident position the data does not support (`sensing.md`, section 4).
-- Losing a climb by accident. Back during a climb asks before leaving, and the tracker state is kept in storage so that after a crash or a restart the app resumes the climb's progress. Connect IQ cannot save a recording partway and keep adding to it, so the FIT data since the last save may still be lost in a crash; that is accepted (my call, after the builder check).
+- Progress going backwards on its own, or a confident position the data does not support (`sensing.md`, section 4). The one exception is a landmark sync the climber confirms (section 6).
+- Losing a climb by accident. Back during a climb opens the menu rather than leaving (section 5), and the tracker state is kept in storage, so after a crash or a restart the app resumes the climb's progress. Connect IQ cannot save a recording partway and keep adding to it, so an unsaved recording is lost when the app stops; on resume a new session starts under the same name, paused, beginning with an ascent or approach lap as the phase was, so one climb becomes two activities. That is accepted (my call, after the builder check).
 
 ## 3. Approaches considered
 
@@ -68,9 +68,11 @@ Anti-goals (a failure even if it works):
 | Position | (a) climbed height, time across flat stretches, forward-only; (b) height blended with GPS matched to the track | (a). GPS strays on walls (`sensing.md`); (b) only if the Fürenwand recordings show it helps |
 | Demo and real | (a) one tracker, two inputs: real sensors or simulated; (b) replace the demo | (a). The simulator and the demo keep exercising every page |
 | Route builder (later) | (a) a web page; (b) a companion phone app with a desktop mirror over Wi-Fi | (a) first, (b) considered later (owner). The page is cheaper: no two phone platforms, no local server |
-| Activity sport | mountaineering, rock climbing, bouldering | Mountaineering: a long effort with position and altitude. Bouldering records short attempts on problems |
+| Activity sport | mountaineering, rock climbing (sub-sport bouldering) | Mountaineering: a long effort with position and altitude. Bouldering records short attempts on problems |
 
 ## 4. Route file
+
+This format supersedes the proposal in `DESIGN.md` section 8 (outline, profile and markers as arc-length fractions) and the size targets in `route-data.md` section 3, which were for that outline-based format: geometry here is only the sections' `side` and the points' coordinates, so a route is smaller.
 
 One JSON file per route. The `tools/` script writes it; the app reads it as a JSON resource (`Rez.JsonData`) in 0.2.0, and from storage once routes are downloaded (section 10).
 
@@ -81,29 +83,34 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
   "format": 1,
   "id": "fuerenwand",
   "name": "Fürenwand",
+  "short": "Fürenwand",
   "place": "Engelberg OW",
   "source": {"geometry": "...", "elevation": "swisstopo", "text": "link to the SAC page, no prose"},
-  "sections": [
+  "approach": [
     {"len": 120, "up": 20, "grade": 0, "min": 12, "name": "Approach", "side": -1.0}
   ],
+  "sections": [
+    {"len": 35, "up": 90, "grade": 3, "min": 20, "name": "First wall", "side": -0.3}
+  ],
   "points": [
-    {"kind": "approach", "at": 0,   "alt": 1015, "lat": 46.8, "lon": 8.4, "name": "Car park"},
-    {"kind": "head",     "at": 120, "alt": 1035, "lat": 46.8, "lon": 8.4, "name": "Fürenwand"},
-    {"kind": "exit",     "at": 560, "alt": 1290, "lat": 46.8, "lon": 8.4, "name": "Band exit"},
-    {"kind": "danger",   "at": 175, "name": "Loose rock"},
-    {"kind": "top",      "at": 760, "alt": 1850, "lat": 46.8, "lon": 8.4, "name": "Top"}
+    {"kind": "approach", "at": -120, "alt": 1015, "lat": 46.8, "lon": 8.4, "name": "Car park"},
+    {"kind": "head",     "at": 0,    "alt": 1035, "lat": 46.8, "lon": 8.4, "name": "Fürenwand"},
+    {"kind": "landmark", "at": 330,  "alt": 1180, "lat": 46.8, "lon": 8.4, "name": "Bench"},
+    {"kind": "exit",     "at": 440,  "alt": 1290, "lat": 46.8, "lon": 8.4, "name": "Band exit"},
+    {"kind": "danger",   "at": 55,   "name": "Loose rock"},
+    {"kind": "top",      "at": 640,  "alt": 1850, "lat": 46.8, "lon": 8.4, "name": "Top"}
   ]
 }
 ```
 
 The numbers above are placeholders, not Fürenwand's.
 
-- `sections` replace `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE`. `grade` keeps the demo's coding: 0 walking, 1 to 5 K1 to K5, -1 rest.
-- `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres along the route. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point** and can sync altitude; a point with `lat` and `lon` can prompt by GPS.
-- Kinds: `approach`, `head`, `landmark` (a point partway with a known altitude, for a mid-climb sync: a bench, a ladder base, a bridge), `rest`, `danger`, `exit`, `top`. The app ignores kinds it does not know, so later kinds do not break older apps (my call).
-- `up` may be negative: down-climbs and bridges that lose height are allowed (my call).
-- `head` is required. `approach` is optional; without it the route starts at the head and has no approach sections. `top` is required. Exits are optional.
-- The route's start altitude is the first known point's altitude.
+- `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. Each list replaces `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE` while the climber is on that part, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the start of the part shown: from the head during the ascent. `grade` keeps the demo's coding: 0 walking, 1 to 5 K1 to K5, -1 rest. Rests are encoded only this way; there is no `rest` point kind.
+- `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres from the head: negative on the approach, so the `approach` point sits at minus the approach's length. Exits and landmarks lie on section boundaries (the script checks), since the pages index exits by section. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point** and can sync altitude; a point with `lat` and `lon` can prompt by GPS.
+- Kinds: `approach`, `head`, `landmark` (a point partway with a known altitude, for a mid-climb sync: a bench, a ladder base, a bridge), `danger`, `exit`, `top`. The app ignores kinds it does not know, so later kinds do not break older apps (my call).
+- `up` may be negative in the format, for down-climbs and bridges that lose height, so library routes need no format change (my call). The 0.2.0 pages stack sections by height and assume it only rises, so in 0.2.0 the script rejects negative `up` and the route total is the plain sum, which then equals the gross ascent; pages that draw descents come with the first route that needs them.
+- `head` and `top` are required; `approach`, landmarks and exits are optional.
+- `short`: the activity name, at most 15 characters (the SDK's suggested maximum for a session name).
 
 The script takes a GPX track and a hand-written file with the sections and points, fills missing altitudes from swisstopo where useful, and checks that the sections add up to the known points' altitudes within a tolerance. The file stays a few KB (`route-data.md`, section 3).
 
@@ -111,7 +118,8 @@ The script takes a GPX track and a hand-written file with the sections and point
 
 ```
 Route loaded ─ Start ─┬─ At ferrata head ───────────────▶ ASCENT    (sync: head)
-                      └─ Elsewhere ─▶ APPROACH            (sync: approach start, if known)
+                      ├─ At <approach point> ─▶ APPROACH  (sync: approach point; only if it has an altitude)
+                      └─ Elsewhere ─▶ APPROACH            (no sync)
                                          │
                             Start button │  or GPS within about 50 m of the head:
                                          │  vibrate and open the same menu
@@ -119,18 +127,24 @@ Route loaded ─ Start ─┬─ At ferrata head ──────────�
                                   ┌─ Continue approach
                                   └─ Start ferrata ascent ─▶ ASCENT (sync: head)
 
-APPROACH ─ Start button ─▶ menu above, plus  End ─▶ summary, save or discard
+APPROACH ─ Start button ─▶ PAUSED ─ menu above, plus  End here ─▶ summary
 
 ASCENT ─ Start button ─▶ PAUSED ─┬─ Continue
-                                 ├─ Sync here    (near a landmark: sync to its altitude, continue)
-                                 ├─ End at top   ─▶ summary, save   (check: top)
-                                 └─ End at exit  ─▶ summary, save   (check: exit, if known)
+                                 ├─ Sync here    (at a landmark: sync to its altitude and place, continue)
+                                 ├─ End at top   ─▶ summary   (check: top)
+                                 ├─ End at exit  ─▶ summary   (check: exit, if known)
+                                 └─ End here     ─▶ summary   (no check)
+
+Back during APPROACH, ASCENT or PAUSED ─▶ the same menu as Start
+summary ─▶ Save or Discard
 ```
 
-- "Elsewhere" covers the route's approach and any other place. If the climber starts somewhere other than the route's approach start, no sync happens at Start.
-- "End at exit" lists only the exits still ahead, nearest first.
-- "Sync here" shows only near a landmark: the next one ahead by the progress estimate, or the nearest by GPS. GPS within about 50 m of a landmark vibrates and opens the pause menu, as at the head (owner, 2026-11-21).
-- Turning back during the approach: End, then save or discard; an approach-only activity may be saved (my call).
+- "At <approach point>" shows only when the route's `approach` point has an altitude; "Elsewhere" is any other place, with no sync until the head (my call, after review).
+- The Start button pauses in both phases, as in Garmin's own activities (the owner's flow); the menu opens paused.
+- "End at exit" lists the exits within the uncertainty band or ahead of it, nearest first, so an estimate that ran ahead does not hide the exit the climber is at.
+- "Sync here" lists the landmarks within the uncertainty band or the nearest by GPS. GPS within about 50 m of a landmark vibrates and opens the pause menu, as at the head (owner, 2026-11-21).
+- "End here" ends anywhere, for a retreat or turning back on the approach, with no altitude check (my call, after review). An approach-only activity may be saved.
+- Back never leaves a climb: it opens the menu, and the only way out is an End (my call).
 - GPS proximity never acts on its own: it vibrates and opens the menu; the climber chooses.
 - After the summary: save or discard, as in Garmin's own activities.
 - The approach and the ascent are separate laps.
@@ -139,10 +153,11 @@ ASCENT ─ Start button ─▶ PAUSED ─┬─ Continue
 
 - The app reads the watch's altitude and adds its own **offset**. The watch's calibration is not touched.
 - At a known point the climber confirms (section 5), and the offset becomes `known altitude − watch altitude`.
+- A confirmed landmark sync also sets the place to the landmark's `at`, which may move it back once, because the climber said where they are, and resets the uncertainty band (my call, after review: a confirmed landmark is the strongest position fix there is, `sensing.md` section 3).
 - The change in offset at each sync after the first is **drift** since the previous one. It is kept and saved with the activity: approach drift at the head, climb drift at the top or exit.
 - At the end, the check against the top's or exit's known altitude is recorded, not applied to the climb already done.
 - Before the first sync (started elsewhere, no known approach start), altitude shows as unsynced: the watch's own reading, marked as such.
-- A sync can move the shown altitude by a few metres at once. That is expected; progress stays forward-only.
+- A sync can move the shown altitude by a few metres at once. That is expected; apart from a landmark sync, progress stays forward-only.
 
 ## 7. Progress estimate
 
@@ -153,7 +168,7 @@ Inputs: climbed height since the head (synced altitude minus the head's), elapse
 - **Height to place.** Height maps to a stretch of the route: from the first distance at or ahead of the current place reaching that height to the last before the route next leaves it (`firstDistanceAt` and `lastDistanceAt` exist but assume a rising route; with descents they search only ahead of the current place). On a climb the stretch is short; on a traverse it is long.
 - **Time across flats.** Within that stretch, the place advances with elapsed time at the climber's pace against the guidebook minutes.
 - **Forward-only.** The place never moves back.
-- **Uncertainty.** The band shown on the pages is the width of the stretch plus a drift allowance, replacing the demo's fixed `UNCERTAINTY`.
+- **Uncertainty.** The band shown on the pages is the width of the stretch plus a drift allowance that grows with time since the last sync, replacing the demo's fixed `UNCERTAINTY`.
 - **Pace.** Elapsed time so far against the guidebook minutes for the part done. **Paused time counts as climbing time** for pace and time left, because guidebook times include rests. The recorded activity still pauses as Garmin does (section 8). This is to be tried on a real climb (owner, 2026-11-21).
 - **Time left** is the guidebook minutes still ahead, scaled by that pace.
 
@@ -162,16 +177,17 @@ During the approach, progress along the approach sections uses the same rule; if
 ## 8. Recording
 
 - `ActivityRecording.createSession` with `:sport => Activity.SPORT_MOUNTAINEERING` (in the SDK since API 3.2.0; the manifest needs 5.0.0) and `:name` set to the route's name, for example "Fürenwand".
-- The manifest gains the `Fit`, `Positioning` and `Sensor` permissions.
+- `:name` is the route's `short` name.
+- The manifest gains the `Fit`, `FitContributor`, `Positioning` and `Sensor` permissions.
 - Start, pause, continue and stop follow the climb flow; the activity timer pauses on pause.
 - Laps: one for the approach, one for the ascent.
-- Custom fields (`FitContributor`): the section index or name, the estimated place along the route, the sync offset, and the drift at each sync, so the climb can be reviewed in Garmin Connect and compared with the ground-truth data.
+- Custom fields (`FitContributor`): per record, the section index and the estimated place along the route (numbers: record messages take no strings); per session, the last sync offset and the total drift, so the climb can be reviewed in Garmin Connect and compared with the ground-truth data.
 - The phone uploads the saved activity to Garmin Connect; nothing in the app handles the upload.
 
 ## 9. Code structure
 
-- **Route.** `Climb.mc`'s constants become a route loaded from the JSON resource. The helpers the pages use (`dAt`, `uAt`, `mAt`, `count`, `heightAtDistance`, the exits and dangers) keep their meaning, so the pages change as little as possible.
-- **Tracker.** Owns the climb state (approach, ascent, paused, ended), the offset and drift, the place estimate and the pace, and produces the `Climb.State` the pages draw. It takes readings from an **input**:
+- **Route.** `Climb.mc`'s constants become variables filled from the loaded route, one part at a time (approach or ferrata, section 4). The helpers the pages use (`dAt`, `uAt`, `mAt`, `count`, `heightAtDistance`, the exits and dangers) keep their meaning within the part shown, so the pages change as little as possible.
+- **Tracker.** Owns the climb state (approach, ascent, paused, ended), the offset and drift, the place estimate and the pace. `Climb.State` today is built from one guidebook minute and derives everything from it; it gains a second way to be built, from the tracker's independent values (place, height, elapsed time, start clock, pace, uncertainty band), and the pages read the band from the state instead of the constant `Climb.UNCERTAINTY`. The demo input keeps the minute-based way. It takes readings from an **input**:
   - the **sensor input**: the watch's altitude, position and the clock;
   - the **demo input**: the 0.1.0 simulated climb on the bundled route, producing the same readings. The demo goes through the same menus but never records a Garmin activity, so demo runs do not reach Garmin Connect (my call).
 - **Recorder.** Wraps the session, laps and custom fields; driven by the tracker's state changes.
@@ -189,7 +205,7 @@ Not in 0.2.0, but the route file is designed for them.
 
 - What the tracker state in storage holds, and how often it is written.
 - Whether altitude comes from `Activity.Info.altitude` or from pressure in `Sensor.Info`, and the sampling rate.
-- The JSON keys' exact spelling and how compact the resource is.
+- How compact the resource is.
 - The menus' look, within the app's existing style.
 - The drift allowance in the uncertainty band, until the ground-truth data sets it.
 - How the demo input is selected (a setting, or the simulator only).
