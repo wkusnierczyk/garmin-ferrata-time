@@ -19,7 +19,7 @@ After safety signs (ISO 7010) and media controls:
 | Point | Symbol |
 |---|---|
 | Danger | a yellow triangle (a warning) |
-| Exit | a green cross |
+| Exit | a green arrow pointing down to the right: a way off the route (it was a cross; owner, 2026-11-21) |
 | Rest | a blue pause: two bars, as tall as the triangle |
 | Start, while the uncertainty reaches it | a green play triangle, pointing right |
 | Top, while the uncertainty reaches it | a red stop square |

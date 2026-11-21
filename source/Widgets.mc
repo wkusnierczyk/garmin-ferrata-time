@@ -981,7 +981,7 @@ module Widgets {
     }
 
     // A point's symbol, filled, size px across, its left edge at x and its bottom at yb: a triangle for
-    // danger, a square for a rest, a green cross for an exit. With signs (page 8) the danger triangle is
+    // danger, a square for a rest, a green arrow pointing down to the right for an exit (a way off). With signs (page 8) the danger triangle is
     // yellow, a warning; a rest is a pause, two blue bars; the start is play, a green triangle pointing
     // right; the top is stop, a red square.
     const WARNING = 0xffd60a;
@@ -1003,9 +1003,12 @@ module Widgets {
         } else if (kind == POI_TOP) {
             d.rect(cx - h * 0.8, yb - h * 1.6, h * 1.6, h * 1.6, RED);
         } else if (kind == 1) {
-            var k = h * 0.75, cy = yb - k - 2;
-            d.line(cx - k, cy - k, cx + k, cy + k, GREEN, 4);
-            d.line(cx + k, cy - k, cx - k, cy + k, GREEN, 4);
+            // The arrow across the square the cross took, round-ended: its shaft from the upper left,
+            // its head's two strokes back from the tip, along the bottom and up the right side.
+            var k = h * 0.75, a = k * 1.1, cy = yb - k - 2;
+            d.brush(cx - k, cy - k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k - a, cy + k, cx + k, cy + k, 2, GREEN);
+            d.brush(cx + k, cy + k - a, cx + k, cy + k, 2, GREEN);
         }
     }
 

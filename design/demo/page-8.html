@@ -14,7 +14,15 @@
 :root[data-theme="dark"] { --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark }
 body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
-main { max-width: 1040px; margin: 0 auto; display: grid; gap: 36px; }
+main { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 40px; align-items: start; }
+.faces { position: sticky; top: 24px; display: grid; gap: 20px; justify-items: center; }
+.faces .dial { width: min(360px, calc(100vh - 110px), 45vw); }
+.side { display: grid; gap: 36px; min-width: 0; }
+@media (max-width: 520px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .faces { position: static; }
+  .faces .dial { width: 100%; }
+}
 h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; }
 h1 { font-size: 40px; line-height: 1.05; }
 h2 { font-size: 24px; }
@@ -23,11 +31,8 @@ h2 { font-size: 24px; }
 .dial { background: var(--screen); border-radius: 50%; aspect-ratio: 1; max-width: 100%;
   box-shadow: 0 0 0 8px var(--bezel), 0 0 0 10px var(--bezel-edge); }
 .dial svg { display: block; width: 100%; height: 100%; }
-.live { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 32px; align-items: center; }
-.live .dial { width: 360px; }
 .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 760px; }
 .pair .dial { width: 100%; }
-@media (max-width: 900px) { .live { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .pair { grid-template-columns: 1fr; } }
 .controls { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .controls label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -48,18 +53,20 @@ figure .dial { width: min(220px, 100%); }
 figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
 .notes ul { margin: 8px 0 0; padding-left: 20px; max-width: 65ch; }
 .notes li + li { margin-top: 6px; }
-@media (max-width: 640px) { .live { grid-template-columns: 1fr; } .live .dial { width: min(360px, 100%); } }
 </style>
 <main>
+  <aside class="faces">
+    <figure><div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 8: the current difficulty group and the ascent gauge"></svg></div><figcaption>Page 8</figcaption></figure><svg id="live5" hidden></svg>
+  </aside>
+  <div class="side">
   <section>
     <h1>Ferrata · page 8, version 1, settled</h1>
     <p class="lede">The <b>current difficulty group</b> in the middle, larger, and the <b>ascent</b> as a gauge around the edge: the climber's orange ring at the height climbed, the metres climbed and left past its two ends. A menu tries three colour schemes for the points of interest.</p>
   </section>
-  <section class="live">
-    <div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 8: the current difficulty group and the ascent gauge"></svg></div><svg id="live5" hidden></svg>
+  <section>
     <div class="controls">
       <label for="pos">Point of the climb</label>
-      <input id="pos" type="range" min="0" max="1000" value="450">
+      <input id="pos" type="range" min="0" max="1000" value="412">
       <div class="readout" id="readout"></div>
       <button id="play" type="button">Play the climb</button>
       <label for="speed">Speed: the whole climb in</label>
@@ -75,7 +82,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label for="poi-scheme">Point colours</label>
       <select id="poi-scheme"><option value="now">as now: danger red, rest blue, exit green</option><option value="signs" selected>safety signs: danger yellow, rest blue, exit green</option><option value="traffic">traffic: danger yellow, rest blue, exit red</option></select>
       <label for="poi-as">Point of interest above the box, as</label>
-      <select id="poi-as"><option value="symbol" selected>a symbol: red triangle, blue square, green cross</option><option value="word">a word: DANGER, REST, EXIT</option></select>
+      <select id="poi-as"><option value="symbol" selected>a symbol: red triangle, blue square, green arrow</option><option value="word">a word: DANGER, REST, EXIT</option></select>
       <label for="symbols-fill">Triangle and square</label>
       <select id="symbols-fill"><option value="outline">outlined</option><option value="filled" selected>filled</option></select>
       <label class="check"><input id="route-symbols" type="checkbox"> Symbols on the route too, in place of the rings</label>
@@ -106,10 +113,11 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
     <ul>
       <li>The group is drawn 50 % larger than its base size, centred on the screen; a menu tries other sizes.</li>
       <li>The ascent gauge runs 284° from the lower left over the top to the lower right; the metres climbed sit past its start end, the metres left past its top end, in the gap at the bottom.</li>
-      <li>Point symbols on this page: danger a triangle, exit a cross, rest a pause (two blue bars), and two more while the uncertainty reaches them: the route's start as play (a green triangle pointing right) and its top as stop (a red square). The nearest point wins; on a tie, danger, exit, top, rest, start.</li>
+      <li>Point symbols on this page: danger a triangle, exit an arrow pointing down to the right (a way off the route; it was a cross), rest a pause (two blue bars), and two more while the uncertainty reaches them: the route's start as play (a green triangle pointing right) and its top as stop (a red square). The nearest point wins; on a tie, danger, exit, top, rest, start.</li>
       <li>Point colours. Safety signs (ISO 7010) use a yellow triangle for a warning, green for an emergency exit, blue for information; on this page yellow is also K2's colour, but the triangle's shape tells them apart. Red for an exit reads as "stop", and red is also the top's dot and K5. The menu starts on the safety-sign scheme.</li>
     </ul>
   </section>
+  </div>
 </main>
 <script>
 // The demo route, as in source/Climb.mc.
@@ -369,7 +377,7 @@ function poi(st, x, yt, opt) {
   // A symbol sits on the text's baseline: its bottom where the letters' bottom would be.
   if (opt.poiSymbols) {
     // Its drawn bottom includes half its stroke: 1.5 px for an outlined triangle or square, 2 px for
-    // the cross's round ends, none when filled.
+    // the arrow's round ends, none when filled.
     const size = 20 * scale, stroke = f.word === "EXIT" ? 2 : opt.symbolsFilled ? 0 : 1.5;
     const bottom = (f.word === "EXIT" ? size / 2 * 0.75 : size / 2 * 0.8) + stroke;
     return symbol(opt.poiLeft ? x + size / 2 : x - size / 2, base - bottom, f.word, size, opt.symbolsFilled, false);
@@ -769,7 +777,7 @@ const POI_SCHEMES = {
 let POI_COLOUR = POI_SCHEMES.now;
 
 // The points as symbols (page 7 variant): a red triangle for danger, a blue square for a rest, a
-// green cross for an exit, centred on (x, y), size px across; triangle and square outlined or filled;
+// green arrow down to the right for an exit, centred on (x, y), size px across; triangle and square outlined or filled;
 // dimmed once passed.
 function symbol(x, y, word, size, filled, passed) {
   const h = size / 2, colour = mark(POI_COLOUR[word], passed);
@@ -777,12 +785,14 @@ function symbol(x, y, word, size, filled, passed) {
   if (word === "DANGER") return `<polygon points="${x},${(y - h).toFixed(1)} ${(x + h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)} ${(x - h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)}" ${paint}/>`;
   // A rest is a pause: two bars. The start is play: a triangle pointing right. The top is stop: a square.
   // The pause's bars stand as tall as the warning triangle (from h above the centre to 0.8 h below)
-  // and as wide together as the cross, so the two read the same size.
+  // and as wide together as the exit's arrow, so the two read the same size.
   if (word === "REST") return [-0.8, 0.2].map(dx => `<rect x="${(x + h * dx).toFixed(1)}" y="${(y - h).toFixed(1)}" width="${(h * 0.6).toFixed(1)}" height="${(h * 1.8).toFixed(1)}" rx="${(h * 0.12).toFixed(1)}" ${paint}/>`).join("");
   if (word === "START") return `<polygon points="${(x - h * 0.7).toFixed(1)},${(y - h * 0.8).toFixed(1)} ${(x + h * 0.9).toFixed(1)},${y.toFixed(1)} ${(x - h * 0.7).toFixed(1)},${(y + h * 0.8).toFixed(1)}" ${paint}/>`;
   if (word === "END") return `<rect x="${(x - h * 0.8).toFixed(1)}" y="${(y - h * 0.8).toFixed(1)}" width="${(h * 1.6).toFixed(1)}" height="${(h * 1.6).toFixed(1)}" ${paint}/>`;
-  const k = h * 0.75;
-  return `<path d="M${x - k} ${y - k}L${x + k} ${y + k}M${x + k} ${y - k}L${x - k} ${y + k}" stroke="${colour}" stroke-width="4" stroke-linecap="round"/>`;
+  // An exit is an arrow pointing down to the right, a way off the route, across the same square
+  // the cross took.
+  const k = h * 0.75, a = k * 1.1;
+  return `<path d="M${x - k} ${y - k}L${x + k} ${y + k}M${x + k - a} ${y + k}L${x + k} ${y + k}L${x + k} ${y + k - a}" fill="none" stroke="${colour}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 // The current difficulty group: the current difficulty in a filled box centred on (cx, by); above it,
