@@ -683,33 +683,85 @@ module Widgets {
     const G_INNER = 6;
     const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
 
+    // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
+    // to their length (or, byUp, the metres they climb), so no section is too short to draw or see.
+    // Within a section, angles follow the distance along it. Worked out once per kind.
+    const G_MIN = 3.0;
+    var gaugeStarts as Array<Array<Float>?> = [null, null];
+
+    function gaugeLayout(byUp as Boolean) as Array<Float> {
+        var kind = byUp ? 1 : 0, cached = gaugeStarts[kind];
+        if (cached != null) { return cached; }
+        var n = Climb.count(), fixed = new [n] as Array<Boolean>, span = new [n] as Array<Float>;
+        for (var i = 0; i < n; i++) { fixed[i] = false; }
+        var changed = true;
+        while (changed) {
+            changed = false;
+            var count = 0, total = 0.0;
+            for (var i = 0; i < n; i++) {
+                if (fixed[i]) { count++; } else { total += byUp ? Climb.UP[i] : Climb.LEN[i]; }
+            }
+            var free = G_SPAN - count * G_MIN;
+            for (var i = 0; i < n; i++) {
+                // An entirely flat route by ascent: what is left is shared evenly.
+                var share = total > 0 ? (byUp ? Climb.UP[i] : Climb.LEN[i]) / total : 1.0 / (n - count);
+                span[i] = fixed[i] ? G_MIN : share * free;
+                if (!fixed[i] && span[i] < G_MIN) { fixed[i] = true; changed = true; }
+            }
+        }
+        // The angle at each boundary, from the start at G_FROM.
+        var starts = new [n + 1] as Array<Float>;
+        starts[0] = G_FROM.toFloat();
+        for (var i = 0; i < n; i++) { starts[i + 1] = starts[i] - span[i]; }
+        gaugeStarts[kind] = starts;
+        return starts;
+    }
+
     function gaugeAngle(dist as Float, byUp as Boolean) as Float {
-        return G_FROM - (byUp ? Climb.heightAtDistance(dist) / Climb.totalU() : dist / Climb.totalD()) * G_SPAN;
+        var starts = gaugeLayout(byUp), n = Climb.count(), i = 0;
+        while (i < n - 1 && dist > Climb.dAt(i + 1)) { i++; }
+        var f = Climb.LEN[i] > 0 ? (dist - Climb.dAt(i)) / Climb.LEN[i] : 0.0;
+        return starts[i] - f * (starts[i] - starts[i + 1]);
+    }
+
+    // Section i's arc on whole degrees, its two ends [from, to] with to < from: each boundary rounded
+    // once, and the arc stopping 1° short of the next section's start, so every gap is one degree.
+    function sectionArc(i as Number, byUp as Boolean) as Array<Number> {
+        var s0 = Math.round(gaugeAngle(Climb.dAt(i).toFloat(), byUp)).toNumber();
+        var s1 = Math.round(gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp)).toNumber() + 1;
+        return [s0, s1] as Array<Number>;
     }
 
     function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
         var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
-        var a0 = gaugeAngle(lo, byUp), a1 = gaugeAngle(hi, byUp);
+        // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
+        var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
         // The climber: an orange line inside the gauge, with round ends.
         var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
         d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
         d.dot(p0[0], p0[1], G_INNER / 2, CLIMBER);
         d.dot(p1[0], p1[1], G_INNER / 2, CLIMBER);
         // The sections, a hair apart.
-        var ac = gaugeAngle(st.d, byUp);
+        var ac = Math.round(gaugeAngle(st.d, byUp)).toNumber();
         for (var i = 0; i < Climb.count(); i++) {
-            var g = section(i, false);
-            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), byUp), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), byUp) + 0.5;
+            var g = section(i, false), arc = sectionArc(i, byUp), s0 = arc[0], s1 = arc[1];
             if (Climb.dAt(i + 1) <= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
             } else if (Climb.dAt(i) >= st.d) {
                 d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
             } else {
-                // Within the hair gap at the section's end, the climbed part stops at the gap.
-                var a = ac < s1 ? s1 : ac;
-                d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
-                d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
+                // The climber's section, climbed part dimmed. A part under a degree is not drawn on
+                // its own: the whole section takes the other part's colour instead of leaving a sliver.
+                var a = ac < s1 ? s1 : (ac > s0 ? s0 : ac);
+                if (s0 - a < 1) {
+                    d.arc(G_R, s0, s1, d.grade(g, false), G_PEN);
+                } else if (a - s1 < 1) {
+                    d.arc(G_R, s0, s1, d.grade(g, true), G_PEN);
+                } else {
+                    d.arc(G_R, s0, a, d.grade(g, true), G_PEN);
+                    d.arc(G_R, a, s1, d.grade(g, false), G_PEN);
+                }
             }
         }
         // The points.
@@ -775,8 +827,8 @@ module Widgets {
     // (sectionPoints), dimmed elsewhere.
     function selectionGauge(d as Draw, sel as Number) as Void {
         for (var i = 0; i < Climb.count(); i++) {
-            var s0 = gaugeAngle(Climb.dAt(i).toFloat(), true), s1 = gaugeAngle(Climb.dAt(i + 1).toFloat(), true) + 0.5;
-            d.arc(G_R, s0, s1, d.grade(section(i, false), i != sel), G_PEN);
+            var arc = sectionArc(i, true);
+            d.arc(G_R, arc[0], arc[1], d.grade(section(i, false), i != sel), G_PEN);
         }
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0) {
