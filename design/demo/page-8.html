@@ -80,9 +80,9 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label for="group-scale">Current difficulty group size</label>
       <select id="group-scale"><option value="1.15">15 % larger (as page 7)</option><option value="1.3">30 % larger</option><option value="1.5" selected>50 % larger</option><option value="1.7">70 % larger</option></select>
       <label for="poi-scheme">Point colours</label>
-      <select id="poi-scheme"><option value="now">as now: danger red, rest blue, exit green</option><option value="signs" selected>safety signs: danger yellow, rest blue, exit green</option><option value="traffic">traffic: danger yellow, rest blue, exit red</option></select>
+      <select id="poi-scheme"><option value="now">before #24: danger red, rest blue, exit green</option><option value="signs" selected>safety signs: danger yellow, rest blue, exit green</option><option value="traffic">traffic: danger yellow, rest blue, exit red</option></select>
       <label for="poi-as">Point of interest above the box, as</label>
-      <select id="poi-as"><option value="symbol" selected>a symbol: red triangle, blue square, green arrow</option><option value="word">a word: DANGER, REST, EXIT</option></select>
+      <select id="poi-as"><option value="symbol" selected>a symbol (as the point colours and symbols)</option><option value="word">a word: DANGER, REST, EXIT</option></select>
       <label for="symbols-fill">Triangle and square</label>
       <select id="symbols-fill"><option value="outline">outlined</option><option value="filled" selected>filled</option></select>
       <label class="check"><input id="route-symbols" type="checkbox"> Symbols on the route too, in place of the rings</label>
@@ -140,6 +140,8 @@ const MAPS = {
   orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
 };
 
+// Danger points are yellow, as a warning sign, on every page; red is the route's top.
+const DANGER_YELLOW = "#ffd60a";
 const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
 const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
 const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
@@ -260,7 +262,7 @@ function profile(st, x0, w, y0, h, opt) {
   }
   // Dangers: red rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(END_RED, p.d <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="3"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
   for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
@@ -292,7 +294,7 @@ function sectionBox(colours, i, rests) {
   return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
 }
 const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
-const DANGER_BOX = { text: "D", colour: END_RED, filled: false };
+const DANGER_BOX = { text: "D", colour: DANGER_YELLOW, filled: false };
 
 // The difficulty widget: a larger middle box and two smaller satellites, sharing a bottom edge at y,
 // the middle one centred on x. Its symbols and colours follow the profile's: grades from the profile's
@@ -365,7 +367,7 @@ function poi(st, x, yt, opt) {
     found.push({ dist, rank: 2, word: "REST", colour: REST });
   }
   for (const i of EXIT_AT) if (D[i] >= lo && D[i] <= hi) found.push({ dist: Math.abs(D[i] - st.d), rank: 1, word: "EXIT", colour: EXIT_GREEN });
-  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: END_RED });
+  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_YELLOW });
   // The route's start and its top, when the stretch reaches them (page 8).
   if (opt.endsAsPoi && lo <= 0.001) found.push({ dist: st.d, rank: 4, word: "START", colour: EXIT_GREEN });
   if (opt.endsAsPoi && hi >= TD - 0.001) found.push({ dist: TD - st.d, rank: 3, word: "END", colour: END_RED });
@@ -641,7 +643,7 @@ function gauge(st, opt) {
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
-  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, END_RED);
+  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, DANGER_YELLOW);
   return s;
 }
 
@@ -754,19 +756,19 @@ function plan(st, opt) {
     else if (D[i] >= st.d) s += polyline(D[i], D[i + 1], grade(colours, g, false), pen);
     else s += polyline(D[i], st.d, grade(colours, g, true), pen) + polyline(st.d, D[i + 1], grade(colours, g, false), pen);
   }
-  const words = { [REST]: "REST", [EXIT_GREEN]: "EXIT", [END_RED]: "DANGER" };
+  const words = { [REST]: "REST", [EXIT_GREEN]: "EXIT", [DANGER_YELLOW]: "DANGER" };
   const ring = (d, colour) => { const [x, y] = planAt(d);
     if (opt.routeSymbols) return symbol(x, y, words[colour], 16, opt.symbolsFilled, d <= st.d);
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
-  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, END_RED);
+  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, DANGER_YELLOW);
   const [sx, sy] = planAt(0), [tx, ty] = planAt(TD);
   if (opt.ends) s += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6" fill="${EXIT_GREEN}"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="6" fill="${END_RED}"/>`;
   return s;
 }
 
-// The points' colours, chosen in the mock: as now (danger red, rest blue, exit green); safety signs
+// The points' colours, chosen in the mock: as before #24 (danger red, rest blue, exit green); safety signs
 // (danger yellow as a warning, rest blue, exit green as an emergency exit); or traffic (danger yellow,
 // rest blue, exit red as a stop).
 const POI_SCHEMES = {
@@ -774,11 +776,11 @@ const POI_SCHEMES = {
   signs: { DANGER: "#ffd60a", REST: "#3a86ff", EXIT: "#3fd77f", START: "#3fd77f", END: "#ff4b4b" },
   traffic: { DANGER: "#ffd60a", REST: "#3a86ff", EXIT: "#ff4b4b", START: "#3fd77f", END: "#ff4b4b" },
 };
-let POI_COLOUR = POI_SCHEMES.now;
+let POI_COLOUR = POI_SCHEMES.signs;
 
-// The points as symbols (page 7 variant): a red triangle for danger, a blue square for a rest, a
-// green arrow down to the right for an exit, centred on (x, y), size px across; triangle and square outlined or filled;
-// dimmed once passed.
+// The points as symbols, after safety signs and media controls: a yellow triangle for danger, a blue
+// pause for a rest, a green arrow down to the right for an exit, green play for the start and a red
+// stop for the top; centred on (x, y), size px across; outlined or filled; dimmed once passed.
 function symbol(x, y, word, size, filled, passed) {
   const h = size / 2, colour = mark(POI_COLOUR[word], passed);
   const paint = filled ? `fill="${colour}"` : `fill="#000" stroke="${colour}" stroke-width="3" stroke-linejoin="round"`;

@@ -107,6 +107,8 @@ const MAPS = {
   orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
 };
 
+// Danger points are yellow, as a warning sign, on every page; red is the route's top.
+const DANGER_YELLOW = "#ffd60a";
 const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
 const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
 const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
@@ -227,7 +229,7 @@ function profile(st, x0, w, y0, h, opt) {
   }
   // Dangers: red rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(END_RED, p.d <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="3"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
   for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
@@ -259,7 +261,7 @@ function sectionBox(colours, i, rests) {
   return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
 }
 const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
-const DANGER_BOX = { text: "D", colour: END_RED, filled: false };
+const DANGER_BOX = { text: "D", colour: DANGER_YELLOW, filled: false };
 
 // The difficulty widget: a larger middle box and two smaller satellites, sharing a bottom edge at y,
 // the middle one centred on x. Its symbols and colours follow the profile's: grades from the profile's
@@ -332,7 +334,7 @@ function poi(st, x, yt, opt) {
     found.push({ dist, rank: 2, word: "REST", colour: REST });
   }
   for (const i of EXIT_AT) if (D[i] >= lo && D[i] <= hi) found.push({ dist: Math.abs(D[i] - st.d), rank: 1, word: "EXIT", colour: EXIT_GREEN });
-  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: END_RED });
+  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_YELLOW });
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
   const f = found[0], fs = 24;

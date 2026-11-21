@@ -11,6 +11,9 @@ class View extends WatchUi.View {
     const TICK_MS = 250;
     const LOOP_SECONDS = 120.0;
     const HOLD_AT_TOP_SECONDS = 4.0;
+    // The page dots show for this long after the view appears (the app opening, or coming back from
+    // the Ask list) or the page changes; counted in timer ticks, not by the system clock, which wraps.
+    const DOTS_MS = 2000;
 
     var page as Number = 0;
     // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons.
@@ -18,12 +21,14 @@ class View extends WatchUi.View {
     var paused as Boolean = false;
     var seconds as Float = 0.0;
     var timer as Timer.Timer?;
+    var dotsTicks as Number = 0;
 
     function initialize() {
         View.initialize();
     }
 
     function onShow() as Void {
+        dotsTicks = DOTS_MS / TICK_MS;
         var t = new Timer.Timer();
         t.start(method(:tick), TICK_MS, true);
         timer = t;
@@ -36,6 +41,7 @@ class View extends WatchUi.View {
     }
 
     function tick() as Void {
+        if (dotsTicks > 0) { dotsTicks--; }
         if (!paused) {
             seconds += TICK_MS / 1000.0;
             if (seconds > LOOP_SECONDS + HOLD_AT_TOP_SECONDS) { seconds = 0.0; }
@@ -46,14 +52,14 @@ class View extends WatchUi.View {
     function minute() as Float {
         var f = seconds / LOOP_SECONDS;
         if (f > 1.0) { f = 1.0; }
-        return f * Climb.totalM();
+        return Climb.demoMinute(f);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
         var d = new Draw(dc);
         Pages.selected = sel;
         Pages.draw(page, d, new Climb.State(minute()));
-        pageDots(d);
+        if (dotsTicks > 0) { pageDots(d); }
         if (paused) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
     }
 
@@ -69,6 +75,7 @@ class View extends WatchUi.View {
 
     function nextPage(step as Number) as Void {
         page = (page + step + Pages.COUNT) % Pages.COUNT;
+        dotsTicks = DOTS_MS / TICK_MS;
         sel = -1;
         WatchUi.requestUpdate();
     }

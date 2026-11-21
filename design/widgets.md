@@ -5,6 +5,8 @@ Reference mock: `design/demo/page-1.html`
 
 The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Coordinates are in the design's 416 px screen. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
 
+The options below are the mocks'. The app draws each page with the settings it was settled with, so it does not yet carry every option: page 1, for example, has one switch for the difficulty widget's points and always shows danger points.
+
 Shared colours:
 
 | Use | Colour |
@@ -82,11 +84,11 @@ Options: dangers follow the profile's danger setting.
 The difficulty widget turned upright: the sections around the climber.
 
 - Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
-- All boxes the same size (64 by 40 px), whatever their letters. The current one is 8 % larger, letters included, and filled in its colour with black letters.
+- All boxes the same size (64 by 40 px), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
 - Letters `W` and `K1` to `K5`. A rest shows as `W`; the mock can show it as `R`.
 
-Options: the colour map.
+Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
 
 ## difficulty stack
 
@@ -147,11 +149,10 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; all sizes scale together (page 7 draws it 15 % larger).
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size, so at page 8's 150 % the symbol stands taller than the digits.
 
 - The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. The box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch. Symbols, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
-- With signs (page 8, `design/page-8.md`), the symbols follow safety signs and media controls: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause, and the start (green play) and top (red stop) while the uncertainty reaches them.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 88 by 62 px times the scale, and the symbol moves left only if the altitude would touch it. Symbols, after safety signs and media controls, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
 ## Groups
@@ -163,9 +164,9 @@ Widgets that are placed together, as one reusable unit.
 - The **difficulty column**, with the altitudes where the difficulty changes to its right.
 - Each altitude is level with a border between two boxes, and is the altitude where the route passes from the lower box's section to the upper one's; optionally also at the column's outer edges.
 - Rounded like the altitude widget (10 m or 50 ft), right-aligned in a box as wide as the widest the route can show, 10 px right of the column, the unit after each.
-- Column and altitudes are centred on the screen as one group.
+- Placed by its left edge and vertical centre; page 2 centres column and altitudes on the screen as one group, page 3 places it by the side of the ascent.
 
-Options: the altitudes at the outer edges; metres or feet.
+Options: the altitudes at the outer edges; metres or feet; the unit after every altitude or only the last (the mock's switch; the app shows it after each).
 
 ### altitude group
 
@@ -175,5 +176,5 @@ Options: the altitudes at the outer edges; metres or feet.
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 and 2 use heat with amber and no purple (owner, 2026-11-21). No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 8 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
