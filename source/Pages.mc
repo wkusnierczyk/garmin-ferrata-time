@@ -167,9 +167,9 @@ module Pages {
 
     // ---------------------------------------------------------------- pages 4 and 5: the difficulty stack
 
-    // Page 4: the stack by ascent, 2.5 px per metre climbed, altitudes every 20 m (100 ft).
+    // Page 4: the stack by ascent, 3 px per metre climbed, altitudes every 20 m (100 ft).
     function stackByAscent(d as Draw, st as Climb.State) as Void {
-        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true, 20, 100, 200);
+        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 3.0, true, 20, 100, 200);
     }
 
     // Page 5: the stack by path, 1 px per metre along the route, centred as a group (its tick labels,
