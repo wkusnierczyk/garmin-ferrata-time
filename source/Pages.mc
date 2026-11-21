@@ -164,9 +164,9 @@ module Pages {
 
     // ---------------------------------------------------------------- pages 4 and 5: the difficulty stack
 
-    // Page 4: the stack by ascent, 2.5 px per metre climbed.
+    // Page 4: the stack by ascent, 2.5 px per metre climbed, altitudes every 20 m (100 ft).
     function stackByAscent(d as Draw, st as Climb.State) as Void {
-        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true);
+        Widgets.stack(d, st, true, 164.0, 64.0, 352.0, 2.5, true, 20, 100);
     }
 
     // Page 5: the stack by path, 1 px per metre along the route, with the ascent on its left; the two
@@ -179,7 +179,7 @@ module Pages {
         var gap = (right - left - ascW - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES)) / 3;
         var lx = left + gap + ascLeft;
         Widgets.ascent(d, st, lx, bottom, bottom - top, true);
-        Widgets.stack(d, st, false, lx + Widgets.RING_OUTER + gap + labels, top, bottom, 1.0, true);
+        Widgets.stack(d, st, false, lx + Widgets.RING_OUTER + gap + labels, top, bottom, 1.0, true, 10, 50);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile

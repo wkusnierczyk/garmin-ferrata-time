@@ -443,8 +443,9 @@ module Widgets {
         return name.substring(0, n) + "…";
     }
 
+    // Ticks every stepM metres, or stepFt feet when the watch shows feet.
     function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
-            scale as Float, names as Boolean) as Void {
+            scale as Float, names as Boolean, stepM as Number, stepFt as Number) as Void {
         var cy = bottom - (bottom - top) / 4, here = byUp ? st.u : st.d;
         var right = left + STACK_W, cx = left + STACK_W / 2;
         var n = Climb.count();
@@ -502,9 +503,9 @@ module Widgets {
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
         }
-        // Altitude ticks on the left, every 10 m or 50 ft, only along the route. By path a tick sits
+        // Altitude ticks on the left, every step, only along the route. By path a tick sits
         // where the route first reaches its altitude; a label touching the one below is left out.
-        var ft = feet(), step = ft ? 50 : 10;
+        var ft = feet(), step = ft ? stepFt : stepM;
         var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
         if (vLo < 0) { vLo = 0.0; }
         var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();

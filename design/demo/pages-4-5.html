@@ -78,7 +78,9 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="scale"><option value="2">2 px per metre (144 m in view)</option><option value="2.5" selected>2.5 px per metre (115 m in view)</option><option value="3">3 px per metre (96 m in view)</option></select>
       <label for="path-scale">Scale by path (page 5)</label>
       <select id="path-scale"><option value="0.75">0.75 px per metre (384 m of path in view)</option><option value="1" selected>1 px per metre (288 m in view)</option><option value="1.5">1.5 px per metre (192 m in view)</option></select>
-      <label for="step">Altitude ticks every</label>
+      <label for="step4">Altitude ticks every (page 4)</label>
+      <select id="step4"><option value="10">10 (m or ft)</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option></select>
+      <label for="step">Altitude ticks every (page 5)</label>
       <select id="step"><option value="5">5 (m or ft)</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
       <label class="check"><input id="names" type="checkbox" checked> Section names on the right</label>
       <label class="check"><input id="ends" type="checkbox" checked> The ascent's start and top as a green and a red dot (page 5)</label>
@@ -566,7 +568,7 @@ function stack(st, opt, by, ST_LEFT = 164) {
     `<circle cx="${right}" cy="${cy}" r="9" fill="#000"/><circle cx="${right}" cy="${cy}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="3"/>`;
   return s;
 }
-function page4(st, opt) { return stack(st, opt, "up"); }
+function page4(st, opt) { return stack(st, { ...opt, step: opt.step4 }, "up"); }
 // Page 5: the stack by path, with the ascent widget on its left, the two spread across 56 to 360 px with equal
 // space before, between and after them. The stack's part is its tick labels, its column and a
 // name allowance (P6_NAMES); the names may run on to the round edge. The ascent is as tall as the
@@ -600,13 +602,14 @@ for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `
 map.value = "heat2";
 const units = document.getElementById("units");
 const pathScale = document.getElementById("path-scale"), live5 = document.getElementById("live5");
+const step4 = document.getElementById("step4");
 const scaleSel = document.getElementById("scale"), stepSel = document.getElementById("step"), names = document.getElementById("names");
 const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
 const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, step: +stepSel.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, step: +stepSel.value, step4: +step4.value, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
   live.innerHTML = page4(st, opts());
@@ -638,7 +641,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, names]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, step4, names]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }
