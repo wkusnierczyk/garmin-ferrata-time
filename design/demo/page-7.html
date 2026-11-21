@@ -105,7 +105,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The view is from the front: across is the route's sideways travel, up its height, so walks and traverses lie nearly flat and walls stand up. The demo route has no real shape, so its sideways travel is made up, after the style of a topo photo: walks and traverses run nearly flat, walls go nearly straight up with a small wander. A real route would bring its own track.</li>
       <li>The view is fitted into the right part of the screen (184 to 368 px across, 64 to 352 px down), keeping its shape: one scale across and up.</li>
       <li>The climber's outline follows the route over the stretch they could be on: on switchbacks it covers several turns.</li>
-      <li>The left column is now a widget, the <b>current difficulty group</b>, drawn 15 % larger (a menu tries other sizes). On the line above the box, the altitude, unit included, is right-aligned with the box's right edge, and the point of interest starts where the rounding of the box's left corners ends, its bottom on the altitude's baseline. Below the box, what comes next reads "K4 125 m". Variant: the point of interest above the box as a symbol instead of a word, since the words are small here: a red triangle for danger, a blue square for a rest, a green arrow down to the right for an exit. The triangle and square are filled (the owner's choice; outlined is still an option); the symbol sits where the word ended, on the altitude's baseline. An option puts the symbols on the route too, in place of the rings.</li>
+      <li>The left column is now a widget, the <b>current difficulty group</b>, drawn 15 % larger (a menu tries other sizes). On the line above the box, the altitude, unit included, is right-aligned with the box's right edge, and the point of interest starts where the rounding of the box's left corners ends, its bottom on the altitude's baseline. Below the box, what comes next reads "K4 125 m". Variant: the point of interest above the box as a symbol instead of a word, since the words are small here: a yellow triangle for danger, a blue pause for a rest, a green arrow down to the right for an exit, as on every page (#24). The symbols are filled (the owner's choice; outlined is still an option); the symbol sits where the word ended, on the altitude's baseline. An option puts the symbols on the route too, in place of the rings.</li>
       <li>The left column is page 6's middle, smaller: the difficulty box; above it the poi word and the altitude on one baseline (the altitude's number ending at the box's right edge, its unit past it); below it what comes next, on one line. Place names, as in the sketch, are left out: the demo route has none.</li>
     </ul>
   </section>
@@ -131,6 +131,10 @@ const MAPS = {
   orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
 };
 
+// Danger points are yellow, as a warning sign, on every page; red is the route's top.
+const DANGER_YELLOW = "#ffd60a";
+// The points' colours for the symbols, after safety signs.
+const POI_COLOUR = { DANGER: DANGER_YELLOW, REST: "#3a86ff", EXIT: "#3fd77f", START: "#3fd77f", END: "#ff4b4b" };
 const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
 const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
 const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
@@ -251,7 +255,7 @@ function profile(st, x0, w, y0, h, opt) {
   }
   // Dangers: red rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(END_RED, p.d <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="3"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
   for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
@@ -283,7 +287,7 @@ function sectionBox(colours, i, rests) {
   return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
 }
 const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
-const DANGER_BOX = { text: "D", colour: END_RED, filled: false };
+const DANGER_BOX = { text: "D", colour: DANGER_YELLOW, filled: false };
 
 // The difficulty widget: a larger middle box and two smaller satellites, sharing a bottom edge at y,
 // the middle one centred on x. Its symbols and colours follow the profile's: grades from the profile's
@@ -356,7 +360,7 @@ function poi(st, x, yt, opt) {
     found.push({ dist, rank: 2, word: "REST", colour: REST });
   }
   for (const i of EXIT_AT) if (D[i] >= lo && D[i] <= hi) found.push({ dist: Math.abs(D[i] - st.d), rank: 1, word: "EXIT", colour: EXIT_GREEN });
-  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: END_RED });
+  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_YELLOW });
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
   // Scaled by opt.poiScale (page 7 draws it 10 % smaller), its baseline where a 24 px word's would be.
@@ -629,7 +633,7 @@ function gauge(st, opt) {
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
-  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, END_RED);
+  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, DANGER_YELLOW);
   return s;
 }
 
@@ -742,26 +746,31 @@ function plan(st, opt) {
     else if (D[i] >= st.d) s += polyline(D[i], D[i + 1], grade(colours, g, false), pen);
     else s += polyline(D[i], st.d, grade(colours, g, true), pen) + polyline(st.d, D[i + 1], grade(colours, g, false), pen);
   }
-  const words = { [REST]: "REST", [EXIT_GREEN]: "EXIT", [END_RED]: "DANGER" };
+  const words = { [REST]: "REST", [EXIT_GREEN]: "EXIT", [DANGER_YELLOW]: "DANGER" };
   const ring = (d, colour) => { const [x, y] = planAt(d);
     if (opt.routeSymbols) return symbol(x, y, words[colour], 16, opt.symbolsFilled, d <= st.d);
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
-  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, END_RED);
+  if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, DANGER_YELLOW);
   const [sx, sy] = planAt(0), [tx, ty] = planAt(TD);
   if (opt.ends) s += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6" fill="${EXIT_GREEN}"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="6" fill="${END_RED}"/>`;
   return s;
 }
 
-// The points as symbols (page 7 variant): a red triangle for danger, a blue square for a rest, a
-// green arrow down to the right for an exit, centred on (x, y), size px across; triangle and square outlined or filled;
-// dimmed once passed.
+// The points as symbols, after safety signs and media controls: a yellow triangle for danger, a blue
+// pause for a rest, a green arrow down to the right for an exit, green play for the start and a red
+// stop for the top; centred on (x, y), size px across; outlined or filled; dimmed once passed.
 function symbol(x, y, word, size, filled, passed) {
-  const h = size / 2, colour = mark(word === "DANGER" ? END_RED : word === "REST" ? REST : EXIT_GREEN, passed);
+  const h = size / 2, colour = mark(POI_COLOUR[word], passed);
   const paint = filled ? `fill="${colour}"` : `fill="#000" stroke="${colour}" stroke-width="3" stroke-linejoin="round"`;
   if (word === "DANGER") return `<polygon points="${x},${(y - h).toFixed(1)} ${(x + h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)} ${(x - h * 1.1).toFixed(1)},${(y + h * 0.8).toFixed(1)}" ${paint}/>`;
-  if (word === "REST") return `<rect x="${(x - h * 0.8).toFixed(1)}" y="${(y - h * 0.8).toFixed(1)}" width="${(h * 1.6).toFixed(1)}" height="${(h * 1.6).toFixed(1)}" ${paint}/>`;
+  // A rest is a pause: two bars. The start is play: a triangle pointing right. The top is stop: a square.
+  // The pause's bars stand as tall as the warning triangle (from h above the centre to 0.8 h below)
+  // and as wide together as the exit's arrow, so the two read the same size.
+  if (word === "REST") return [-0.8, 0.2].map(dx => `<rect x="${(x + h * dx).toFixed(1)}" y="${(y - h).toFixed(1)}" width="${(h * 0.6).toFixed(1)}" height="${(h * 1.8).toFixed(1)}" rx="${(h * 0.12).toFixed(1)}" ${paint}/>`).join("");
+  if (word === "START") return `<polygon points="${(x - h * 0.7).toFixed(1)},${(y - h * 0.8).toFixed(1)} ${(x + h * 0.9).toFixed(1)},${y.toFixed(1)} ${(x - h * 0.7).toFixed(1)},${(y + h * 0.8).toFixed(1)}" ${paint}/>`;
+  if (word === "END") return `<rect x="${(x - h * 0.8).toFixed(1)}" y="${(y - h * 0.8).toFixed(1)}" width="${(h * 1.6).toFixed(1)}" height="${(h * 1.6).toFixed(1)}" ${paint}/>`;
   // An exit is an arrow pointing down to the right, a way off the route, across the same square
   // the cross took.
   const k = h * 0.75, a = k * 1.1;
