@@ -44,7 +44,7 @@ class View extends WatchUi.View {
     function minute() as Float {
         var f = seconds / LOOP_SECONDS;
         if (f > 1.0) { f = 1.0; }
-        return f * Climb.totalM();
+        return Climb.demoMinute(f);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
