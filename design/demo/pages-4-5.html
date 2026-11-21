@@ -69,7 +69,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <div class="readout" id="readout"></div>
       <button id="play" type="button">Play the climb</button>
       <label for="speed">Speed: the whole climb in</label>
-      <select id="speed"><option value="0.25">50 s</option><option value="0.5">25 s</option><option value="1" selected>12 s</option><option value="2">6 s</option><option value="4">3 s</option></select>
+      <select id="speed"><option value="0.25" selected>50 s</option><option value="0.5">25 s</option><option value="1">12 s</option><option value="2">6 s</option><option value="4">3 s</option></select>
       <label for="map">Difficulty colours</label>
       <select id="map"></select>
       <div class="legend" id="legend"></div>
@@ -77,7 +77,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <label for="units">Altitude in</label>
       <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
       <label for="scale">Scale by ascent (page 4)</label>
-      <select id="scale"><option value="2">2 px per metre (144 m in view)</option><option value="2.5" selected>2.5 px per metre (115 m in view)</option><option value="3">3 px per metre (96 m in view)</option></select>
+      <select id="scale"><option value="2">2 px per metre (144 m in view)</option><option value="2.5">2.5 px per metre (115 m in view)</option><option value="3" selected>3 px per metre (96 m in view)</option></select>
       <label for="path-scale">Scale by path (page 5)</label>
       <select id="path-scale"><option value="0.75">0.75 px per metre (384 m of path in view)</option><option value="1" selected>1 px per metre (288 m in view)</option><option value="1.5">1.5 px per metre (192 m in view)</option></select>
       <label for="step4">Altitude ticks every (page 4)</label>
@@ -88,7 +88,8 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="near-size"><option value="1">100 % (as the other labels)</option><option value="1.2">120 %</option><option value="1.5" selected>150 %</option><option value="2">200 %</option></select>
       <label for="ring-side">The climber's ring on the column's</label>
       <select id="ring-side"><option value="left" selected>left edge</option><option value="right">right edge</option></select>
-      <label class="check"><input id="tick" type="checkbox"> A tick from the climber's ring across the column</label>
+      <label class="check"><input id="pois" type="checkbox" checked> Points of interest on the column's edge, as coloured rings</label>
+      <label class="check"><input id="poi-names" type="checkbox" checked> A point's name beside its ring while the climber is near it</label>      <label class="check"><input id="tick" type="checkbox"> A tick from the climber's ring across the column</label>
       <label for="step">Altitude ticks every (page 5)</label>
       <select id="step"><option value="5">5 (m or ft)</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
       <label class="check"><input id="names" type="checkbox" checked> Section names on the right</label>
@@ -108,7 +109,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li>The window is 288 px tall on the 416 px screen. At 2.5 px per metre it shows about 115 m: about 29 m below the climber and 86 m above.</li>
+      <li>The window is 288 px tall on the 416 px screen. At 3 px per metre (the default) it shows 96 m: 24 m below the climber and 72 m above.</li>
       <li>Flat sections (the Ledge and the Bench rests) climb nothing, so they have no height: each is a line across the column at its altitude, with its name.</li>
       <li>Letters are centred on the part of a box that is in view, and left out when that part is too short for them. Names are centred the same way and cut with an ellipsis to fit the round screen.</li>
       <li>On page 5 the ascent is a gauge: a thin arc around the edge from the start at the lower left, over the top, to the top of the route at the lower right, with the climber's orange ring at the height climbed. The metres climbed sit just past the start end, the metres left just past the top end, in the gap at the bottom. The stack is centred as a group (tick labels, column, 80 px for names); names stop inside the gauge.</li>
@@ -118,6 +119,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>The demo plays at a vertical pace: walks pass quickly, walls slowly, and each grade above walking 10 % slower than the one below. A flat section takes as long as 5 m of climbing.</li>
       <li>Ticks run only along the route, not below its start or above its top. Ticks and labels are in the altitude unit: every 10 m by default, or every 10 ft in feet, which is dense; the step menu changes it. Resolution to be discussed.</li>
       <li>On page 4 the label just above the climber, the next altitude to reach, is larger than the others (100, 120, 150 or 200 % of their 18 px; the menu chooses, 200 % by default), and always shown; the labels just above and below it are larger too (150 % by default); the other labels make room around them.</li>
+      <li>The points of interest (on by default) as rings on the column's edge, as the climber's ring is, on the edge opposite it (the right, with the climber on the left), at their place on the column; in the colours of the other pages: four kinds, rests blue at the middle of the rest, exits green, dangers yellow, and the route's top red; dimmed once passed. The names move right a little to clear them. A point's name (on by default) beside its ring, in its colour, from one tick step before the climber reaches it to half a step after leaving it (page 4 at 20 m ticks: from 20 m below to 10 m above, by height; page 5: the same in metres of path): the kind of point, "Rest", "Exit", "Danger" or "Top" (a rest's section keeps its own name, such as Bench, as the white name). Points whose rings would touch show one ring and one name: of those in the climber's range, the first of danger, exit, rest, top; with none in range, the nearest to the climber. A section name a point's name would touch gives way.</li>
       <li>Not yet: a title above the stack, or the current difficulty and altitude below it, as in the sketch.</li>
     </ul>
   </section>
@@ -144,6 +146,8 @@ const MAPS = {
   orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
 };
 
+// Dangers are yellow on pages 1 to 8 (Widgets.WARNING), red being kept for the route's top.
+const POI_DANGER = "#ffd60a";
 const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
 const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
 const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
@@ -507,7 +511,7 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   const cy = ST_BOTTOM - (ST_BOTTOM - ST_TOP) / 4;
   const Y = v => cy - (v - here) * scale, right = ST_LEFT + ST_W, cx = ST_LEFT + ST_W / 2;
   let s = `<defs><clipPath id="st-win"><rect x="0" y="${ST_TOP}" width="416" height="${ST_BOTTOM - ST_TOP}"/></clipPath></defs><g clip-path="url(#st-win)">`;
-  let names = "", borders = "", curText = null, curColour = null;
+  let names = [], borders = "", curText = null, curColour = null;
   // A section's box: its code (rests as W unless shown as R) and colour, dimmed behind the climber.
   const box = i => {
     let g = GRADE[i];
@@ -552,10 +556,12 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
       }
       if (i === N - 1) borders += line(yt + 1.5, colour);
     }
-    // The name on the right, centred on the visible part, cut to fit the round screen.
-    const ny = size(i) === 0 ? yb : vm, room = 208 + Math.sqrt(Math.max(0, nameR * nameR - (ny - 208) ** 2)) - (right + 12);
+    // The name on the right, centred on the visible part, cut to fit the round screen; past the poi
+    // circles when they are shown.
+    const nx = right + (opt.pois || opt.ringSide === "right" ? 18 : 12);
+    const ny = size(i) === 0 ? yb : vm, room = 208 + Math.sqrt(Math.max(0, nameR * nameR - (ny - 208) ** 2)) - nx;
     if (opt.names && room > 30 && (size(i) === 0 || vb - vt >= 16)) {
-      names += `<text x="${right + 12}" y="${(ny + 0.35 * 20).toFixed(1)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="20" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 20, room)}</text>`;
+      names.push({ y: ny, svg: `<text x="${nx}" y="${(ny + 0.35 * 20).toFixed(1)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="20" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 20, room)}</text>` });
     }
   }
   s += borders;
@@ -574,7 +580,60 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
       s += seg(ST_LEFT, right);
     }
   }
-  s += "</g>" + names;
+  s += "</g>";
+  // Points of interest (opt.pois): coloured rings on the column's edge at their place on it,
+  // as on the other pages: rests blue (the middle of the rest), exits green, dangers yellow, the top red; dimmed
+  // once passed. By ascent a point sits at its height, by path at its distance.
+  if (opt.pois) {
+    const pts = [];
+    // Each with its stretch along the route, from lo to hi metres (a rest's whole stretch, a point's
+    // one place).
+    // rank: the precedence among points close together, danger first, then exit, rest, top.
+    for (let i = 0; i < N; i++) if (GRADE[i] < 0) pts.push({ d: (D[i] + D[i + 1]) / 2, lo: D[i], hi: D[i + 1], c: REST, name: "Rest", rank: 2 });
+    for (const i of EXIT_AT) pts.push({ d: D[i], lo: D[i], hi: D[i], c: EXIT_GREEN, name: "Exit", rank: 1 });
+    if (opt.dangers) for (const p of DANGER_AT) pts.push({ d: p.d, lo: p.d, hi: p.d, c: POI_DANGER, name: "Danger", rank: 0 });
+    pts.push({ d: TD, lo: TD, hi: TD, c: END_RED, name: "Top", rank: 3 });
+    // The climber's range: from one tick step before reaching a point to half a step after leaving
+    // it, measured along the stack's axis (height by ascent, distance by path), the step in metres.
+    const stepM = (up ? opt.step4 : opt.step) / (opt.feet ? 3.28084 : 1);
+    const along = v => up ? heightAt(v) : v;
+    for (const p of pts) {
+      const ahead = along(p.lo) - here, behind = here - along(p.hi);
+      p.show = ahead <= stepM && behind <= stepM / 2;
+      p.away = Math.max(0, ahead, behind);
+      p.y = Y(along(p.d));
+    }
+    // Points whose rings would touch form a group, and each group shows one ring (and one name):
+    // among its points in the climber's range, the first by precedence; with none in range, the
+    // nearest to the climber.
+    const inView = pts.filter(p => p.y >= ST_TOP + 6 && p.y <= ST_BOTTOM - 6).sort((a, b) => a.y - b.y);
+    const groups = [];
+    for (const p of inView) {
+      const g = groups[groups.length - 1];
+      if (g && p.y - g[g.length - 1].y < 18) g.push(p); else groups.push([p]);
+    }
+    const winners = groups.map(g => {
+      const near = g.filter(p => p.show);
+      return near.length ? near.sort((a, b) => a.rank - b.rank || a.away - b.away)[0] : g.sort((a, b) => a.away - b.away)[0];
+    });
+    const shown = [];
+    // On the column's edge, as the climber's ring is: the edge opposite the climber's.
+    const px = opt.ringSide === "left" ? right : ST_LEFT;
+    for (const p of winners) {
+      const y = p.y;
+      s += `<circle cx="${px}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(p.c, p.d <= st.d)}" stroke-width="3"/>`;
+      // Its name beside it, in its colour, while the climber is near (opt.poiNames); a section name
+      // it would touch gives way.
+      if (opt.poiNames && p.show && shown.every(v => Math.abs(v - y) >= 20)) {
+        shown.push(y);
+        const onRight = px === right, x = onRight ? px + 14 : px - 14;
+        const room = onRight ? 208 + Math.sqrt(Math.max(0, nameR * nameR - (y - 208) ** 2)) - x : 120;
+        s += `<text x="${x}" y="${(y + 0.35 * 20).toFixed(1)}" text-anchor="${onRight ? "start" : "end"}" fill="${p.c}" font-size="20" font-weight="700" font-family="${NUMBER_FONT}">${fit(p.name, 20, room)}</text>`;
+        if (onRight) names = names.filter(n => Math.abs(n.y - y) >= 20);
+      }
+    }
+  }
+  s += names.map(n => n.svg).join("");
   // Altitude ticks on the left, every step, labelled in the chosen unit.
   const toU = opt.feet ? v => v / 3.28084 - START_ALT : v => v - START_ALT;
   const fromU = opt.feet ? u => (u + START_ALT) * 3.28084 : u => u + START_ALT;
@@ -662,14 +721,15 @@ for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `
 map.value = "heat2";
 const units = document.getElementById("units");
 const pathScale = document.getElementById("path-scale"), live5 = document.getElementById("live5");
-const step4 = document.getElementById("step4"), nextSize = document.getElementById("next-size"), nearSize = document.getElementById("near-size"), ringSide = document.getElementById("ring-side"), tick = document.getElementById("tick");
+const step4 = document.getElementById("step4"), nextSize = document.getElementById("next-size"), nearSize = document.getElementById("near-size"), ringSide = document.getElementById("ring-side"), tick = document.getElementById("tick"), pois = document.getElementById("pois"),
+  poiNames = document.getElementById("poi-names");
 const scaleSel = document.getElementById("scale"), stepSel = document.getElementById("step"), names = document.getElementById("names");
 const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
 const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, step: +stepSel.value, step4: +step4.value, nextSize: +nextSize.value, nearSize: +nearSize.value, ringSide: ringSide.value, tick: tick.checked, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, scale: +scaleSel.value, pathScale: +pathScale.value, step: +stepSel.value, step4: +step4.value, nextSize: +nextSize.value, nearSize: +nearSize.value, ringSide: ringSide.value, tick: tick.checked, pois: pois.checked, poiNames: poiNames.checked, names: names.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
   live.innerHTML = page4(st, opts());
@@ -701,7 +761,7 @@ function stills() {
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, step4, nextSize, nearSize, ringSide, tick, names]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, scaleSel, pathScale, stepSel, step4, nextSize, nearSize, ringSide, tick, pois, poiNames, names]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }
