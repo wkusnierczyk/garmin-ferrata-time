@@ -70,14 +70,22 @@ module Climb {
         return w;
     }
 
+    // The weights summed up to each boundary, worked out once.
+    var cumW as Array<Float>? = null;
+
     function demoMinute(f as Float) as Float {
-        var weights = 0.0;
-        for (var i = 0; i < count(); i++) { weights += demoWeight(i); }
-        var t = f * weights;
+        // The end exactly, whatever the Float sums leave over.
+        if (f >= 1.0) { return totalM().toFloat(); }
+        var c = cumW;
+        if (c == null) {
+            c = new [count() + 1] as Array<Float>;
+            c[0] = 0.0;
+            for (var i = 0; i < count(); i++) { c[i + 1] = c[i] + demoWeight(i); }
+            cumW = c;
+        }
+        var t = f * c[count()];
         for (var i = 0; i < count(); i++) {
-            var w = demoWeight(i);
-            if (t <= w) { return mAt(i) + t / w * MIN[i]; }
-            t -= w;
+            if (t <= c[i + 1]) { return mAt(i) + (t - c[i]) / demoWeight(i) * MIN[i]; }
         }
         return totalM().toFloat();
     }
