@@ -401,4 +401,294 @@ module Widgets {
             d.textTop(ax + 3, baseline - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
+
+    // ---------------------------------------------------------------- difficulty stack
+
+    // The sections as boxes to scale, in a window from top to bottom that moves with the climber, who
+    // stays a quarter of the way up from its bottom: by ascent (byUp) each box as tall as the metres
+    // its section climbs, by path as tall as its length along the route.
+    const STACK_W = 60;
+    const STACK_NAMES = 80;
+
+    // The points' names, by rank.
+    const POI_WORDS = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
+
+    // The section names' distance from the column, clear of the points' rings on its right edge.
+    const NAME_GAP = 18;
+    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
+    const POI_DANGER = 0xffd60a;
+
+    // The tick labels' width, as wide as the larger label of the next altitude can be.
+    function stackLabels(d as Draw) as Float {
+        var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
+        return d.width(bigLabelFont(d, 0), top.format("%d")) + 14.0;
+    }
+
+    // The points of interest on the stack: rings on the column's right edge (x) at their place on it,
+    // rests blue (the middle of the rest), exits green, dangers yellow, the top red, dimmed once
+    // passed. A point is in the climber's range from one tick step (stepM metres along the stack's
+    // axis) before it to half a step after it. Points whose rings would touch show one ring: of those
+    // in range, the first of danger, exit, rest, top, with its name ("Danger", "Exit", "Rest", "Top")
+    // beside it in its colour; with none in range, the one nearest the climber, unnamed. Returns the
+    // y of each name shown.
+    function stackPoints(d as Draw, st as Climb.State, byUp as Boolean, top as Float, bottom as Float, cy as Float,
+            here as Float, scale as Float, x as Float, nameR as Number, stepM as Float) as Array<Float> {
+        // Each point: where it sits, its stretch (lo to hi metres along the route), colour, rank.
+        var at = [] as Array<Float>, lo = [] as Array<Float>, hi = [] as Array<Float>;
+        var colour = [] as Array<Number>, rank = [] as Array<Number>;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                var d0 = Climb.dAt(i).toFloat(), d1 = Climb.dAt(i + 1).toFloat();
+                at.add((d0 + d1) / 2); lo.add(d0); hi.add(d1); colour.add(REST); rank.add(2);
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(GREEN); rank.add(1);
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+        }
+        var td = Climb.totalD().toFloat();
+        at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
+        // Their screen heights, distances from the climber and whether in range; the ones in view,
+        // ordered from the top down.
+        var n = at.size();
+        var ys = new [n] as Array<Float>, away = new [n] as Array<Float>, near = new [n] as Array<Boolean>;
+        var order = [] as Array<Number>;
+        for (var p = 0; p < n; p++) {
+            var a = byUp ? Climb.heightAtDistance(lo[p]) : lo[p], b = byUp ? Climb.heightAtDistance(hi[p]) : hi[p];
+            var ahead = a - here, behind = here - b;
+            near[p] = ahead <= stepM && behind <= stepM / 2;
+            away[p] = ahead > behind ? (ahead > 0 ? ahead : 0.0) : (behind > 0 ? behind : 0.0);
+            ys[p] = cy - ((byUp ? Climb.heightAtDistance(at[p]) : at[p]) - here) * scale;
+            if (ys[p] < top + 6 || ys[p] > bottom - 6) { continue; }
+            var k = order.size();
+            order.add(p);
+            while (k > 0 && ys[order[k - 1]] > ys[p]) { order[k] = order[k - 1]; k--; }
+            order[k] = p;
+        }
+        // Group the rings that would touch, and draw one per group.
+        var named = [] as Array<Float>;
+        var g = 0;
+        while (g < order.size()) {
+            var best = order[g], end = g + 1;
+            while (end < order.size() && ys[order[end]] - ys[order[end - 1]] < 18) { end++; }
+            for (var m = g; m < end; m++) {
+                var p = order[m];
+                var better = near[p] && !near[best] ||
+                    near[p] == near[best] && (near[p] ? rank[p] < rank[best] || rank[p] == rank[best] && away[p] < away[best] : away[p] < away[best]);
+                if (better) { best = p; }
+            }
+            var c = colour[best], y = ys[best];
+            d.dot(x, y, 8, BLACK);
+            d.ring(x, y, 7, at[best] <= st.d ? d.darken(c, 0.33) : c, 3);
+            if (near[best]) {
+                var half = nameR * nameR - (y - 208) * (y - 208);
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
+                // Not within 20 px of a name already shown, as in the mock.
+                var clear = true;
+                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 20) { clear = false; } }
+                if (room >= 30 && clear) {
+                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                    named.add(y);
+                }
+            }
+            g = end;
+        }
+        return named;
+    }
+
+    // Where boundary i sits along the stack's axis, and section i's size on it.
+    function stackAt(i as Number, byUp as Boolean) as Float {
+        return (byUp ? Climb.uAt(i) : Climb.dAt(i)).toFloat();
+    }
+
+    function stackSize(i as Number, byUp as Boolean) as Number {
+        return byUp ? Climb.UP[i] : Climb.LEN[i];
+    }
+
+    function stackColour(d as Draw, st as Climb.State, i as Number) as Number {
+        var c = d.grade(section(i, false), false);
+        return i < st.cur ? d.darken(c, COL_DIM) : c;
+    }
+
+    // A name cut to fit a width, ending in an ellipsis when cut.
+    function fitName(d as Draw, name as String, w as Float) as String {
+        if (d.width(Graphics.FONT_XTINY, name) <= w) { return name; }
+        var n = name.length();
+        while (n > 1 && d.width(Graphics.FONT_XTINY, name.substring(0, n) + "…") > w) { n--; }
+        return name.substring(0, n) + "…";
+    }
+
+    // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
+    // the ones just above and below it at one and a half. In a scalable font where the watch has one
+    // (sized once, then corrected by the height it measures), a fixed larger system font otherwise.
+    const BIG_SCALE = [2.0, 1.5];
+    var bigFonts as Array<Graphics.FontType?> = [null, null];
+
+    function bigLabelFont(d as Draw, which as Number) as Graphics.FontType {
+        if (bigFonts[which] == null) {
+            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
+            var size = Math.round(want).toNumber();
+            var vf = (Graphics has :getVectorFont) ? Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size}) : null;
+            if (vf != null) {
+                var h = d.dc.getFontHeight(vf);
+                if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
+            }
+            bigFonts[which] = vf != null ? vf : (which == 0 ? Graphics.FONT_LARGE : Graphics.FONT_SMALL);
+        }
+        return bigFonts[which] as Graphics.FontType;
+    }
+
+    // Tick label t's font, next being the next altitude's tick (or -1).
+    function tickFont(d as Draw, t as Number, next as Number) as Graphics.FontType {
+        if (next < 0) { return Graphics.FONT_XTINY; }
+        var off = (t - next).abs();
+        return off == 0 ? bigLabelFont(d, 0) : off == 1 ? bigLabelFont(d, 1) : Graphics.FONT_XTINY;
+    }
+
+    // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
+    // from the centre: the screen's edge, or inside a gauge around it.
+    function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
+            scale as Float, names as Boolean, stepM as Number, stepFt as Number, nameR as Number) as Void {
+        var cy = bottom - (bottom - top) / 4, here = byUp ? st.u : st.d;
+        var right = left + STACK_W, cx = left + STACK_W / 2;
+        var n = Climb.count();
+        d.clip(left - 2, top, STACK_W + 4, bottom - top);
+        // The boxes: the current one filled, the others black with their sides in their colour.
+        for (var i = 0; i < n; i++) {
+            var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+            if (yt > bottom + 2 || yb < top - 2 || stackSize(i, byUp) == 0) { continue; }
+            var c = stackColour(d, st, i), now = i == st.cur;
+            if (now) {
+                d.rect(left, yt, STACK_W, yb - yt, c);
+            } else {
+                d.rect(left, yt, STACK_W, yb - yt, BLACK);
+                d.rect(left, yt, 3, yb - yt, c);
+                d.rect(right - 3, yt, 3, yb - yt, c);
+            }
+            // Letters centred on the part in view, left out when it is too short for them.
+            var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
+            var font = now ? Graphics.FONT_SMALL : Graphics.FONT_TINY;
+            if (vb - vt >= d.capHeight(font) + 10) {
+                d.textCapCentre(cx, (vt + vb) / 2, font, BOX_NAME[section(i, false)], now ? BLACK : c);
+            }
+        }
+        // The borders: between two boxes in the colour of the one closer to the current section; a
+        // flat section is a line in its own colour; the start and the top close the column.
+        for (var i = 0; i < n; i++) {
+            var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+            if (yt > bottom + 2 || yb < top - 2) { continue; }
+            if (stackSize(i, byUp) == 0) {
+                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, i));
+                continue;
+            }
+            if (i == 0) {
+                d.rect(left, yb - 3, STACK_W, 3, stackColour(d, st, i));
+            } else if (stackSize(i - 1, byUp) > 0) {
+                var closer = (i - st.cur).abs() <= (i - 1 - st.cur).abs() ? i : i - 1;
+                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, closer));
+            }
+            if (i == n - 1) { d.rect(left, yt, STACK_W, 3, stackColour(d, st, i)); }
+        }
+        d.unclip();
+        var ft = feet(), step = ft ? stepFt : stepM;
+        // The points of interest, one ring for each group whose rings would touch; the y of each one
+        // that shows its name, for the section names to give way to.
+        var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
+        // The names on the right, centred on the part in view, cut to fit the round screen, each 20 px
+        // clear of the points' names and of the section names already shown.
+        if (names) {
+            for (var i = 0; i < n; i++) {
+                var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
+                if (yt > bottom || yb < top) { continue; }
+                var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
+                var flat = stackSize(i, byUp) == 0;
+                if (!flat && vb - vt < 16) { continue; }
+                var ny = flat ? yb : (vt + vb) / 2;
+                var touches = false;
+                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
+                if (touches) { continue; }
+                named.add(ny);
+                var half = nameR * nameR - (ny - 208) * (ny - 208);
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
+                if (room < 30) { continue; }
+                d.textCapMiddle(right + NAME_GAP, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
+                    i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+            }
+        }
+        // Altitude ticks on the left, every step, only along the route. By path a tick sits
+        // where the route first reaches its altitude; a label touching the one below is left out.
+        var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
+        if (vLo < 0) { vLo = 0.0; }
+        var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();
+        if (vHi > vMax) { vHi = vMax; }
+        var uLo = byUp ? vLo : Climb.heightAtDistance(vLo), uHi = byUp ? vHi : Climb.heightAtDistance(vHi);
+        var k = ft ? 3.28084 : 1.0;
+        var aLo = (Climb.START_ALT + uLo) * k, aHi = (Climb.START_ALT + uHi) * k;
+        var ticks = [] as Array<Number>, ys = [] as Array<Float>;
+        for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
+            var u = a / k - Climb.START_ALT;
+            var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
+            // By path a flat stretch at this altitude may be reached before the window's bottom.
+            if (y < top || y > bottom) { continue; }
+            d.rect(left - 9, y - 1, 6, 2, SCALE);
+            ticks.add(a);
+            ys.add(y);
+        }
+        // The label of the next altitude to reach is twice as large and always shown, the ones just
+        // above and below it one and a half times; the others are left out around it, each kept clear
+        // of the last one shown. By path it is the first tick above the altitude now, which may sit
+        // further along the route than the climber.
+        var next = -1, now = (Climb.START_ALT + st.u) * k;
+        for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
+        var from = next >= 0 ? next : 0;
+        for (var dir = 1; dir >= -1; dir -= 2) {
+            var last = dir < 0 && next >= 0 ? next : -1;
+            for (var t = dir > 0 ? from : from - 1; t >= 0 && t < ticks.size(); t += dir) {
+                var font = tickFont(d, t, next);
+                if (last >= 0) {
+                    var lastFont = tickFont(d, last, next);
+                    var gap = (ys[last] - ys[t]).abs();
+                    if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 6) { continue; }
+                }
+                d.textCapMiddle(left - 14, ys[t], font, ticks[t].format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
+                last = t;
+            }
+        }
+        // The climber: the orange ring on the column's left edge, with no line across the column, which
+        // hid the letters.
+        d.dot(left, cy, RING_R, BLACK);
+        d.ring(left, cy, RING_R, CLIMBER, 3);
+    }
+
+    // ---------------------------------------------------------------- ascent gauge
+
+    // The ascent as a gauge: a thin arc around the screen's edge from the start (lower left) over the
+    // top to the route's top (lower right), the climber's orange ring at the height climbed, the start
+    // and top as green and red dots, and the metres climbed and left just past the arc's two ends, in
+    // the gap at the bottom.
+    const AG_R = 192;
+    const AG_FROM = 232;
+    const AG_SPAN = 284;
+
+    function ascentGauge(d as Draw, st as Climb.State, ends as Boolean) as Void {
+        var tu = Climb.totalU().toFloat(), up = st.climbed();
+        d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
+        d.dc.setPenWidth(d.s(2));
+        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
+        var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
+        d.dot(r[0], r[1], RING_R, BLACK);
+        if (ends) {
+            var p0 = d.onCircle(AG_R, AG_FROM), p1 = d.onCircle(AG_R, AG_FROM - AG_SPAN);
+            d.dot(p0[0], p0[1], 6, GREEN);
+            d.dot(p1[0], p1[1], 6, RED);
+        }
+        d.ring(r[0], r[1], RING_R, CLIMBER, 3);
+        var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
+        d.textCapCentre(n0[0], n0[1], Graphics.FONT_XTINY, up.format("%d"), WHITE);
+        d.textCapCentre(n1[0], n1[1], Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+    }
 }

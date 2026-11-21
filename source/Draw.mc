@@ -139,6 +139,22 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
+    // A point on the circle of radius r around the screen's centre, at degree a (0 at three o'clock,
+    // counter-clockwise positive).
+    function onCircle(r as Numeric, a as Numeric) as Array<Float> {
+        var t = Math.toRadians(a);
+        return [208 + r * Math.cos(t), 208 - r * Math.sin(t)] as Array<Float>;
+    }
+
+    // Limit drawing to a rectangle, and lift the limit.
+    function clip(x as Numeric, y as Numeric, w as Numeric, h as Numeric) as Void {
+        dc.setClip(s(x), s(y), s(w), s(h));
+    }
+
+    function unclip() as Void {
+        dc.clearClip();
+    }
+
     // Text with its top at y, justified as given (Graphics.TEXT_JUSTIFY_LEFT, _RIGHT or _CENTER).
     function textTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);

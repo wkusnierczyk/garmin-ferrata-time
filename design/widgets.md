@@ -89,6 +89,37 @@ The difficulty widget turned upright: the sections around the climber.
 
 Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
 
+## difficulty stack
+
+The difficulty column to scale: the sections as boxes in a window that moves with the climber. Two variants:
+
+- **ascent stack:** each box as tall as the metres its section climbs (3 px per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour.
+- **path stack:** each box as tall as its section's length along the route (1 px per metre on page 5). Flat sections are boxes; walls are short.
+
+In the app, ascent or path is a setting.
+
+- The climber stays a quarter of the way up from the window's bottom, marked by the climber's orange ring on the column's left edge. No line crosses the column: it hid the letters (the mock keeps a tick across the current box, and the ring on the right, as options).
+- The boxes meet with no gap. The current one is filled, letters black and larger; the others are black with their sides in their colour, letters in it; those behind the climber at 55 % of their colour.
+- A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
+- Letters are centred on the part of a box in view, left out when it is too short for them.
+- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. In the path stack a tick sits where the route first reaches its altitude, so ticks crowd on walls and spread on walks; a label that would touch the one below is left out. The label of the next altitude to reach (by path, the first tick above the altitude now, which may sit further along the route than the climber), is twice the other labels' height and always shown, and the labels just above and below it one and a half times (a scalable Roboto Condensed Bold sized from the extra-tiny system font); the other labels make room around them.
+- Section names on the right, centred on the part in view, greyed behind the climber, cut with an ellipsis to fit the round screen.
+- Points of interest as rings on the column's edge opposite the climber (the right), at their place on the column, in the colours of the other pages: danger yellow, exit green, rest blue (the middle of the rest), the top red; dimmed once passed. The names sit a little further right to clear them.
+- A point's name beside its ring, in its colour ("Danger", "Exit", "Rest", "Top"; a rest's section keeps its own name in white), while the climber is in range: from one tick step before the point to half a step after it, along the stack's axis (page 4 at 20 m ticks: 20 m below to 10 m above). A section name it would touch gives way.
+- Points whose rings would touch show one ring and at most one name: of those in range, the first of danger, exit, rest, top; with none in range, the one nearest the climber, unnamed.
+
+Options: ascent or path; the scale; the tick step; names on or off; points and their names on or off; the colour map. The mock also keeps, as options, the larger labels' sizes, the ring's side, and a tick from the ring across the current box. Open: the tick resolution, the scales, and flat sections in the ascent stack (lines, or a minimum height).
+
+## ascent gauge
+
+The ascent widget bent around the screen's edge.
+
+- A thin grey arc from the start at the lower left, over the top, to the route's top at the lower right (284°), leaving the bottom free.
+- The climber's orange ring on it at the height climbed; the start and top as green and red dots.
+- The metres climbed just past the start end, the metres left just past the top end, in the gap at the bottom.
+
+Options: the end dots on or off.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.
@@ -110,5 +141,5 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 3 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map for the earlier pages. Pages 1 to 5 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
