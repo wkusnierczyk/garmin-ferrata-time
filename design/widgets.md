@@ -131,6 +131,15 @@ The ascent widget laid flat: a line from the start (left) to the top (right), th
 
 The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m: "K4 in 125 m", the grade in its colour; "Top in …" after the last change. The mock can give the distance in metres up instead.
 
+## front view
+
+The route seen from the front, as on a topo photo of the face: up is height, across is sideways travel; traverses and walks run nearly flat, walls go nearly straight up.
+
+- The sections in their difficulty colours, climbed parts dimmed, round joints.
+- Rests, exits and dangers as hollow rings, dimmed once passed; the start and the top as a green and a red dot.
+- The climber as the orange outline of the stretch they could be on, rounded at its ends.
+- Fitted into a box, one scale across and up.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.

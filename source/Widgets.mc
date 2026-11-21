@@ -585,13 +585,14 @@ module Widgets {
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
 
-    // The current difficulty in a large filled box centred on (x, y); a rest shows as W.
-    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float) as Void {
+    // The current difficulty in a large filled box centred on (x, y), its letters size px tall (the
+    // scalable font's size); a rest shows as W.
+    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
         var g = section(st.cur, false);
-        d.roundRect(x - w / 2, y - h / 2, w, h, 14, d.grade(g, false));
+        d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
         // The system's number fonts have no letters: a scalable bold font where the watch has one, the
         // largest text font otherwise.
-        var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => d.s(64)});
+        var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => d.s(size)});
         if (vf != null) {
             d.dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
             d.dc.drawText(d.s(x), d.s(y), vf, BOX_NAME[g], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -666,5 +667,148 @@ module Widgets {
         var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
         d.textCapCentre(n0[0], n0[1], Graphics.FONT_XTINY, up.format("%d"), WHITE);
         d.textCapCentre(n1[0], n1[1], Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+    }
+
+    // ---------------------------------------------------------------- front view, page 7
+
+    // The route seen from the front, as on a topo photo of the face (Climb.SIDE): up is height, across
+    // is sideways travel. Points every few metres as [x across, y up, distance along], built once,
+    // and fitted once into a box keeping one scale across and up.
+    var front as Array<Array<Float>>? = null;
+
+    function frontPoints() as Array<Array<Float>> {
+        var pts = front;
+        if (pts == null) {
+            pts = [[0.0, 0.0, 0.0] as Array<Float>] as Array<Array<Float>>;
+            var x = 0.0;
+            for (var i = 0; i < Climb.count(); i++) {
+                var len = Climb.LEN[i], up = Climb.UP[i];
+                var steps = ((len > up ? len : up) / 4.0 + 0.5).toNumber();
+                if (steps < 2) { steps = 2; }
+                for (var k = 1; k <= steps; k++) {
+                    var t = k.toFloat() / steps, t0 = (k - 1).toFloat() / steps;
+                    // A wall wanders a few metres either way as it climbs.
+                    var wander = up > len ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
+                    x += Climb.SIDE[i] * len / steps + wander;
+                    pts.add([x, Climb.uAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
+                }
+            }
+            front = pts;
+        }
+        return pts;
+    }
+
+    // The view's points on the screen, fitted once into [x0, x1] by [y0, y1], as [x, y, distance].
+    var frontScreen as Array<Array<Float>>? = null;
+
+    function frontOnScreen(x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Array<Array<Float>> {
+        var out = frontScreen;
+        if (out == null) {
+            var pts = frontPoints();
+            var minX = pts[0][0], maxX = pts[0][0], minY = pts[0][1], maxY = pts[0][1];
+            for (var j = 1; j < pts.size(); j++) {
+                if (pts[j][0] < minX) { minX = pts[j][0]; }
+                if (pts[j][0] > maxX) { maxX = pts[j][0]; }
+                if (pts[j][1] < minY) { minY = pts[j][1]; }
+                if (pts[j][1] > maxY) { maxY = pts[j][1]; }
+            }
+            var kx = (x1 - x0) / (maxX - minX), ky = (y1 - y0) / (maxY - minY);
+            var k = kx < ky ? kx : ky;
+            var ox = (x0 + x1) / 2 - k * (minX + maxX) / 2, oy = (y0 + y1) / 2 + k * (minY + maxY) / 2;
+            out = [] as Array<Array<Float>>;
+            for (var j = 0; j < pts.size(); j++) {
+                out.add([ox + k * pts[j][0], oy - k * pts[j][1], pts[j][2]] as Array<Float>);
+            }
+            frontScreen = out;
+        }
+        return out;
+    }
+
+    // The first point at or past a distance along the route.
+    function frontIndex(pts as Array<Array<Float>>, dist as Float) as Number {
+        var lo = 0, hi = pts.size() - 1;
+        while (lo < hi) {
+            var mid = (lo + hi) / 2;
+            if (pts[mid][2] < dist) { lo = mid + 1; } else { hi = mid; }
+        }
+        return lo;
+    }
+
+    // The screen point at a distance along the route.
+    function frontAt(pts as Array<Array<Float>>, dist as Float) as Array<Float> {
+        var j = frontIndex(pts, dist);
+        if (j == 0) { return pts[0]; }
+        var a = pts[j - 1], b = pts[j], span = b[2] - a[2];
+        var t = span > 0 ? (dist - a[2]) / span : 0.0;
+        if (t > 1) { t = 1.0; }
+        return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])] as Array<Float>;
+    }
+
+    // The route between two distances as a thick line with round ends and joints.
+    function frontStretch(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, pen as Number, c as Number) as Void {
+        if (d1 <= d0) { return; }
+        var dc = d.dc, r = d.s(pen) / 2;
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(d.s(pen));
+        var p = frontAt(pts, d0);
+        dc.fillCircle(d.s(p[0]), d.s(p[1]), r);
+        for (var j = frontIndex(pts, d0); j < pts.size(); j++) {
+            var last = pts[j][2] >= d1;
+            var q = last ? frontAt(pts, d1) : pts[j];
+            dc.drawLine(d.s(p[0]), d.s(p[1]), d.s(q[0]), d.s(q[1]));
+            dc.fillCircle(d.s(q[0]), d.s(q[1]), r);
+            p = q;
+            if (last) { break; }
+        }
+    }
+
+    // The front view in the box [x0, x1] by [y0, y1]: the sections in their colours, climbed parts
+    // dimmed; rests, exits and dangers as rings, dimmed once passed; the start and the top as a green
+    // and a red dot; the climber as the orange outline of the stretch they could be on.
+    function frontView(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Void {
+        var pts = frontOnScreen(x0, x1, y0, y1);
+        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
+        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
+        frontBrush(d, pts, lo, hi, 11, CLIMBER);
+        frontBrush(d, pts, lo, hi, 8, BLACK);
+        for (var i = 0; i < Climb.count(); i++) {
+            var g = section(i, false), a = Climb.dAt(i).toFloat(), b = Climb.dAt(i + 1).toFloat();
+            if (b <= st.d) {
+                frontStretch(d, pts, a, b, 8, d.grade(g, true));
+            } else if (a >= st.d) {
+                frontStretch(d, pts, a, b, 8, d.grade(g, false));
+            } else {
+                frontStretch(d, pts, a, st.d, 8, d.grade(g, true));
+                frontStretch(d, pts, st.d, b, 8, d.grade(g, false));
+            }
+        }
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        var s0 = pts[0], s1 = pts[pts.size() - 1];
+        d.dot(s0[0], s0[1], 6, GREEN);
+        d.dot(s1[0], s1[1], 6, RED);
+    }
+
+    // The route between two distances, painted with a round brush of radius r.
+    function frontBrush(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, r as Number, c as Number) as Void {
+        if (d1 <= d0) { return; }
+        var p = frontAt(pts, d0);
+        for (var j = frontIndex(pts, d0); j < pts.size(); j++) {
+            var last = pts[j][2] >= d1;
+            var q = last ? frontAt(pts, d1) : pts[j];
+            d.brush(p[0], p[1], q[0], q[1], r, c);
+            p = q;
+            if (last) { break; }
+        }
+    }
+
+    function frontPoint(d as Draw, pts as Array<Array<Float>>, dist as Float, c as Number, st as Climb.State) as Void {
+        var p = frontAt(pts, dist);
+        d.dot(p[0], p[1], 8, BLACK);
+        d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
 }

@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 16;
+    const COUNT = 17;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -19,15 +19,16 @@ module Pages {
             case 3: { d.colours = d.HEAT_AMBER; stackByAscent(d, st); break; }
             case 4: { d.colours = d.HEAT_AMBER; stackByPath(d, st); break; }
             case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st); break; }
-            case 6: { profile(d, st); break; }
-            case 7: { combined(d, st); break; }
-            case 8: { ladderPage(d, st); break; }
-            case 9: { whereAmI(d, st); break; }
-            case 10: { whatsNext(d, st); break; }
-            case 11: { timeStrip(d, st); break; }
-            case 12: { bigHeight(d, st); break; }
-            case 13: { bigNextHard(d, st); break; }
-            case 14: { bigTop(d, st); break; }
+            case 6: { d.colours = d.HEAT_AMBER; frontPage(d, st); break; }
+            case 7: { profile(d, st); break; }
+            case 8: { combined(d, st); break; }
+            case 9: { ladderPage(d, st); break; }
+            case 10: { whereAmI(d, st); break; }
+            case 11: { whatsNext(d, st); break; }
+            case 12: { timeStrip(d, st); break; }
+            case 13: { bigHeight(d, st); break; }
+            case 14: { bigNextHard(d, st); break; }
+            case 15: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -187,7 +188,7 @@ module Pages {
     function gaugePage(d as Draw, st as Climb.State) as Void {
         var bw = 132.0, bh = 92.0, by = 186.0;
         Widgets.gauge(d, st);
-        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh);
+        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh, 64);
         var font = Graphics.FONT_TINY, base = 100 + d.capHeight(font);
         Widgets.poi(d, st, 200.0, base - d.capHeight(Graphics.FONT_XTINY));
         var ft = Widgets.feet(), ax = 208 + bw / 2;
@@ -197,6 +198,26 @@ module Pages {
             Graphics.TEXT_JUSTIFY_LEFT);
         Widgets.nextUp(d, st, 208.0, 262.0);
         Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
+    }
+
+    // ---------------------------------------------------------------- page 7, version 1: from the front
+
+    // design/page-7.md: the front view on the right; on the left page 6's middle, smaller: the current
+    // difficulty centred vertically, the poi word and the altitude above it on one baseline, what
+    // comes next below it.
+    function frontPage(d as Draw, st as Climb.State) as Void {
+        var cx = 116.0, bw = 88.0, bh = 62.0, by = 208.0;
+        Widgets.frontView(d, st, 184.0, 368.0, 64.0, 352.0);
+        Widgets.bigDifficulty(d, st, cx, by, bw, bh, 44);
+        var font = Graphics.FONT_XTINY, base = by - bh / 2 - 12;
+        var ft = Widgets.feet(), ax = cx + bw / 2, alt = Widgets.altitudeValue(st.u, ft).format("%d");
+        // The poi word ends a little before the altitude's number, whatever its width.
+        var poiRight = cx - 8, altLeft = ax - d.width(Graphics.FONT_TINY, alt) - 8;
+        Widgets.poi(d, st, poiRight < altLeft ? poiRight : altLeft, base - d.capHeight(font));
+        d.textCapTop(ax, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, Graphics.COLOR_WHITE,
+            Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textTop(ax + 3, base - d.ascent(font), font, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        Widgets.nextUp(d, st, cx, by + bh / 2 + 26);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile
