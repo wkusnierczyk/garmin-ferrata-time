@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The pages, as in the design sketch, drawn in its 416 px coordinates.
 module Pages {
 
-    const COUNT = 15;
+    const COUNT = 16;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
 
@@ -18,15 +18,16 @@ module Pages {
             case 2: { d.colours = d.HEAT_AMBER; sideBySide(d, st); break; }
             case 3: { d.colours = d.HEAT_AMBER; stackByAscent(d, st); break; }
             case 4: { d.colours = d.HEAT_AMBER; stackByPath(d, st); break; }
-            case 5: { profile(d, st); break; }
-            case 6: { combined(d, st); break; }
-            case 7: { ladderPage(d, st); break; }
-            case 8: { whereAmI(d, st); break; }
-            case 9: { whatsNext(d, st); break; }
-            case 10: { timeStrip(d, st); break; }
-            case 11: { bigHeight(d, st); break; }
-            case 12: { bigNextHard(d, st); break; }
-            case 13: { bigTop(d, st); break; }
+            case 5: { d.colours = d.HEAT_AMBER; gaugePage(d, st); break; }
+            case 6: { profile(d, st); break; }
+            case 7: { combined(d, st); break; }
+            case 8: { ladderPage(d, st); break; }
+            case 9: { whereAmI(d, st); break; }
+            case 10: { whatsNext(d, st); break; }
+            case 11: { timeStrip(d, st); break; }
+            case 12: { bigHeight(d, st); break; }
+            case 13: { bigNextHard(d, st); break; }
+            case 14: { bigTop(d, st); break; }
             default: { bigExit(d, st); break; }
         }
     }
@@ -180,6 +181,26 @@ module Pages {
         var lx = left + gap + ascLeft;
         Widgets.ascent(d, st, lx, bottom, bottom - top, true);
         Widgets.stack(d, st, false, lx + Widgets.RING_OUTER + gap + labels, top, bottom, 1.0, true, 10, 50);
+    }
+
+    // ---------------------------------------------------------------- page 6, version 1: the gauge
+
+    // design/page-6.md: the gauge; the current difficulty large in the middle; above it the poi word
+    // (ending left of centre) and the altitude (its number ending at the box's right edge, the unit past
+    // it) on one baseline; below it what comes next; at the bottom the ascent laid flat.
+    function gaugePage(d as Draw, st as Climb.State) as Void {
+        var bw = 132.0, bh = 92.0, by = 186.0;
+        Widgets.gauge(d, st);
+        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh);
+        var font = Graphics.FONT_TINY, base = 100 + d.capHeight(font);
+        Widgets.poi(d, st, 200.0, base - d.capHeight(Graphics.FONT_XTINY));
+        var ft = Widgets.feet(), ax = 208 + bw / 2;
+        d.textCapTop(ax, base - d.capHeight(font), font, Widgets.altitudeValue(st.u, ft).format("%d"), WHITE,
+            Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textTop(ax + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, ft ? "ft" : "m", d.MUTED,
+            Graphics.TEXT_JUSTIFY_LEFT);
+        Widgets.nextUp(d, st, 208.0, 262.0);
+        Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
     }
 
     // ---------------------------------------------------------------- E. ladder and profile
