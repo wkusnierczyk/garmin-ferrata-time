@@ -861,20 +861,20 @@ module Widgets {
     // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
     // corner rounding ends; below it what comes next, "K4 125 m", centred.
     function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float) as Void {
-        var bw = 88 * k, bh = 62 * k, rx = bh / 6.5;
+        var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
+        // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
+        // the route's widest altitude and its unit, so the symbol always starts at the rounding.
+        var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        var bw = 88 * k > need ? 88 * k : need;
         bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
-        var base = by - bh / 2 - 12 * k, ft = feet();
+        var base = by - bh / 2 - 12 * k;
         var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
         var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
         d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
-        // The symbol starts where the box's corner rounding ends, or further left if a wide altitude
-        // (four digits in feet) would otherwise touch it.
-        var kind = poiKind(st), size = 18 * k;
-        if (kind >= 0) {
-            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - size;
-            poiSymbol(d, kind, x < clear ? x : clear, base, size);
-        }
+        // The symbol starts where the box's corner rounding ends.
+        var kind = poiKind(st);
+        if (kind >= 0) { poiSymbol(d, kind, cx - bw / 2 + rx, base, size); }
         nextShort(d, st, cx, by + bh / 2 + 26 * k);
     }
 
