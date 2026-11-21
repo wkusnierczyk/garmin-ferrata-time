@@ -633,7 +633,10 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
       }
     }
   }
-  s += names.map(n => n.svg).join("");
+  // Section names 20 px clear of each other, the first shown winning.
+  const kept = [];
+  for (const n of names) if (kept.every(k => Math.abs(k.y - n.y) >= 20)) kept.push(n);
+  s += kept.map(n => n.svg).join("");
   // Altitude ticks on the left, every step, labelled in the chosen unit.
   const toU = opt.feet ? v => v / 3.28084 - START_ALT : v => v - START_ALT;
   const fromU = opt.feet ? u => (u + START_ALT) * 3.28084 : u => u + START_ALT;
@@ -648,6 +651,8 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   const ticks = [], now = fromU(st.u);
   for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
     const y = Y(up ? toU(v) : firstAt(toU(v)));
+    // By path a flat stretch at this altitude may be reached before the window's bottom.
+    if (y < ST_TOP || y > ST_BOTTOM) continue;
     s += `<line x1="${ST_LEFT - 9}" y1="${y.toFixed(1)}" x2="${ST_LEFT - 3}" y2="${y.toFixed(1)}" stroke="#777" stroke-width="2"/>`;
     ticks.push({ v, y, fs: 18 });
   }

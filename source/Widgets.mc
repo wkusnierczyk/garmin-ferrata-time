@@ -22,7 +22,6 @@ module Widgets {
     const NUMBER_SPACE = 5;
 
     // The difficulty widget's boxes: codes 0 to 5 are walk and K1 to K5, then rest, exit and danger.
-    const CODE_REST = -1;
     const CODE_EXIT = -2;
     const CODE_DANGER = -3;
     const NONE = -99;
@@ -82,8 +81,9 @@ module Widgets {
         var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
         var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
         var dd = lo;
+        // Every 8 m: smooth at this scale, and half the circles of every 4 m.
         while (dd < hi) {
-            dd += 4;
+            dd += 8;
             if (dd > hi) { dd = hi; }
             var nx = x0 + dd / td * w, ny = y0 - Climb.heightAtDistance(dd) / tu * h;
             d.brush(px, py, nx, ny, r, c);
@@ -130,8 +130,11 @@ module Widgets {
     function ascentNumbersWidth(d as Draw) as Number {
         var w = ascentWidest;
         if (w == null) {
+            // The widest is among those with the most digits, from the first such number up.
             w = 0;
-            for (var n = 0; n <= Climb.totalU(); n++) {
+            var from = 1;
+            while (from * 10 <= Climb.totalU()) { from *= 10; }
+            for (var n = from; n <= Climb.totalU(); n++) {
                 var nw = d.width(Graphics.FONT_XTINY, n.format("%d"));
                 if (nw > w) { w = nw; }
             }
@@ -218,9 +221,10 @@ module Widgets {
 
     const ALT_FONT = Graphics.FONT_LARGE;
 
-    // The widest altitude the route can show, per unit, measured once.
-    var widest as Number? = null;
-    var widestFeet as Boolean = false;
+    // The widest altitude the route can show in a font, per unit, measured once per font: slot 0 for
+    // the altitude widget's, 1 for the column group's.
+    var widest as Array<Number?> = [null, null];
+    var widestFeet as Array<Boolean> = [false, false];
 
     function feet() as Boolean {
         return System.getDeviceSettings().elevationUnits == System.UNIT_STATUTE;
@@ -233,20 +237,24 @@ module Widgets {
         return (Math.round(m / 10) * 10).toNumber();
     }
 
-    function altitudeBox(d as Draw, ft as Boolean) as Number {
-        var w = widest;
-        if (w == null || widestFeet != ft) {
+    function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Number {
+        var w = widest[slot];
+        if (w == null || widestFeet[slot] != ft) {
             w = 0;
             var step = ft ? 50 : 10;
             var last = altitudeValue(Climb.totalU().toFloat(), ft);
             for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
-                var vw = d.width(ALT_FONT, v.format("%d"));
+                var vw = d.width(font, v.format("%d"));
                 if (vw > w) { w = vw; }
             }
-            widest = w;
-            widestFeet = ft;
+            widest[slot] = w;
+            widestFeet[slot] = ft;
         }
         return w;
+    }
+
+    function altitudeBox(d as Draw, ft as Boolean) as Number {
+        return widestAltitude(d, ft, ALT_FONT, 0);
     }
 
     // The approximate altitude, right-aligned in a box as wide as the route's widest, starting at x,
@@ -343,34 +351,20 @@ module Widgets {
             var colour = d.grade(g, false);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
             d.roundRect(cx - w / 2, top, w, h, 8 * f, colour);
-            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6, BLACK); }
+            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6 * f, BLACK); }
             d.textCapCentre(cx, top + h / 2, big ? Graphics.FONT_SMALL : Graphics.FONT_TINY, BOX_NAME[g], big ? BLACK : colour);
         }
     }
 
-    // The widest altitude the route can show in the column's font, per unit, measured once.
-    var colWidest as Number? = null;
-    var colWidestFeet as Boolean = false;
-
+    // The widest altitude the route can show in the column's font.
     function columnAltitudeBox(d as Draw, ft as Boolean) as Number {
-        var w = colWidest;
-        if (w == null || colWidestFeet != ft) {
-            w = 0;
-            var step = ft ? 50 : 10;
-            var last = altitudeValue(Climb.totalU().toFloat(), ft);
-            for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
-                var vw = d.width(COL_ALT_FONT, v.format("%d"));
-                if (vw > w) { w = vw; }
-            }
-            colWidest = w;
-            colWidestFeet = ft;
-        }
-        return w;
+        return widestAltitude(d, ft, COL_ALT_FONT, 1);
     }
 
-    // The difficulty column group's width: the larger box, the space, the altitudes and their unit.
+    // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
     function columnGroupWidth(d as Draw) as Float {
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, feet()) + 3 + d.width(Graphics.FONT_XTINY, "ft");
+        var ft = feet();
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
     }
 
     // How far the column reaches above and below its centre.
@@ -416,6 +410,9 @@ module Widgets {
     const STACK_W = 60;
     const STACK_NAMES = 80;
 
+    // The points' names, by rank.
+    const POI_WORDS = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
+
     // The section names' distance from the column, clear of the points' rings on its right edge.
     const NAME_GAP = 18;
     // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
@@ -455,7 +452,6 @@ module Widgets {
         }
         var td = Climb.totalD().toFloat();
         at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
-        var words = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
         // Their screen heights, distances from the climber and whether in range; the ones in view,
         // ordered from the top down.
         var n = at.size();
@@ -491,8 +487,11 @@ module Widgets {
             if (near[best]) {
                 var half = nameR * nameR - (y - 208) * (y - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
-                if (room >= 30) {
-                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, words[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                // Not within 20 px of a name already shown, as in the mock.
+                var clear = true;
+                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 20) { clear = false; } }
+                if (room >= 30 && clear) {
+                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
                     named.add(y);
                 }
             }
@@ -525,7 +524,7 @@ module Widgets {
 
     // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
     // the ones just above and below it at one and a half. In a scalable font where the watch has one
-    // (sized once, then corrected by the height it measures), the nearest system font otherwise.
+    // (sized once, then corrected by the height it measures), a fixed larger system font otherwise.
     const BIG_SCALE = [2.0, 1.5];
     var bigFonts as Array<Graphics.FontType?> = [null, null];
 
@@ -533,7 +532,7 @@ module Widgets {
         if (bigFonts[which] == null) {
             var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
             var size = Math.round(want).toNumber();
-            var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size});
+            var vf = (Graphics has :getVectorFont) ? Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size}) : null;
             if (vf != null) {
                 var h = d.dc.getFontHeight(vf);
                 if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
@@ -599,8 +598,8 @@ module Widgets {
         // The points of interest, one ring for each group whose rings would touch; the y of each one
         // that shows its name, for the section names to give way to.
         var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
-        // The names on the right, centred on the part in view, cut to fit the round screen, clear of
-        // the points' rings.
+        // The names on the right, centred on the part in view, cut to fit the round screen, each 20 px
+        // clear of the points' names and of the section names already shown.
         if (names) {
             for (var i = 0; i < n; i++) {
                 var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
@@ -612,6 +611,7 @@ module Widgets {
                 var touches = false;
                 for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
                 if (touches) { continue; }
+                named.add(ny);
                 var half = nameR * nameR - (ny - 208) * (ny - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
                 if (room < 30) { continue; }
@@ -632,6 +632,8 @@ module Widgets {
         for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
             var u = a / k - Climb.START_ALT;
             var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
+            // By path a flat stretch at this altitude may be reached before the window's bottom.
+            if (y < top || y > bottom) { continue; }
             d.rect(left - 9, y - 1, 6, 2, SCALE);
             ticks.add(a);
             ys.add(y);
@@ -787,7 +789,7 @@ module Widgets {
         var tu = Climb.totalU().toFloat(), up = st.climbed();
         d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
         d.dc.setPenWidth(d.s(2));
-        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, AG_FROM - AG_SPAN);
+        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
         var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
         d.dot(r[0], r[1], RING_R, BLACK);
         if (ends) {

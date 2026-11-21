@@ -1,16 +1,18 @@
 # Ferrata Time
 
-A Garmin Connect IQ watch face and watch app for climbing via ferratas.
+A Garmin Connect IQ watch app for climbing via ferratas. On the watch it is called **Ferrata** and is listed under Activities & Apps; "Ferrata Time" is the project's name.
 
 Status: design phase. There is an interactive browser demo, a set of design notes, and a first prototype that plays a made-up climb on the watch.
 
-The notes in `design/` predate two decisions: Ferrata Time is first a standalone watch app that records the climb itself, and its screens are pages you move between with the buttons. `design/DESIGN.md` is brought up to date after the first prototype (#2).
+The notes in `design/` predate two decisions: the project is first a standalone watch app, Ferrata, that records the climb itself, and its screens are pages you move between with the buttons. `design/DESIGN.md` is brought up to date after the first prototype (#2).
 
 Images and fonts are stored with [Git LFS](https://git-lfs.com): install it (`brew install git-lfs`,
 then `git lfs install`) before cloning.
 
 Tracked in this repository, and in the family's umbrella as
 [`wkusnierczyk/garmin-watch-faces#42`](https://github.com/wkusnierczyk/garmin-watch-faces/issues/42).
+
+CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key. Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
 
 ## Prototype 0.0.1
 
@@ -23,7 +25,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 | Hold Up | the Ask list; choosing a question does nothing yet |
 | Back | leave |
 
-The climb takes about two minutes and starts again after a short pause at the top. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen.
+The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
@@ -33,11 +35,11 @@ make run         # build, start the simulator, load it
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
 ```
 
-`tools/launcher_icon.py` draws the launcher icon (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`, needs Pillow).
+`tools/launcher_icon.py` renders the launcher icon, an orange climber clipped to the cable on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
 
 ## What it is
 
-The concept as the notes in `design/` describe it. The user picks a real via ferrata from a list. The watch face then shows:
+The earlier concept, as the notes in `design/` describe it: a watch face plus a separate watch app. One watch app, Ferrata, has replaced both. The user picks a real via ferrata from a list. The watch face then shows:
 
 - an outline of the route with the climber's position on it
 - vertical meters climbed of the total
