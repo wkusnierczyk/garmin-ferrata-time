@@ -34,7 +34,8 @@ The design rests on `sensing.md`: climbed height and elapsed time are the measur
 
 Goals:
 
-- One real route bundled with the app: **Fürenwand** (Engelberg), the route the ground-truth plan and the owner's recordings are about.
+- One real route bundled with the app: **Daubenhorn** (Leukerbad), which the owner has climbed and recorded (2025-08-07, a FIT file with barometric altitude). It has an exit (the Obere Freiheit), landmarks, variants, and stretches that lose height on both the approach and the ferrata (owner, 2026-11-21; the Fürenwand, earlier proposed, only climbs and has no exit, so it would leave those paths untested). The Fürenwand's data is kept for the later library.
+- A **replay input**: the owner's recorded climb fed through the tracker in the simulator, faster than real time, as the end-to-end test of sync, place, pace and the menus while the routes are closed for the season.
 - A route file format that also serves the later library and route builder (section 10) unchanged.
 - Start, pause, continue and end a climb on the watch, with the approach optional.
 - Altitude synced to the route's known points, by the app's own offset.
@@ -65,7 +66,7 @@ Anti-goals (a failure even if it works):
 | Decision | Options | Picked |
 |---|---|---|
 | Route in | (a) compiled into the app from a `tools/` script; (b) fetched from GitHub Pages | (a) for 0.2.0. (b) is the later library and reuses the format |
-| Position | (a) climbed height, time across flat stretches, forward-only; (b) height blended with GPS matched to the track | (a). GPS strays on walls (`sensing.md`); (b) only if the Fürenwand recordings show it helps |
+| Position | (a) climbed height, time across flat stretches, forward-only; (b) height blended with GPS matched to the track | (a). GPS strays on walls (`sensing.md`); (b) only if the recordings show it helps |
 | Demo and real | (a) one tracker, two inputs: real sensors or simulated; (b) replace the demo | (a). The simulator and the demo keep exercising every page |
 | Route builder (later) | (a) a web page; (b) a companion phone app with a desktop mirror over Wi-Fi | (a) first, (b) considered later (owner). The page is cheaper: no two phone platforms, no local server |
 | Activity sport | mountaineering, rock climbing (sub-sport bouldering) | Mountaineering: a long effort with position and altitude. Bouldering records short attempts on problems |
@@ -82,8 +83,8 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
 {
   "format": 1,
   "id": "fuerenwand",
-  "name": "Fürenwand",
-  "short": "Fürenwand",
+  "name": "Daubenhorn",
+  "short": "Daubenhorn",
   "place": "Engelberg OW",
   "source": {"geometry": "...", "elevation": "swisstopo", "text": "link to the SAC page, no prose"},
   "approach": [
@@ -94,7 +95,7 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
   ],
   "points": [
     {"kind": "approach", "at": -120, "alt": 1015, "lat": 46.8, "lon": 8.4, "name": "Car park"},
-    {"kind": "head",     "at": 0,    "alt": 1035, "lat": 46.8, "lon": 8.4, "name": "Fürenwand"},
+    {"kind": "head",     "at": 0,    "alt": 1035, "lat": 46.8, "lon": 8.4, "name": "Untere Schmitte"},
     {"kind": "landmark", "at": 330,  "alt": 1180, "lat": 46.8, "lon": 8.4, "name": "Bench"},
     {"kind": "exit",     "at": 440,  "alt": 1290, "lat": 46.8, "lon": 8.4, "name": "Band exit"},
     {"kind": "danger",   "at": 55,   "name": "Loose rock"},
@@ -103,12 +104,12 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
 }
 ```
 
-The numbers above are placeholders, not Fürenwand's.
+The numbers above are placeholders, not the Daubenhorn's.
 
 - `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. Each list replaces `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE` while the climber is on that part, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the start of the part shown: from the head during the ascent. `grade` keeps the demo's coding: 0 walking, 1 to 5 K1 to K5, -1 rest. Rests are encoded only this way; there is no `rest` point kind.
 - `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres from the head: negative on the approach, so the `approach` point sits at minus the approach's length. Exits and landmarks lie on section boundaries (the script checks), since the pages index exits by section. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point** and can sync altitude; a point with `lat` and `lon` can prompt by GPS.
 - Kinds: `approach`, `head`, `landmark` (a point partway with a known altitude, for a mid-climb sync: a bench, a ladder base, a bridge), `danger`, `exit`, `top`. The app ignores kinds it does not know, so later kinds do not break older apps (my call).
-- `up` may be negative in the format, for down-climbs and bridges that lose height, so library routes need no format change (my call). The 0.2.0 pages stack sections by height and assume it only rises, so in 0.2.0 the script rejects negative `up` and the route total is the plain sum, which then equals the gross ascent; pages that draw descents come with the first route that needs them.
+- `up` may be negative, for down-climbs, traverses and clefts that lose height: the Daubenhorn loses height on its approach (Gemmi 2348 to 2070) and twice on the ferrata (owner's recording). **Climbed** is height gained: the sum of the positive `up`, as Garmin reports ascent, and the route's total is the same sum. The pages that stack sections by height (the difficulty columns, the stack, the gauge by ascent) stack by gained height, so a section that loses height draws as flat there; the profile (page 1) draws the real height, down as well as up. The position estimate maps the **net** height measured since the head onto the route ahead (section 7).
 - `head` and `top` are required; `approach`, landmarks and exits are optional.
 - `short`: the activity name, at most 15 characters (the SDK's suggested maximum for a session name).
 
@@ -176,7 +177,7 @@ During the approach, progress along the approach sections uses the same rule; if
 
 ## 8. Recording
 
-- `ActivityRecording.createSession` with `:sport => Activity.SPORT_MOUNTAINEERING` (in the SDK since API 3.2.0; the manifest needs 5.0.0) and `:name` set to the route's name, for example "Fürenwand".
+- `ActivityRecording.createSession` with `:sport => Activity.SPORT_MOUNTAINEERING` (in the SDK since API 3.2.0; the manifest needs 5.0.0) and `:name` set to the route's name, for example "Daubenhorn".
 - `:name` is the route's `short` name.
 - The manifest gains the `Fit`, `FitContributor`, `Positioning` and `Sensor` permissions.
 - Start, pause, continue and stop follow the climb flow; the activity timer pauses on pause.
@@ -190,6 +191,7 @@ During the approach, progress along the approach sections uses the same rule; if
 - **Tracker.** Owns the climb state (approach, ascent, paused, ended), the offset and drift, the place estimate and the pace. `Climb.State` today is built from one guidebook minute and derives everything from it; it gains a second way to be built, from the tracker's independent values (place, height, elapsed time, start clock, pace, uncertainty band), and the pages read the band from the state instead of the constant `Climb.UNCERTAINTY`. The demo input keeps the minute-based way. It takes readings from an **input**:
   - the **sensor input**: the watch's altitude, position and the clock;
   - the **demo input**: the 0.1.0 simulated climb on the bundled route, producing the same readings. The demo goes through the same menus but never records a Garmin activity, so demo runs do not reach Garmin Connect (my call).
+  - the **replay input** (simulator only): a recorded climb's barometric altitude, position and timestamps, played back faster than real time, never recorded. The recording is converted on the computer into a compact resource by a `tools/` script; it is not shipped in release builds.
 - **Recorder.** Wraps the session, laps and custom fields; driven by the tracker's state changes.
 - **Menus.** The start menu, the approach menu, the pause menu and the end summary, in the app's existing delegate.
 
@@ -212,6 +214,6 @@ Not in 0.2.0, but the route file is designed for them.
 
 ## 12. Open questions
 
-- Fürenwand's real data: sections, grades, guidebook times, known points with altitudes and coordinates, exits. Needs the owner's sources and recordings.
+- The Daubenhorn's section list: about 60 graded pitches from the topo, grouped into sections with heights from the owner's recording; how to mark variants (Grosser Spalt E, Via Konst bypass) until the format has them.
 - Whether a recorded mountaineering activity shows in Garmin Connect with the expected icon and our name: one sideloaded test recording.
 - The GPS prompt radius (about 50 m proposed) on the real wall.
