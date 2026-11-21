@@ -164,7 +164,12 @@ class Draw {
 
     // Text whose capitals are centred on (x, y).
     function textCapCentre(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
-        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, Graphics.TEXT_JUSTIFY_CENTER);
+        textCapMiddle(x, y, font, str, c, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // Text whose capitals are centred vertically on y, justified as given.
+    function textCapMiddle(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, justify);
     }
 
     // A round brush along a line: filled circles every 2 px, so ends and bends come out round.
