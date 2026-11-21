@@ -130,8 +130,11 @@ module Widgets {
     function ascentNumbersWidth(d as Draw) as Number {
         var w = ascentWidest;
         if (w == null) {
+            // The widest is among those with the most digits, from the first such number up.
             w = 0;
-            for (var n = 0; n <= Climb.totalU(); n++) {
+            var from = 1;
+            while (from * 10 <= Climb.totalU()) { from *= 10; }
+            for (var n = from; n <= Climb.totalU(); n++) {
                 var nw = d.width(Graphics.FONT_XTINY, n.format("%d"));
                 if (nw > w) { w = nw; }
             }
@@ -360,7 +363,8 @@ module Widgets {
 
     // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
     function columnGroupWidth(d as Draw) as Float {
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, feet()) + 3 + d.width(Graphics.FONT_XTINY, feet() ? "ft" : "m");
+        var ft = feet();
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
     }
 
     // How far the column reaches above and below its centre.

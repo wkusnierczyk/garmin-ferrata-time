@@ -155,7 +155,9 @@ module Pages {
     function sideBySide(d as Draw, st as Climb.State) as Void {
         var left = 56.0, right = 360.0, cy = 228.0;
         var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
+        // Never negative: with wider fonts the widgets would touch rather than overlap.
         var gap = (right - left - ascW - Widgets.columnGroupWidth(d)) / 3;
+        if (gap < 0) { gap = 0.0; }
         var lx = left + gap + ascLeft, reach = Widgets.columnReach();
         Widgets.ascent(d, st, lx, cy + reach, 2 * reach, true);
         Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true);
