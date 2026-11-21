@@ -125,11 +125,11 @@ Options: the end dots on or off.
 
 The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
 
-- Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short walks would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
+- Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
 - The climber as a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
-- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs.
+- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart.
 
 ## flat ascent
 

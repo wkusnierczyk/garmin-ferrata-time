@@ -611,7 +611,9 @@ function gaugeAngles(byPath, minDeg) {
     const free = G_SPAN - fixed.filter(Boolean).length * minDeg;
     let total = 0;
     for (let i = 0; i < N; i++) if (!fixed[i]) total += size(i);
-    span = Array.from({ length: N }, (_, i) => fixed[i] ? minDeg : size(i) / total * free);
+    // An entirely flat route by ascent: what is left is shared evenly.
+    const left = N - fixed.filter(Boolean).length;
+    span = Array.from({ length: N }, (_, i) => fixed[i] ? minDeg : (total > 0 ? size(i) / total : 1 / left) * free);
     for (let i = 0; i < N; i++) if (!fixed[i] && span[i] < minDeg) { fixed[i] = true; changed = true; }
   }
   const start = [G_FROM];
