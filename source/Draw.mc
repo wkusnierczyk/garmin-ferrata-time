@@ -81,12 +81,6 @@ class Draw {
         if (w >= h) { roundRect(x, y, w, h, h / 2, c); }
     }
 
-    function roundFrame(x as Numeric, y as Numeric, w as Numeric, h as Numeric, r as Numeric, c as Number, pen as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(pen);
-        dc.drawRoundedRectangle(s(x), s(y), s(w), s(h), s(r));
-    }
-
     function frame(x as Numeric, y as Numeric, w as Numeric, h as Numeric, c as Number, pen as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(pen);
@@ -211,13 +205,9 @@ class Draw {
         var dx = x2 - x1, dy = y2 - y1;
         var n = (Math.sqrt(dx * dx + dy * dy) / 2).toNumber() + 1;
         for (var i = 0; i <= n; i++) {
-            dc.fillCircle(s(x1 + dx * i / n), s(y1 + dy * i / n), s(r));
+            var f = i.toFloat() / n;
+            dc.fillCircle(s(x1 + dx * f), s(y1 + dy * f), s(r));
         }
-    }
-
-    // A font's height in design pixels.
-    function height(font as Graphics.FontType) as Number {
-        return (dc.getFontHeight(font) / k).toNumber();
     }
 
     // Width of a string in design pixels.

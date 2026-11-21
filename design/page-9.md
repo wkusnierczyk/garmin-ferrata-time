@@ -2,7 +2,7 @@
 
 Status: settled with the owner on 2026-11-21 (#27)  
 Reference mock: `design/demo/page-9.html` (the dial held on the left; click the chevrons, or press the left and right arrow keys)  
-Widgets: `design/widgets.md` (*gauge*, *flat ascent*); new here: the selection gauge, chevrons, section points
+Widgets: `design/widgets.md` (*gauge*, *flat ascent*, and new here: *selection gauge*, *chevron*, *section points*)
 
 A preview of a section the user picks, built on page 6b. The app's ninth page, after page 8.
 

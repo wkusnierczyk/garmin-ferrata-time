@@ -29,9 +29,10 @@ class Delegate extends WatchUi.BehaviorDelegate {
         if (view.page != Pages.SECTION_PAGE) { return false; }
         var xy = evt.getCoordinates(), k = 416.0 / System.getDeviceSettings().screenWidth;
         var x = xy[0] * k, y = xy[1] * k;
-        if ((y - 186).abs() > 45) { return false; }
-        if (x < 208 - 66 - 10) { view.stepSection(-1); return true; }
-        if (x > 208 + 66 + 10) { view.stepSection(1); return true; }
+        var half = Pages.SECTION_BW / 2 + 10;
+        if ((y - Pages.SECTION_BY).abs() > 45) { return false; }
+        if (x < 208 - half) { view.stepSection(-1); return true; }
+        if (x > 208 + half) { view.stepSection(1); return true; }
         return false;
     }
 
