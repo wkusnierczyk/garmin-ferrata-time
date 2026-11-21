@@ -416,9 +416,89 @@ module Widgets {
     const STACK_W = 60;
     const STACK_NAMES = 80;
 
+    // The section names' distance from the column, clear of the points' rings on its right edge.
+    const NAME_GAP = 18;
+    // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
+    const POI_DANGER = 0xffd60a;
+
+    // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
         var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
-        return d.width(Graphics.FONT_XTINY, top.format("%d")) + 14.0;
+        return d.width(bigLabelFont(d, 0), top.format("%d")) + 14.0;
+    }
+
+    // The points of interest on the stack: rings on the column's right edge (x) at their place on it,
+    // rests blue (the middle of the rest), exits green, dangers yellow, the top red, dimmed once
+    // passed. A point is in the climber's range from one tick step (stepM metres along the stack's
+    // axis) before it to half a step after it. Points whose rings would touch show one ring: of those
+    // in range, the first of danger, exit, rest, top, with its name ("Danger", "Exit", "Rest", "Top")
+    // beside it in its colour; with none in range, the one nearest the climber, unnamed. Returns the
+    // y of each name shown.
+    function stackPoints(d as Draw, st as Climb.State, byUp as Boolean, top as Float, bottom as Float, cy as Float,
+            here as Float, scale as Float, x as Float, nameR as Number, stepM as Float) as Array<Float> {
+        // Each point: where it sits, its stretch (lo to hi metres along the route), colour, rank.
+        var at = [] as Array<Float>, lo = [] as Array<Float>, hi = [] as Array<Float>;
+        var colour = [] as Array<Number>, rank = [] as Array<Number>;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                var d0 = Climb.dAt(i).toFloat(), d1 = Climb.dAt(i + 1).toFloat();
+                at.add((d0 + d1) / 2); lo.add(d0); hi.add(d1); colour.add(REST); rank.add(2);
+            }
+        }
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
+            var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(GREEN); rank.add(1);
+        }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            at.add(de); lo.add(de); hi.add(de); colour.add(POI_DANGER); rank.add(0);
+        }
+        var td = Climb.totalD().toFloat();
+        at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
+        var words = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
+        // Their screen heights, distances from the climber and whether in range; the ones in view,
+        // ordered from the top down.
+        var n = at.size();
+        var ys = new [n] as Array<Float>, away = new [n] as Array<Float>, near = new [n] as Array<Boolean>;
+        var order = [] as Array<Number>;
+        for (var p = 0; p < n; p++) {
+            var a = byUp ? Climb.heightAtDistance(lo[p]) : lo[p], b = byUp ? Climb.heightAtDistance(hi[p]) : hi[p];
+            var ahead = a - here, behind = here - b;
+            near[p] = ahead <= stepM && behind <= stepM / 2;
+            away[p] = ahead > behind ? (ahead > 0 ? ahead : 0.0) : (behind > 0 ? behind : 0.0);
+            ys[p] = cy - ((byUp ? Climb.heightAtDistance(at[p]) : at[p]) - here) * scale;
+            if (ys[p] < top + 6 || ys[p] > bottom - 6) { continue; }
+            var k = order.size();
+            order.add(p);
+            while (k > 0 && ys[order[k - 1]] > ys[p]) { order[k] = order[k - 1]; k--; }
+            order[k] = p;
+        }
+        // Group the rings that would touch, and draw one per group.
+        var named = [] as Array<Float>;
+        var g = 0;
+        while (g < order.size()) {
+            var best = order[g], end = g + 1;
+            while (end < order.size() && ys[order[end]] - ys[order[end - 1]] < 18) { end++; }
+            for (var m = g; m < end; m++) {
+                var p = order[m];
+                var better = near[p] && !near[best] ||
+                    near[p] == near[best] && (near[p] ? rank[p] < rank[best] || rank[p] == rank[best] && away[p] < away[best] : away[p] < away[best]);
+                if (better) { best = p; }
+            }
+            var c = colour[best], y = ys[best];
+            d.dot(x, y, 8, BLACK);
+            d.ring(x, y, 7, at[best] <= st.d ? d.darken(c, 0.33) : c, 3);
+            if (near[best]) {
+                var half = nameR * nameR - (y - 208) * (y - 208);
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
+                if (room >= 30) {
+                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, words[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                    named.add(y);
+                }
+            }
+            g = end;
+        }
+        return named;
     }
 
     // Where boundary i sits along the stack's axis, and section i's size on it.
@@ -515,7 +595,12 @@ module Widgets {
             if (i == n - 1) { d.rect(left, yt, STACK_W, 3, stackColour(d, st, i)); }
         }
         d.unclip();
-        // The names on the right, centred on the part in view, cut to fit the round screen.
+        var ft = feet(), step = ft ? stepFt : stepM;
+        // The points of interest, one ring for each group whose rings would touch; the y of each one
+        // that shows its name, for the section names to give way to.
+        var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
+        // The names on the right, centred on the part in view, cut to fit the round screen, clear of
+        // the points' rings.
         if (names) {
             for (var i = 0; i < n; i++) {
                 var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
@@ -524,16 +609,18 @@ module Widgets {
                 var flat = stackSize(i, byUp) == 0;
                 if (!flat && vb - vt < 16) { continue; }
                 var ny = flat ? yb : (vt + vb) / 2;
+                var touches = false;
+                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
+                if (touches) { continue; }
                 var half = nameR * nameR - (ny - 208) * (ny - 208);
-                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + 12)).toFloat();
+                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
                 if (room < 30) { continue; }
-                d.textCapMiddle(right + 12, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
+                d.textCapMiddle(right + NAME_GAP, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
         }
         // Altitude ticks on the left, every step, only along the route. By path a tick sits
         // where the route first reaches its altitude; a label touching the one below is left out.
-        var ft = feet(), step = ft ? stepFt : stepM;
         var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
         if (vLo < 0) { vLo = 0.0; }
         var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();
@@ -549,13 +636,12 @@ module Widgets {
             ticks.add(a);
             ys.add(y);
         }
-        // By ascent the label just above the climber, the next altitude to reach, is twice as large and
-        // always shown, the ones just above and below it one and a half times; the others are left
-        // out around it, each kept clear of the last one shown.
-        var next = -1, now = (Climb.START_ALT + here) * k;
-        if (byUp) {
-            for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
-        }
+        // The label of the next altitude to reach is twice as large and always shown, the ones just
+        // above and below it one and a half times; the others are left out around it, each kept clear
+        // of the last one shown. By path it is the first tick above the altitude now, which may sit
+        // further along the route than the climber.
+        var next = -1, now = (Climb.START_ALT + st.u) * k;
+        for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
         var from = next >= 0 ? next : 0;
         for (var dir = 1; dir >= -1; dir -= 2) {
             var last = dir < 0 && next >= 0 ? next : -1;

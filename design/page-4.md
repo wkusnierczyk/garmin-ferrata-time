@@ -24,10 +24,6 @@ The **ascent stack** alone: the route's sections as boxes as tall as the metres 
 
 Four kinds, in the colours of the other pages: danger yellow, exit green, rest blue (at the middle of the rest), the route's top red; dimmed once passed. Names are the kind ("Danger", "Exit", "Rest", "Top"); a rest's section keeps its own name (such as Bench) in white, which gives way while the point's name shows. Points whose rings would touch show one ring: of those in range, the first of danger, exit, rest, top, with its name; with none in range, the one nearest the climber, unnamed.
 
-## Not in the app yet
-
-The watch code on #20 has the ring on the left, no line, and the 200 % and 150 % labels; it still draws at 2.5 px per metre and has no points of interest. Both come with the next port, when the owner asks for a sideload.
-
 ## Open
 
 - A title above the stack, or the current difficulty and altitude below it, as in the sketch.

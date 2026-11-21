@@ -65,7 +65,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
   <section>
     <div class="controls">
       <label for="pos">Point of the climb</label>
-      <input id="pos" type="range" min="0" max="1000" value="450">
+      <input id="pos" type="range" min="0" max="1000" step="any" value="450">
       <div class="readout" id="readout"></div>
       <button id="play" type="button">Play the climb</button>
       <label for="speed">Speed: the whole climb in</label>
@@ -82,9 +82,9 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="path-scale"><option value="0.75">0.75 px per metre (384 m of path in view)</option><option value="1" selected>1 px per metre (288 m in view)</option><option value="1.5">1.5 px per metre (192 m in view)</option></select>
       <label for="step4">Altitude ticks every (page 4)</label>
       <select id="step4"><option value="10">10 (m or ft)</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option></select>
-      <label for="next-size">Next altitude above the climber (page 4)</label>
+      <label for="next-size">Next altitude above the climber (pages 4 and 5)</label>
       <select id="next-size"><option value="1">100 % (as the other labels)</option><option value="1.2">120 %</option><option value="1.5">150 %</option><option value="2" selected>200 %</option></select>
-      <label for="near-size">The altitudes just above and below it (page 4)</label>
+      <label for="near-size">The altitudes just above and below it (pages 4 and 5)</label>
       <select id="near-size"><option value="1">100 % (as the other labels)</option><option value="1.2">120 %</option><option value="1.5" selected>150 %</option><option value="2">200 %</option></select>
       <label for="ring-side">The climber's ring on the column's</label>
       <select id="ring-side"><option value="left" selected>left edge</option><option value="right">right edge</option></select>
@@ -116,9 +116,9 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <li>By path, flat sections are real boxes, and walls are short. Altitude ticks sit where the route first reaches each altitude: they crowd on walls and spread on walks; a label is left out when it would touch the one below.</li>
       <li>The boxes meet with no gap. A border between two boxes is drawn in the colour of the one closer to the current box; next to the current box, in the current box's colour.</li>
       <li>The climber is the orange ring of the ascent widget on the column's edge, left by default or right (the menu chooses); no line across the column, which hid the letters. Optionally (off by default) a tick from the ring across the current box to the other edge: in the climber's orange, or black where the box is itself near that orange (K4 in the amber map); over or near the box's letters it stops short of them on both sides, passing under them.</li>
-      <li>The demo plays at a vertical pace: walks pass quickly, walls slowly, and each grade above walking 10 % slower than the one below. A flat section takes as long as 5 m of climbing.</li>
+      <li>The demo plays at a vertical pace: walks pass quickly, walls slowly, and each grade above walking 10 % slower than the one below. A flat section takes as long as 5 m of climbing, and the climber stops for 3 s at each rest point (the middle of the rest), at any speed.</li>
       <li>Ticks run only along the route, not below its start or above its top. Ticks and labels are in the altitude unit: every 10 m by default, or every 10 ft in feet, which is dense; the step menu changes it. Resolution to be discussed.</li>
-      <li>On page 4 the label just above the climber, the next altitude to reach, is larger than the others (100, 120, 150 or 200 % of their 18 px; the menu chooses, 200 % by default), and always shown; the labels just above and below it are larger too (150 % by default); the other labels make room around them.</li>
+      <li>On pages 4 and 5 the label of the next altitude to reach (on page 5 the first tick above the altitude now, which may sit further along the route than the climber), is larger than the others (100, 120, 150 or 200 % of their 18 px; the menu chooses, 200 % by default), and always shown; the labels just above and below it are larger too (150 % by default); the other labels make room around them.</li>
       <li>The points of interest (on by default) as rings on the column's edge, as the climber's ring is, on the edge opposite it (the right, with the climber on the left), at their place on the column; in the colours of the other pages: four kinds, rests blue at the middle of the rest, exits green, dangers yellow, and the route's top red; dimmed once passed. The names move right a little to clear them. A point's name (on by default) beside its ring, in its colour, from one tick step before the climber reaches it to half a step after leaving it (page 4 at 20 m ticks: from 20 m below to 10 m above, by height; page 5: the same in metres of path): the kind of point, "Rest", "Exit", "Danger" or "Top" (a rest's section keeps its own name, such as Bench, as the white name). Points whose rings would touch show one ring and one name: of those in the climber's range, the first of danger, exit, rest, top; with none in range, the nearest to the climber. A section name a point's name would touch gives way.</li>
       <li>Not yet: a title above the stack, or the current difficulty and altitude below it, as in the sketch.</li>
     </ul>
@@ -642,15 +642,16 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   // it would touch the one below.
   const vLo = Math.max(0, here - (ST_BOTTOM - cy) / scale), vHi = Math.min(up ? TU : TD, here + (cy - ST_TOP) / scale);
   const lo = fromU(up ? vLo : heightAt(vLo)), hi = fromU(up ? vHi : heightAt(vHi));
-  // On page 4 the label just above the climber, the next altitude to reach, is larger (opt.nextSize
-  // times the others); it is always shown, and the others are left out around it.
-  const ticks = [], now = fromU(here);
+  // The label of the next altitude to reach is larger (opt.nextSize times the others); it is always
+  // shown, and the others are left out around it. By path it is the first tick above the altitude now,
+  // which may sit further along the route than the climber's line.
+  const ticks = [], now = fromU(st.u);
   for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
     const y = Y(up ? toU(v) : firstAt(toU(v)));
     s += `<line x1="${ST_LEFT - 9}" y1="${y.toFixed(1)}" x2="${ST_LEFT - 3}" y2="${y.toFixed(1)}" stroke="#777" stroke-width="2"/>`;
     ticks.push({ v, y, fs: 18 });
   }
-  const next = up ? ticks.findIndex(t => t.v > now) : -1;
+  const next = ticks.findIndex(t => t.v > now);
   // Its neighbours above and below are larger too (opt.nearSize).
   if (next >= 0) {
     ticks[next].fs = 18 * opt.nextSize;
@@ -696,7 +697,7 @@ function ascentGauge(st, opt) {
 // with the ascent as a gauge around the edge; names stop inside the gauge.
 const P5_NAMES = 80;
 function page5(st, opt) {
-  const labels = textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), 18) + 14;
+  const labels = textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), 18 * opt.nextSize) + 14;
   const left = 208 - (labels + ST_W + 12 + P5_NAMES) / 2 + labels;
   return ascentGauge(st, opt) + stack(st, opt, "path", left, AG_R - 14);
 }
@@ -739,10 +740,28 @@ function show() {
 }
 pos.addEventListener("input", show);
 let timer = null;
+const REST_STOP = 3000, REST_AT = [];
+for (let i = 0; i < N; i++) if (GRADE[i] < 0) REST_AT.push((D[i] + D[i + 1]) / 2);
+let restUntil = 0;
 play.addEventListener("click", () => {
   if (timer) { clearInterval(timer); timer = null; play.textContent = "Play the climb"; return; }
   play.textContent = "Stop";
-  timer = setInterval(() => { pos.value = (+pos.value + 4 * +speed.value) % 1001; show(); }, 50);
+  timer = setInterval(() => {
+    // The climber stops for 3 s at each rest point (a rest's middle), whatever the speed.
+    if (Date.now() < restUntil) return;
+    const f0 = +pos.value, before = state(demoMinute(f0 / 1000)).d;
+    let f1 = (f0 + 4 * +speed.value) % 1001;
+    const rest = REST_AT.find(d => before < d && d <= state(demoMinute(f1 / 1000)).d);
+    if (rest !== undefined) {
+      // Stop on the rest point itself: the slider fraction that reaches it, by bisection.
+      let lo = f0, hi = f1;
+      for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (state(demoMinute(m / 1000)).d < rest) lo = m; else hi = m; }
+      f1 = hi;
+      restUntil = Date.now() + REST_STOP;
+    }
+    pos.value = f1;
+    show();
+  }, 50);
 });
 show();
 
