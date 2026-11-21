@@ -410,6 +410,9 @@ module Widgets {
     const STACK_W = 60;
     const STACK_NAMES = 80;
 
+    // The points' names, by rank.
+    const POI_WORDS = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
+
     // The section names' distance from the column, clear of the points' rings on its right edge.
     const NAME_GAP = 18;
     // Danger points are yellow on pages 1 to 8, red being kept for the route's top.
@@ -449,7 +452,6 @@ module Widgets {
         }
         var td = Climb.totalD().toFloat();
         at.add(td); lo.add(td); hi.add(td); colour.add(RED); rank.add(3);
-        var words = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
         // Their screen heights, distances from the climber and whether in range; the ones in view,
         // ordered from the top down.
         var n = at.size();
@@ -485,8 +487,11 @@ module Widgets {
             if (near[best]) {
                 var half = nameR * nameR - (y - 208) * (y - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
-                if (room >= 30) {
-                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, words[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                // Not within 20 px of a name already shown, as in the mock.
+                var clear = true;
+                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 20) { clear = false; } }
+                if (room >= 30 && clear) {
+                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
                     named.add(y);
                 }
             }
@@ -519,7 +524,7 @@ module Widgets {
 
     // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
     // the ones just above and below it at one and a half. In a scalable font where the watch has one
-    // (sized once, then corrected by the height it measures), the nearest system font otherwise.
+    // (sized once, then corrected by the height it measures), a fixed larger system font otherwise.
     const BIG_SCALE = [2.0, 1.5];
     var bigFonts as Array<Graphics.FontType?> = [null, null];
 
@@ -527,7 +532,7 @@ module Widgets {
         if (bigFonts[which] == null) {
             var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
             var size = Math.round(want).toNumber();
-            var vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size});
+            var vf = (Graphics has :getVectorFont) ? Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size}) : null;
             if (vf != null) {
                 var h = d.dc.getFontHeight(vf);
                 if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
@@ -593,8 +598,8 @@ module Widgets {
         // The points of interest, one ring for each group whose rings would touch; the y of each one
         // that shows its name, for the section names to give way to.
         var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
-        // The names on the right, centred on the part in view, cut to fit the round screen, clear of
-        // the points' rings.
+        // The names on the right, centred on the part in view, cut to fit the round screen, each 20 px
+        // clear of the points' names and of the section names already shown.
         if (names) {
             for (var i = 0; i < n; i++) {
                 var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
@@ -606,6 +611,7 @@ module Widgets {
                 var touches = false;
                 for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
                 if (touches) { continue; }
+                named.add(ny);
                 var half = nameR * nameR - (ny - 208) * (ny - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
                 if (room < 30) { continue; }
@@ -626,6 +632,8 @@ module Widgets {
         for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
             var u = a / k - Climb.START_ALT;
             var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
+            // By path a flat stretch at this altitude may be reached before the window's bottom.
+            if (y < top || y > bottom) { continue; }
             d.rect(left - 9, y - 1, 6, 2, SCALE);
             ticks.add(a);
             ys.add(y);
@@ -670,7 +678,7 @@ module Widgets {
         var tu = Climb.totalU().toFloat(), up = st.climbed();
         d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
         d.dc.setPenWidth(d.s(2));
-        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, AG_FROM - AG_SPAN);
+        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
         var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
         d.dot(r[0], r[1], RING_R, BLACK);
         if (ends) {

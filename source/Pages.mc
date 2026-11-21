@@ -174,10 +174,11 @@ module Pages {
     }
 
     // Page 5: the stack by path, 1 px per metre along the route, centred as a group (its tick labels,
-    // its column and room for names), with the ascent as a gauge around the edge; names stop inside it.
+    // its column, the names' gap and room for names), with the ascent as a gauge around the edge;
+    // names stop inside it.
     function stackByPath(d as Draw, st as Climb.State) as Void {
         var labels = Widgets.stackLabels(d);
-        var left = 208 - (labels + Widgets.STACK_W + 12 + Widgets.STACK_NAMES) / 2 + labels;
+        var left = 208 - (labels + Widgets.STACK_W + Widgets.NAME_GAP + Widgets.STACK_NAMES) / 2 + labels;
         Widgets.ascentGauge(d, st, true);
         Widgets.stack(d, st, false, left, 64.0, 352.0, 1.0, true, 10, 50, Widgets.AG_R - 14);
     }
