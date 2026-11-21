@@ -115,6 +115,22 @@ The ascent widget bent around the screen's edge.
 
 Options: the end dots on or off.
 
+## gauge
+
+The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
+
+- Each section's arc is its length along the route (the mock can make it the metres climbed); sections a hair apart; climbed parts dimmed.
+- Rests, exits and dangers as hollow rings on it, dimmed once passed.
+- The climber as the orange outline of the stretch they could be on, rounded at its ends, as on the profile.
+
+## flat ascent
+
+The ascent widget laid flat: a line from the start (left) to the top (right), the climber's ring on it, the end dots, the metres climbed under its left stretch and the metres left under its right one, each centred on its stretch, kept clear of the ring, never past the line's end.
+
+## next
+
+The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m: "K4 in 125 m", the grade in its colour; "Top in …" after the last change. The mock can give the distance in metres up instead.
+
 ## Groups
 
 Widgets that are placed together, as one reusable unit.
