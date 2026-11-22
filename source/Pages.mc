@@ -381,22 +381,24 @@ module Pages {
 
     function whatsNext(d as Draw, st as Climb.State) as Void {
         d.text(0.5, 0.125, d.semi(0.0529), "NEXT", d.MUTED);
-        var y = 0.192308;
+        // The rows' top adds up a gap per row: the shares it adds carry nine decimals, so the last row
+        // stays on its pixel (Draw.s).
+        var y = 0.192307692;
         d.top(0.266827, y + 0.019231);
         d.textLeft(0.3125, y + 0.019231, d.semi(0.0865), "Top", WHITE);
         d.textRight(0.802885, y + 0.019231, d.semi(0.0865), Climb.clockText(st.finish()), WHITE);
-        y += 0.072115;
+        y += 0.072115385;
         // The climber's section comes first; above it, as many of the next ones as fit.
         var last = st.cur, used = 0.0;
         for (var i = st.cur; i < Climb.count(); i++) {
             var hi = rowHeight(st, i);
-            if (used + hi + 0.009615 > 0.649038) { break; }
-            used += hi + 0.009615;
+            if (used + hi + 0.009615385 > 0.649038462) { break; }
+            used += hi + 0.009615385;
             last = i;
         }
         if (last < Climb.count() - 1) {
             d.text(0.266827, y + 0.004808, d.semi(0.0529), ":", d.MUTED);
-            y += 0.043269;
+            y += 0.043269231;
         }
         for (var i = last; i >= st.cur; i--) {
             var now = i == st.cur;
@@ -414,7 +416,7 @@ module Pages {
             d.textLeft(0.3125, y + h / 2, d.semi(0.0529), label, now ? d.MUTED : WHITE);
             d.textRight(0.802885, y + h / 2, d.semi(0.0529), now ? "now" : "+" + minutesText(st.untilStart(i)) + "'", d.MUTED);
             if (now) { d.pointer(0.235577, y + h / 2, 0.016827, WHITE); }
-            y += h + 0.009615;
+            y += h + 0.009615385;
         }
     }
 

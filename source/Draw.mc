@@ -68,8 +68,9 @@ class Draw {
     }
 
     // A share of the screen's width in whole pixels, cut towards zero. The shares are decimals, a hair
-    // either side of the pixel they stand for (to six places or more, within a five-thousandth of a pixel):
-    // adding two thousandths of a pixel keeps them on it.
+    // either side of the pixel they stand for (to six places, within a five-thousandth of a pixel):
+    // adding two thousandths of a pixel keeps them on it. That margin holds for a few constants added
+    // up; a longer chain (whatsNext's rows) or a scale times hundreds of metres carries nine places.
     const NUDGE = 0.002;
 
     function s(v as Numeric) as Number {
