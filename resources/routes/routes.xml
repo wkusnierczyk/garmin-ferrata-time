@@ -1,0 +1,4 @@
+<!-- The route the app climbs, built by make routes from routes/demo.src.json (tools/route.py). -->
+<resources>
+    <jsonData id="route" filename="demo.json"/>
+</resources>
