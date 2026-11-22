@@ -10,5 +10,6 @@
 base.excludeAnnotations = noreplay
 
 # The recording, resources-replay/replay.json, written by make replay FIT=<track.fit>
-# (tools/fit2replay.py) and never committed: it is the climber's own track.
+# (tools/fit2replay.py) and never committed: it is the climber's own track. The device-qualified
+# folders (resources-round-416x416, #62) still follow this base path, as the default one.
 base.resourcePath = resources;resources-replay

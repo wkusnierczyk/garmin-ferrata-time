@@ -1,0 +1,18 @@
+{
+    "reference": {
+        "resolution": [
+            416,
+            416
+        ],
+        "shape": "round"
+    },
+    "targets": [
+        {
+            "resolution": [
+                416,
+                416
+            ],
+            "shape": "round"
+        }
+    ]
+}
