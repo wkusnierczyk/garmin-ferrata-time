@@ -60,8 +60,8 @@ module Pages {
             d.exitMark(ex + 28, exitTo + 12);
         }
         // How sure the position is: the route between the heights it could be at.
-        var lo = Climb.firstDistanceAt(st.u - Climb.UNCERTAINTY);
-        var hi = Climb.lastDistanceAt(st.u + Climb.UNCERTAINTY);
+        var lo = Climb.firstDistanceAt(st.u - st.band);
+        var hi = Climb.lastDistanceAt(st.u + st.band);
         var band = 0x474747;
         var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
         for (var dd = lo + 4; dd <= hi; dd += 4) {
@@ -307,7 +307,7 @@ module Pages {
                 d.line(x0 + 34, y - 6, x0 + 34, y + 6, d.REST, 4);
             }
         }
-        var yt = y0 - (st.u + Climb.UNCERTAINTY) / tu * h, yb = y0 - (st.u - Climb.UNCERTAINTY) / tu * h;
+        var yt = y0 - (st.u + st.band) / tu * h, yb = y0 - (st.u - st.band) / tu * h;
         d.frame(x0 - 6, yt, 38, yb - yt, 0x888888, 2);
         d.pointer(x0 - 12, y0 - st.u / tu * h, 8, WHITE);
         d.textLeft(170, 62, Graphics.FONT_SMALL, Climb.clockText(st.clock()), d.MUTED);
