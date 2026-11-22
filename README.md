@@ -61,7 +61,7 @@ Sizes are shares of the screen's width, as the designs are: a page asks for the 
 | `Bold70` | 16.83 % | 70 | 69, 70 | grades |
 <!-- font sizes: end -->
 
-Text fonts hold printable ASCII (words, units, route names), the ellipsis a cut name ends in, `·` and `°`; number fonts the digits, `:`, `-` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`). The older pages (from the side profile on) drew in system fonts; each now draws in the SemiBold size whose capitals stand as tall.
+Text fonts hold printable ASCII only (words, units, route names), the ellipsis a cut name ends in, `·` and `°`: accented letters for real route names (Fürenwand, Mürren) wait on the owner's decision, and until then such a letter does not draw; number fonts the digits, `:`, `-` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`). The older pages (from the side profile on) drew in system fonts; each now draws in the SemiBold size whose capitals stand as tall.
 
 The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
 
@@ -90,7 +90,14 @@ make fonts          # the bitmaps, fonts.md, fonts.sha256 and the two tables abo
 make check-fonts    # check all of it against the configuration and source/Draw.mc (Python only)
 ```
 
-`make font-sources` takes `BarlowCondensed-SemiBold.ttf`, `BarlowCondensed-Bold.ttf` and `OFL.txt` from [`google/fonts`](https://github.com/google/fonts/tree/60824dce48f7dd28fe7d65559f2da1f6e04e585b/ofl/barlowcondensed), `ofl/barlowcondensed/` at commit `60824dce48f7dd28fe7d65559f2da1f6e04e585b`, holds each to its SHA-256 in the `Makefile`, and runs `tools/tabular-figures.py` on the two weights: it points the digits at the font's own tabular figures and renames the family Barlow Condensed Tabular. The results are `resources/fonts/BarlowCondensedTabular-SemiBold.ttf` and `-Bold.ttf`; the same inputs give the same bytes. `tools/tabular-figures.py` needs [fontTools](https://github.com/fonttools/fonttools) (`pip install fonttools`; name the Python with `FONTTOOLS_PYTHON=`). `make check-ttf2bmp` and `make check-garmin-font-scaler` check the two font tools, and `make install-ttf2bmp` and `make install-garmin-font-scaler` install them into `~/.local/bin`, as in Climber Time.
+`make font-sources` takes `BarlowCondensed-SemiBold.ttf`, `BarlowCondensed-Bold.ttf` and `OFL.txt` from [`google/fonts`](https://github.com/google/fonts/tree/60824dce48f7dd28fe7d65559f2da1f6e04e585b/ofl/barlowcondensed), `ofl/barlowcondensed/` at commit `60824dce48f7dd28fe7d65559f2da1f6e04e585b`, holds each to its SHA-256 in the `Makefile`, and runs `tools/tabular-figures.py` on the two weights: it points the digits at the font's own tabular figures and renames the family Barlow Condensed Tabular. The results are `resources/fonts/BarlowCondensedTabular-SemiBold.ttf` and `-Bold.ttf`; the same inputs give the same bytes. `tools/tabular-figures.py` needs [fontTools](https://github.com/fonttools/fonttools) 4.60.2 or newer (the committed TTFs were made with 4.60.2; 4.68.0 gives the same bytes), in a virtual environment on Apple's Python, as Homebrew's cannot bootstrap pip on macOS:
+
+```sh
+/usr/bin/python3 -m venv .dev/scratchpad/fonttools
+.dev/scratchpad/fonttools/bin/pip install fonttools==4.60.2
+make font-sources FONTTOOLS_PYTHON=.dev/scratchpad/fonttools/bin/python
+```
+ `make check-ttf2bmp` and `make check-garmin-font-scaler` check the two font tools, and `make install-ttf2bmp` and `make install-garmin-font-scaler` install them into `~/.local/bin`, as in Climber Time.
 
 Barlow Condensed is copyright 2017 The Barlow Project Authors and licensed under the [SIL Open Font License 1.1](https://openfontlicense.org), in `resources/fonts/OFL-BarlowCondensed.txt`. Barlow Condensed Tabular is a modified version under the same licence; Barlow declares no Reserved Font Name.
 
