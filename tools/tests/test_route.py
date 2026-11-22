@@ -466,3 +466,73 @@ def test_make_routes_rejects_orphan(tmp_path):
     res = make_routes(root)
     assert res.returncode != 0
     assert "resources/routes/gone.json has no source, routes/gone.src.json" in res.stderr
+
+
+# Names folded to the fonts' text charset (#84).
+
+@pytest.mark.parametrize("text,folded", [
+    ("Klettersteig Brünnstein", "Klettersteig Brunnstein"),
+    ("Cascade de l'Été", "Cascade de l'Ete"),
+    ("Garçon", "Garcon"),
+    ("Große Zinne", "Grosse Zinne"),
+    ("Bjørnø Ærø", "Bjorno AEro"),
+    ("Œuvre", "OEuvre"),
+    ("Łódź", "Lodz"),
+    ("Đakovo", "Dakovo"),
+    ("Þingvellir", "Thingvellir"),
+    ("Via dell’Amicizia – Nord", "Via dell'Amicizia - Nord"),
+    ("Plain (A-Z), 0-9 / ok.", "Plain (A-Z), 0-9 / ok."),
+    ("Kept: + > ~ ° · …", "Kept: + > ~ ° · …"),
+])
+def test_fold(text, folded):
+    assert route.fold(text) == folded
+
+
+def test_names_folded(tmp_path):
+    def change(r):
+        r.update(name="Große Wand", short="Große", place="Zürich")
+        r["approach"][0]["name"] = "Zustieg über Wiese"
+        r["sections"][0]["name"] = "Été"
+        point(r, "top")["name"] = "Gipfel Ærø"
+    code, out = build(tmp_path, fixture(change))
+    assert code == 0
+    assert (out["name"], out["short"], out["place"]) == ("Grosse Wand", "Grosse", "Zurich")
+    assert out["approach"][0]["name"] == "Zustieg uber Wiese"
+    assert out["sections"][0]["name"] == "Ete"
+    assert point(out, "top")["name"] == "Gipfel AEro"
+
+
+def test_unknown_kind_not_folded(tmp_path):
+    odd = {"kind": "spring", "at": 10, "name": "Quelle Größe"}
+    code, out = build(tmp_path, fixture(lambda r: r["points"].append(dict(odd))))
+    assert code == 0
+    assert odd in out["points"]
+
+
+@pytest.mark.parametrize("change,message", [
+    (lambda r: r.update(name="Ferrata → Top"),
+     "name: '→' (U+2192) is not in the fonts' charset"),
+    (lambda r: r["sections"][1].update(name="Ridge 漢"),
+     "section 2 'Ridge 漢': name: '漢' (U+6F22) is not in the fonts' charset"),
+    (lambda r: point(r, "danger").update(name="Loose!"),
+     "danger 5 'Loose!': name: '!' (U+0021) is not in the fonts' charset"),
+])
+def test_fold_rejects_what_the_fonts_lack(tmp_path, capsys, change, message):
+    rejects(tmp_path, capsys, fixture(change), message)
+
+
+def test_short_length_counts_folded(tmp_path, capsys):
+    # ß becomes ss: 15 characters as written, 16 folded.
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(short="Große Wand abcd")),
+            "short is at most 15 characters (16)")
+
+
+CHARSETS = REPO / "resources" / "fonts" / "charsets.json"
+
+
+@pytest.mark.skipif(not CHARSETS.exists(), reason="the fonts' charsets land with #62 (PR #77)")
+def test_text_charset_is_the_fonts():
+    # Every font that draws letters is a text font, and they share one charset: the tool's.
+    fonts = json.loads(CHARSETS.read_text(encoding="utf-8"))
+    text = [set(f["fontCharset"]) for f in fonts if "a" in f["fontCharset"]]
+    assert text and all(c == route.TEXT_CHARSET for c in text)

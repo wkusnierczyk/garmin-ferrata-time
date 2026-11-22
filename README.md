@@ -55,6 +55,7 @@ A route's GPX track, if it has one, is kept beside its source as `routes/<id>.gp
 - `grade` is in half steps, as the topo writes it: 1 A, 2 A/B, 3 B … 11 F, 12 F/G; 0 walking, -1 rest.
 - `up` may be negative. Between points with an `alt`, the sections' `up` must add up to the altitude difference within 15 m.
 - `min`, the guidebook's minutes for a section, may be left out; `len` and `min` are above 0, `side` from -1.0 to 1.0, `short` (the activity's name) 1 to 15 characters.
+- Names (`name`, `short`, `place`, and every section's and point's `name`) are folded to the characters the app's fonts carry: letters A to Z and a to z, digits, space and `' ( ) + , - . / : > ~ ° · …`. Accents are dropped (ü to u, é to e, ç to c), special letters spelled out (ß to ss, æ to ae, ø to o, œ to oe, ł to l, þ to th), and curly quotes and dashes written plainly; any other character is an error naming the field and the character. `short` is counted after folding.
 
 The tool lists every problem it finds and writes nothing. Its tests: `python3 -m pytest tools/tests` (needs `pytest`); CI runs them and checks that `make routes` leaves the route files unchanged.
 
