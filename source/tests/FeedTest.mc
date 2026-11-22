@@ -137,8 +137,17 @@ module FeedTest {
         return true;
     }
 
-    // The setting chooses the input.
-    (:test)
+    // The demo never records; the sensors may (the Recorder, #53, keys on records()). Not in a replay
+    // build, where nothing records (ReplayTest.replayBuildPlaysTheRecording).
+    (:test, :noreplay)
+    function onlyTheSensorsRecord(logger as Logger) as Boolean {
+        Test.assertMessage(!(new TestFeed(RouteTest.demo(), true, true)).records(), "the demo");
+        Test.assertMessage((new TestFeed(RouteTest.demo(), false, true)).records(), "the sensors");
+        return true;
+    }
+
+    // The setting chooses the input. Not in a replay build, where the replay takes the sensors' place.
+    (:test, :noreplay)
     function demoSettingChoosesInput(logger as Logger) as Boolean {
         var was = Settings.demo();
         Settings.setDemo(false);
