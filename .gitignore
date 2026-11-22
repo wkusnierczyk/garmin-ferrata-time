@@ -33,4 +33,7 @@ developer_key*
 furenwand-simulator/
 
 # The replay build's recording (#57): the climber's own track, made by make replay; never committed.
+# Nor any FIT recording it is made from.
 resources-replay/replay.json
+*.fit
+*.FIT
