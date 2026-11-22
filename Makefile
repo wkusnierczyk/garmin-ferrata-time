@@ -184,11 +184,18 @@ install-garmin-font-scaler:
 # its origin (Barlow's j) spills a column into the gap, cut off, and with two the watch drew
 # that column as a faint mark after an i. Six keeps a two-column spill clear of the column after.
 FONT_PADDING := 6
-## Regenerate the bitmap fonts, fonts.md, fonts.sha256 and README.md's size table (needs ttf2bmp and garmin-font-scaler)
+# The size table, resources/fonts/sizes.json, is the one source: tools/font-config.py writes
+# fonts.xml, charsets.json and source/FontSizes.mc from it first, and after the scaler sets each
+# bitmap's advances to the font's own, rounded to the nearest pixel (ttf2bmp rounds them up).
+## Regenerate the font configuration from the size table, the bitmap fonts, fonts.md, fonts.sha256 and README.md's tables (needs ttf2bmp and garmin-font-scaler)
 fonts:
 	$(require_ttf2bmp)
 	$(require_font_scaler)
+	@python3 tools/font-config.py write
+	@for d in resources-*-*x*/fonts; do test -d "$$d" && rm -f "$$d"/*.fnt "$$d"/*.png; done; true
 	@garmin-font-scaler --padding $(FONT_PADDING) --table fonts.md
+	@python3 tools/font-config.py advances resources-*-*x*/fonts
+	@rm -f resources/fonts/*.fnt resources/fonts/*.png
 	@ref=$$(python3 -c 'import json; r = json.load(open("resources/fonts/resolutions.json"))["reference"]; print("resources-%s-%dx%d" % (r["shape"], *r["resolution"]))') && \
 	  for f in $$(sed -nE 's/.*filename="([^"]+)\.fnt".*/\1/p' resources/fonts/fonts.xml); do \
 	    cp "$$ref/fonts/$$f.fnt" "$$ref/fonts/$$f.png" resources/fonts/ || exit 1; done

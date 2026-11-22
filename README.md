@@ -62,23 +62,39 @@ The tool lists every problem it finds and writes nothing. Its tests: `python3 -m
 
 The app draws every page in its own bitmap fonts made from [Barlow Condensed](https://github.com/jpt/barlow), the typeface of the mocks, in SemiBold for text and numbers and in Bold for the difficulty boxes and the words beside them, instead of the watch's system fonts (#62). Its figures are tabular, as the mocks set them (`font-variant-numeric: tabular-nums`): every digit has one width, so a number that counts does not shift.
 
-Sizes are shares of the screen's width, as the designs are: a page asks for the share its mock gives (the mock's pixels over 416) and gets the nearest font there is, the larger on a tie (`Fonts` in `source/Draw.mc`). The mocks draw text in 40 sizes (26 SemiBold, 14 Bold), merged into twelve fonts:
+A text the mock draws at `font-size: N` at 416 px draws on the watch at N px too, with the same cap height (0.7 of N) and the same advances to the nearest pixel: `ttf2bmp`'s size is the em, as CSS's `font-size` is, and `make fonts` rounds each glyph's advance to the nearest pixel where `ttf2bmp` rounds it up.
+
+The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its size as a share of the screen's width (the designs are in proportions), its pixels at the 416 px reference, and its glyphs. `tools/font-config.py` writes from it `resources/fonts/fonts.xml`, `resources/fonts/charsets.json` and `source/FontSizes.mc`, which nobody edits by hand. A page asks for a size in the table (`d.semi(share)`, `d.bold(share)`, `Fonts` in `source/Draw.mc`), and `make check-fonts` fails on one that is not; a widget drawn at a factor (page 7's group at 1.15, page 8's at 1.5) gets the nearest size, the larger on a tie. The mocks use only these sizes, rounding a scaled one the same way, so what a mock shows is what the watch draws:
 
 <!-- font sizes: start -->
-| Font | Share of the width | At 416 px | The mocks' sizes it draws (px at 416) | Glyphs |
-|:-|-:|-:|:-|:-|
-| `SemiBold18` | 4.33 % | 18 | 15, 16.5, 18, 18.4 | text |
-| `SemiBold22` | 5.29 % | 22 | 20, 20.2, 22, 24, 25 | text |
-| `SemiBold30` | 7.21 % | 30 | 27, 28, 29.9, 30, 32 | text |
-| `SemiBold36` | 8.65 % | 36 | 34, 36, 36.8, 39, 40 | text |
-| `SemiBold46` | 11.06 % | 46 | 44, 46 | text |
-| `SemiBold58` | 13.94 % | 58 | 52, 56, 58, 64 | numbers |
-| `SemiBold84` | 20.19 % | 84 | 84 | numbers |
-| `Bold18` | 4.33 % | 18 | 18.72, 20 | text |
-| `Bold26` | 6.25 % | 26 | 24, 26, 27.6, 28, 28.08, 30 | text |
-| `Bold36` | 8.65 % | 36 | 34, 36, 36.8 | text |
-| `Bold52` | 12.50 % | 52 | 52.9 | grades |
-| `Bold70` | 16.83 % | 70 | 69, 70 | grades |
+| Font | Weight | Share of the width | At 416 px | Glyphs |
+|:-|:-|-:|-:|:-|
+| `SemiBold16` | SemiBold | 0.0385 (3.85 %) | 16 | text |
+| `SemiBold18` | SemiBold | 0.0433 (4.33 %) | 18 | text |
+| `SemiBold20` | SemiBold | 0.0481 (4.81 %) | 20 | text |
+| `SemiBold22` | SemiBold | 0.0529 (5.29 %) | 22 | text |
+| `SemiBold24` | SemiBold | 0.0577 (5.77 %) | 24 | text |
+| `SemiBold28` | SemiBold | 0.0673 (6.73 %) | 28 | text |
+| `SemiBold30` | SemiBold | 0.0721 (7.21 %) | 30 | text |
+| `SemiBold32` | SemiBold | 0.0769 (7.69 %) | 32 | text |
+| `SemiBold36` | SemiBold | 0.0865 (8.65 %) | 36 | text |
+| `SemiBold40` | SemiBold | 0.0962 (9.62 %) | 40 | text |
+| `SemiBold44` | SemiBold | 0.1058 (10.58 %) | 44 | text |
+| `SemiBold46` | SemiBold | 0.1106 (11.06 %) | 46 | text |
+| `SemiBold52` | SemiBold | 0.1250 (12.50 %) | 52 | numbers |
+| `SemiBold58` | SemiBold | 0.1394 (13.94 %) | 58 | numbers |
+| `SemiBold64` | SemiBold | 0.1538 (15.38 %) | 64 | numbers |
+| `SemiBold84` | SemiBold | 0.2019 (20.19 %) | 84 | numbers |
+| `Bold18` | Bold | 0.0433 (4.33 %) | 18 | text |
+| `Bold20` | Bold | 0.0481 (4.81 %) | 20 | text |
+| `Bold24` | Bold | 0.0577 (5.77 %) | 24 | text |
+| `Bold26` | Bold | 0.0625 (6.25 %) | 26 | text |
+| `Bold28` | Bold | 0.0673 (6.73 %) | 28 | text |
+| `Bold30` | Bold | 0.0721 (7.21 %) | 30 | text |
+| `Bold34` | Bold | 0.0817 (8.17 %) | 34 | text |
+| `Bold36` | Bold | 0.0865 (8.65 %) | 36 | text |
+| `Bold52` | Bold | 0.1250 (12.50 %) | 52 | grades |
+| `Bold70` | Bold | 0.1683 (16.83 %) | 70 | grades |
 <!-- font sizes: end -->
 
 Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z and a to z, the digits, the space and `' ( ) + , - . / : > ~ ° · …`, the punctuation the code and the mock pages use (parentheses, comma and period come from route names such as "Grosser Spalt (var. E)"). Route names cannot be predicted, so the route tool folds accented letters to plain ones and rejects anything else the fonts lack (#84); `make check-fonts` fails on a string literal in `source/` outside this set. Number fonts hold the digits, `:`, `-` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`). The older pages (from the side profile on) drew in system fonts; each now draws in the SemiBold size whose capitals stand as tall.
@@ -89,16 +105,30 @@ The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources
 | Resolution | Shape |   Element   |              Font               | Size |
 | ---------: | :---- | :---------- | :------------------------------ | ---: |
 |  416 x 416 | round | Bold18      | BarlowCondensedTabular bold     |   18 |
+|  416 x 416 | round | Bold20      | BarlowCondensedTabular bold     |   20 |
+|  416 x 416 | round | Bold24      | BarlowCondensedTabular bold     |   24 |
 |  416 x 416 | round | Bold26      | BarlowCondensedTabular bold     |   26 |
+|  416 x 416 | round | Bold28      | BarlowCondensedTabular bold     |   28 |
+|  416 x 416 | round | Bold30      | BarlowCondensedTabular bold     |   30 |
+|  416 x 416 | round | Bold34      | BarlowCondensedTabular bold     |   34 |
 |  416 x 416 | round | Bold36      | BarlowCondensedTabular bold     |   36 |
 |  416 x 416 | round | Bold52      | BarlowCondensedTabular bold     |   52 |
 |  416 x 416 | round | Bold70      | BarlowCondensedTabular bold     |   70 |
+|  416 x 416 | round | Semi bold16 | BarlowCondensedTabular semibold |   16 |
 |  416 x 416 | round | Semi bold18 | BarlowCondensedTabular semibold |   18 |
+|  416 x 416 | round | Semi bold20 | BarlowCondensedTabular semibold |   20 |
 |  416 x 416 | round | Semi bold22 | BarlowCondensedTabular semibold |   22 |
+|  416 x 416 | round | Semi bold24 | BarlowCondensedTabular semibold |   24 |
+|  416 x 416 | round | Semi bold28 | BarlowCondensedTabular semibold |   28 |
 |  416 x 416 | round | Semi bold30 | BarlowCondensedTabular semibold |   30 |
+|  416 x 416 | round | Semi bold32 | BarlowCondensedTabular semibold |   32 |
 |  416 x 416 | round | Semi bold36 | BarlowCondensedTabular semibold |   36 |
+|  416 x 416 | round | Semi bold40 | BarlowCondensedTabular semibold |   40 |
+|  416 x 416 | round | Semi bold44 | BarlowCondensedTabular semibold |   44 |
 |  416 x 416 | round | Semi bold46 | BarlowCondensedTabular semibold |   46 |
+|  416 x 416 | round | Semi bold52 | BarlowCondensedTabular semibold |   52 |
 |  416 x 416 | round | Semi bold58 | BarlowCondensedTabular semibold |   58 |
+|  416 x 416 | round | Semi bold64 | BarlowCondensedTabular semibold |   64 |
 |  416 x 416 | round | Semi bold84 | BarlowCondensedTabular semibold |   84 |
 <!-- fonts.md: end -->
 

@@ -5,20 +5,16 @@ using Toybox.WatchUi;
 import Toybox.Lang;
 
 // The app's typeface (#62): Barlow Condensed, the mocks' face, with tabular figures, in SemiBold and
-// Bold, as bitmap fonts. A size is a share of the screen's width; garmin-font-scaler makes each font
-// at its share of every resolution (resources/fonts/fonts.xml gives it in pixels at 416). Each font
-// is loaded on first use and kept.
+// Bold, as bitmap fonts. A size is a share of the screen's width, from the size table
+// (resources/fonts/sizes.json, as FontSizes); garmin-font-scaler makes each font at its share of
+// every resolution. Each font is loaded on first use and kept.
 module Fonts {
 
-    // The sizes there are, as shares of the screen's width, smallest first; the mocks' sizes merge
-    // into these (README.md, Fonts). tools/check-font-config.py holds them to fonts.xml.
-    const SEMI = [0.0433, 0.0529, 0.0721, 0.0865, 0.1106, 0.1394, 0.2019] as Array<Float>;
-    const BOLD = [0.0433, 0.0625, 0.0865, 0.1250, 0.1683] as Array<Float>;
+    var semiLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[FontSizes.SEMI.size()];
+    var boldLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[FontSizes.BOLD.size()];
 
-    var semiLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[SEMI.size()];
-    var boldLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[BOLD.size()];
-
-    // The nearest size to share, the larger on a tie (within the sizes' rounding).
+    // The size nearest share, the larger on a tie (within the table's rounding). A page asks for a
+    // size in the table, so this finds it; a widget drawn at a factor gets the nearest.
     function nearest(share as Numeric, sizes as Array<Float>) as Number {
         var best = 0;
         for (var i = 1; i < sizes.size(); i++) {
@@ -29,11 +25,9 @@ module Fonts {
 
     // SemiBold, the pages' text and numbers, at the size nearest share (of the screen's width).
     function semi(share as Numeric) as Graphics.FontType {
-        var i = nearest(share, SEMI), f = semiLoaded[i];
+        var i = nearest(share, FontSizes.SEMI), f = semiLoaded[i];
         if (f == null) {
-            var ids = [Rez.Fonts.SemiBold18, Rez.Fonts.SemiBold22, Rez.Fonts.SemiBold30, Rez.Fonts.SemiBold36,
-                Rez.Fonts.SemiBold46, Rez.Fonts.SemiBold58, Rez.Fonts.SemiBold84] as Array<ResourceId>;
-            f = WatchUi.loadResource(ids[i]) as Graphics.FontType;
+            f = WatchUi.loadResource(FontSizes.semiId(i)) as Graphics.FontType;
             semiLoaded[i] = f;
         }
         return f;
@@ -41,11 +35,9 @@ module Fonts {
 
     // Bold, the letters in the difficulty boxes and the words beside them, at the size nearest share.
     function bold(share as Numeric) as Graphics.FontType {
-        var i = nearest(share, BOLD), f = boldLoaded[i];
+        var i = nearest(share, FontSizes.BOLD), f = boldLoaded[i];
         if (f == null) {
-            var ids = [Rez.Fonts.Bold18, Rez.Fonts.Bold26, Rez.Fonts.Bold36, Rez.Fonts.Bold52,
-                Rez.Fonts.Bold70] as Array<ResourceId>;
-            f = WatchUi.loadResource(ids[i]) as Graphics.FontType;
+            f = WatchUi.loadResource(FontSizes.boldId(i)) as Graphics.FontType;
             boldLoaded[i] = f;
         }
         return f;

@@ -226,9 +226,9 @@ module Widgets {
     // ---------------------------------------------------------------- altitude, poi
 
     // The altitude's size and its unit's, and the poi word's (bold), as shares of the screen's width
-    // (46, 25 and 24 px at 416).
+    // (46, 24 and 24 px at 416; the unit was 25 in the mocks, which take the table's 24).
     const ALT_SIZE = 0.1106;
-    const ALT_UNIT = 0.0601;
+    const ALT_UNIT = 0.0577;
     const POI_SIZE = 0.0577;
 
     function poiFont(d as Draw) as Graphics.FontType { return d.bold(POI_SIZE); }
@@ -541,11 +541,11 @@ module Widgets {
     }
 
     // The tick labels' size, as a share of the screen's width (18 px at 416); the next altitude to
-    // reach at twice it, the ones just above and below it at one and a half. The names' size beside
-    // the stack: 20 px at 416 in the mocks, between two fonts, so the larger (22).
+    // reach at twice it (36), the ones just above and below it at one and a half (27, drawn at the
+    // table's nearest, 28). The names' size beside the stack (20 px at 416).
     const TICK_SIZE = 0.0433;
     const BIG_SCALE = [2.0, 1.5];
-    const NAME_SIZE = 0.0529;
+    const NAME_SIZE = 0.0481;
 
     // Tick label t's font, next being the next altitude's tick (or -1).
     function tickFont(d as Draw, t as Number, next as Number) as Graphics.FontType {

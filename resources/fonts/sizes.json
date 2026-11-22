@@ -1,0 +1,37 @@
+{
+  "about": "The app's font sizes, the one source of truth (#62): each a share of the screen's width, with its pixels at the 416 px reference. tools/font-config.py writes fonts.xml, charsets.json and source/FontSizes.mc from it. A mock uses only these sizes; a size scaled by a widget's factor rounds to the nearest, the larger on a tie, as the watch does.",
+  "reference": 416,
+  "glyphs": {
+    "text": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+    "numbers": " -:0123456789",
+    "grades": "/0123456789ABCDEFGKRW"
+  },
+  "fonts": [
+    {"weight": "SemiBold", "share": 0.0385, "px": 16, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0433, "px": 18, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0481, "px": 20, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0529, "px": 22, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0577, "px": 24, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0673, "px": 28, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0721, "px": 30, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0769, "px": 32, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0865, "px": 36, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.0962, "px": 40, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.1058, "px": 44, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.1106, "px": 46, "glyphs": "text"},
+    {"weight": "SemiBold", "share": 0.125, "px": 52, "glyphs": "numbers"},
+    {"weight": "SemiBold", "share": 0.1394, "px": 58, "glyphs": "numbers"},
+    {"weight": "SemiBold", "share": 0.1538, "px": 64, "glyphs": "numbers"},
+    {"weight": "SemiBold", "share": 0.2019, "px": 84, "glyphs": "numbers"},
+    {"weight": "Bold", "share": 0.0433, "px": 18, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0481, "px": 20, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0577, "px": 24, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0625, "px": 26, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0673, "px": 28, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0721, "px": 30, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0817, "px": 34, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.0865, "px": 36, "glyphs": "text"},
+    {"weight": "Bold", "share": 0.125, "px": 52, "glyphs": "grades"},
+    {"weight": "Bold", "share": 0.1683, "px": 70, "glyphs": "grades"}
+  ]
+}

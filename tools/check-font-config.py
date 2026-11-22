@@ -14,6 +14,7 @@ are fractions of the screen's width, to fonts.xml's, and the mocks' sizes to the
 into. Pure Python, no SDK, no font tools.
 """
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -29,38 +30,29 @@ DEVICE_DIRS = ['~/Library/Application Support/Garmin/ConnectIQ/Devices', '~/.Gar
 LICENCE = 'resources/fonts/OFL-BarlowCondensed.txt'
 CIQ_SHAPES = {'round', 'semiround', 'rectangle', 'semioctagon'}
 
-# The fonts by weight, smallest first, as Draw.mc's Fonts.SEMI and Fonts.BOLD list them.
+# The size table, resources/fonts/sizes.json, is the one source (tools/font-config.py writes the
+# configuration from it). The glyph sets are the owner's (2026-11-22: only what the app needs).
+# Text: letters, digits, the space, and the punctuation the code and the mock pages draw (the
+# parentheses, the comma and the period from route names in the mocks, "Grosser Spalt (var. E)",
+# "Bridge, summit wall"); route names are folded to these by the route tool (#84). Numbers: what
+# the large figures show, counts and h:mm. Grades: the letters and digits of the difficulty boxes
+# (A to F with half steps such as C/D, K1 to K6 and K3/4, R, W and E).
 FACES = {'SemiBold': 'BarlowCondensedTabular-SemiBold', 'Bold': 'BarlowCondensedTabular-Bold'}
-IDS = {'SemiBold': ['SemiBold18', 'SemiBold22', 'SemiBold30', 'SemiBold36', 'SemiBold46', 'SemiBold58', 'SemiBold84'],
-       'Bold': ['Bold18', 'Bold26', 'Bold36', 'Bold52', 'Bold70']}
-
-# The glyphs each font draws (owner, 2026-11-22: only what the app needs). Text: letters, digits,
-# the space, and the punctuation the code and the mock pages draw: ' ( ) + , - . / : > ~ ° · …
-# (the parentheses, the comma and the period from route names in the mocks, "Grosser Spalt (var.
-# E)", "Bridge, summit wall"). Route names are folded to these by the route tool (#84). Numbers: what the large figures show, counts
-# and h:mm. Grades: the letters and digits of the difficulty boxes (A to F with half steps such as
-# C/D, K1 to K6 and K3/4, R, W and E).
+_spec = importlib.util.spec_from_file_location('font_config', os.path.join(os.path.dirname(__file__), 'font-config.py'))
+font_config = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(font_config)
+SIZES = font_config.table()
+IDS = {w: [font_config.font_id(f) for f in SIZES['fonts'] if f['weight'] == w] for w in FACES}
+CHARSETS = {font_config.font_id(f): SIZES['glyphs'][f['glyphs']] for f in SIZES['fonts']}
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 TEXT = LETTERS + " '()+,-./:>~°·…"
 NUMBERS = ' -:0123456789'
 GRADES = '/0123456789ABCDEFGKRW'
-CHARSETS = {'SemiBold18': TEXT, 'SemiBold22': TEXT, 'SemiBold30': TEXT, 'SemiBold36': TEXT,
-            'SemiBold46': TEXT, 'SemiBold58': NUMBERS, 'SemiBold84': NUMBERS,
-            'Bold18': TEXT, 'Bold26': TEXT, 'Bold36': TEXT, 'Bold52': GRADES, 'Bold70': GRADES}
 
-# The sizes the mocks draw in (.dev/mocks/pages-sulzfluh, pages-daubenhorn; px at 416 px wide), by
-# weight, and the font each merges into: the nearest, the larger on a tie, as Fonts.nearest picks.
-# The mocks live outside the repository, so this list is their record here; what the code asks for
-# is derived from source/ below (DRAW).
-MOCK = {'SemiBold': [15, 16.5, 18, 18.4, 20, 20.2, 22, 24, 25, 27, 28, 29.9, 30, 32, 34, 36, 36.8, 39,
-                     40, 44, 46, 52, 56, 58, 64, 84],
-        'Bold': [18.72, 20, 24, 26, 27.6, 28, 28.08, 30, 34, 36, 36.8, 52.9, 69, 70]}
-
-# Barlow Condensed, in font units: ascender and descender (hhea), cap height (OS/2), and the
-# tabular figures' advance, per weight. ttf2bmp rounds up: lineHeight = ceil(size x 1.2 em),
-# base = size (the ascender is 1 em), which Draw.CAP (0.7) relies on.
+# Barlow Condensed, in font units: ascender and descender (hhea) and cap height (OS/2). ttf2bmp's
+# size is the em, as a browser's font-size: lineHeight = ceil(size x 1.2 em), base = size (the
+# ascender is 1 em), which Draw.CAP (0.7) relies on; a capital stands 0.7 of the size, as in a mock.
 UPM, ASC, DESC, CAP = 1000, 1000, 200, 700
-FIGURE = {'SemiBold': 475, 'Bold': 498}
 
 fail = []
 
@@ -182,6 +174,15 @@ def size_at(fid, w, h):
 # ---------------------------------------------------------------------- chain
 print("\nCHAIN")
 want_ids = [i for ws in IDS.values() for i in ws]
+ok(SIZES['glyphs'] == {'text': TEXT, 'numbers': NUMBERS, 'grades': GRADES},
+   "sizes.json's glyph sets are the owner's: text, numbers, grades")
+bad_table = font_config.problems(SIZES)
+ok(not bad_table, "sizes.json: each share is its pixels over the reference to four places, the sizes rise, "
+   "each glyph set exists" + (f" ({bad_table[:3]})" if bad_table else ""))
+ok(SIZES['reference'] == rw, f"sizes.json's reference, {SIZES['reference']} px, is resolutions.json's width")
+for path, make in font_config.OUTPUTS.items():
+    ok(os.path.exists(path) and read(path) == make(SIZES),
+       f"{path} is tools/font-config.py's from sizes.json, byte for byte (make fonts writes it)")
 ok(list(refsize) == want_ids, f"fonts.xml declares exactly {want_ids}, in that order (found {list(refsize)})")
 for weight, ids in IDS.items():
     ok(all(refsize.get(i, ('',))[0] == FACES[weight] for i in ids), f"the {weight} fonts are all {FACES[weight]}")
@@ -286,6 +287,7 @@ charsets = {c['fontId']: c['fontCharset'] for c in json.loads(read('resources/fo
 for fid in want_ids:
     ok(charsets.get(fid) is not None and sorted(charsets[fid]) == sorted(CHARSETS[fid]),
        f"charsets.json {fid} holds exactly its {len(CHARSETS[fid])} glyphs")
+font_advances = {w: font_config.ttf_advances(f'resources/fonts/{FACES[w]}.ttf') for w in FACES}
 bad = 0
 for d in dirs:
     w, h = map(int, d.rsplit('-', 1)[1].split('x'))
@@ -299,15 +301,19 @@ for d in dirs:
             ok(False, f"{path}: holds {len(adv)} glyphs, not its charset's {len(CHARSETS[fid])}")
             bad += 1
         weight = 'Bold' if fid.startswith('Bold') else 'SemiBold'
-        digits = {adv.get(c) for c in '0123456789'}
-        if len(digits) != 1 or abs(digits.pop() - FIGURE[weight] / UPM * size) > 1:
-            ok(False, f"{path}: the digits are not one tabular advance of {FIGURE[weight]} units")
+        units, upm = font_advances[weight]
+        if any(adv[c] != font_config.true_advance(units[ord(c)], upm, size) for c in adv):
+            ok(False, f"{path}: an advance is not the font's at size {size}, rounded to the nearest pixel")
+            bad += 1
+        if len({adv.get(c) for c in '0123456789' if c in adv}) > 1:
+            ok(False, f"{path}: the digits do not share one tabular advance")
             bad += 1
         if line != math.ceil(size * (ASC + DESC) / UPM) or base != math.ceil(size * ASC / UPM):
             ok(False, f"{path}: lineHeight {line} and base {base} are not 1.2 and 1 em at size {size}")
             bad += 1
 if not bad:
-    ok(True, "every bitmap holds its charset, its digits one tabular advance, and its line 1.2 em and base 1 em")
+    ok(True, "every bitmap holds its charset, its advances the font's rounded to the nearest pixel (the digits "
+       "one), and its line 1.2 em and base 1 em")
 spilt = [f"{d}/fonts/{refsize[fid][0]}-{size_at(fid, *map(int, d.rsplit('-', 1)[1].split('x')))}.fnt"
          for d in dirs for fid in refsize]
 spilt = {p.rsplit('/', 1)[1]: spills(p) for p in spilt if os.path.exists(p)}
@@ -336,16 +342,8 @@ ok(drawn <= set(TEXT), "every string literal in source/ is in the text fonts"
 # ---------------------------------------------------------------------- Draw.mc
 print("\nDRAW")
 draw = read('source/Draw.mc')
-for weight, const, fn in (('SemiBold', 'SEMI', 'semi'), ('Bold', 'BOLD', 'bold')):
-    m = re.search(rf'const {const} = \[([^\]]*)\]', draw)
-    fracs = [float(v) for v in m.group(1).split(',')] if m else []
-    sizes = [refsize[i][1] for i in IDS[weight] if i in refsize]
-    ok(len(fracs) == len(sizes) and all(abs(f - s / rw) < 0.00005 for f, s in zip(fracs, sizes)),
-       f"Fonts.{const} is fonts.xml's {weight} sizes over the reference width, {rw}, to four places")
-    m = re.search(rf'function {fn}\(.*?var ids = \[(.*?)\]', draw, re.S)
-    ids = re.findall(r'Rez\.Fonts\.(\w+)', m.group(1)) if m else []
-    ok(ids == IDS[weight], f"Fonts.{fn} loads the {weight} ids in Fonts.{const}'s order")
-
+ok('FontSizes.SEMI' in draw and 'FontSizes.semiId(' in draw and 'FontSizes.BOLD' in draw and 'FontSizes.boldId(' in draw,
+   "Draw.mc's Fonts takes the sizes and ids from FontSizes, the table's")
 
 def num(v):
     return f"{v:g}"
@@ -361,8 +359,8 @@ def nearest(px, sizes):
 
 
 # What the code asks for: every share passed to d.semi or d.bold as a number, or as a constant the
-# source declares (`const NAME = 0.1234;`), maps to a font. A share times a variable (a widget drawn
-# at size k) is not evaluated here.
+# source declares (`const NAME = 0.1234;`), is a size in the table, exactly: no size is merged into
+# another. A share times a variable (a widget drawn at size k) gets the nearest; not evaluated here.
 consts = {n: float(v) for n, v in re.findall(r'const (\w+) = (0\.\d+);', source)}
 asked, unknown = {'SemiBold': set(), 'Bold': set()}, set()
 for fn, arg in re.findall(r'\b(?:d|Fonts)\.(semi|bold)\(([^()]*)\)', source):
@@ -374,9 +372,9 @@ for fn, arg in re.findall(r'\b(?:d|Fonts)\.(semi|bold)\(([^()]*)\)', source):
         asked['SemiBold' if fn == 'semi' else 'Bold'].add(round(v * rw, 1))
 for weight in IDS:
     sizes = [refsize[i][1] for i in IDS[weight]]
-    out = sorted(px for px in asked[weight] if not sizes[0] * 0.8 <= px <= sizes[-1] * 1.2)
-    ok(not out, f"every {weight} size the code names ({len(asked[weight])}) lies within the fonts' range"
-       + (f" (outside: {out})" if out else ""))
+    out = sorted(px for px in asked[weight] if not any(abs(px - s) < 0.05 for s in sizes))
+    ok(not out, f"every {weight} size the code names ({len(asked[weight])}) is in the table"
+       + (f" (not: {out})" if out else ""))
 print(f"        named in source, px at {rw}: " + '; '.join(
     f"{w} " + ', '.join(f"{px:g}->{IDS[w][nearest(px, [refsize[i][1] for i in IDS[w]])]}" for px in sorted(asked[w]))
     for w in asked) + (f"; not evaluated: {', '.join(sorted(unknown))}" if unknown else ''))
@@ -402,13 +400,6 @@ box_glyphs = set(''.join(re.findall(r'"([^"]*)"', box.group(1)))) if box else se
 ok(bool(box) and box_glyphs <= set(GRADES), f"BOX_NAME, which the grade fonts draw, is grade glyphs ({''.join(sorted(box_glyphs))})")
 ok(not bad, "every string literal drawn in a number or grade font is in its charset" + (f" (not {bad[:3]})" if bad else ""))
 
-merged = {}
-for weight, mocks in MOCK.items():
-    sizes = [refsize[i][1] for i in IDS[weight]]
-    for px in mocks:
-        merged.setdefault(IDS[weight][nearest(px, sizes)], []).append(px)
-ok(all(merged.get(i) for i in want_ids), "every font has a mock size merged into it")
-
 # ---------------------------------------------------------------------- README
 print("\nTABLES")
 HEAD = '# Font sizes by resolution'
@@ -426,12 +417,10 @@ def resolution_table(text):
 
 
 def size_table():
-    rows = ["| Font | Share of the width | At 416 px | The mocks' sizes it draws (px at 416) | Glyphs |",
-            "|:-|-:|-:|:-|:-|"]
-    kinds = {TEXT: 'text', NUMBERS: 'numbers', GRADES: 'grades'}
-    for fid in want_ids:
-        rows.append(f"| `{fid}` | {refsize[fid][1] / rw * 100:.2f} % | {refsize[fid][1]} | "
-                    f"{', '.join(num(v) for v in merged[fid])} | {kinds[CHARSETS[fid]]} |")
+    rows = ["| Font | Weight | Share of the width | At 416 px | Glyphs |", "|:-|:-|-:|-:|:-|"]
+    for f in SIZES['fonts']:
+        rows.append(f"| `{font_config.font_id(f)}` | {f['weight']} | {f['share']:.4f} ({f['share'] * 100:.2f} %) | "
+                    f"{f['px']} | {f['glyphs']} |")
     return rows
 
 
