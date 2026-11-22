@@ -1,24 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" color="#ff6f3c">
-  <!-- A climber clipped to a via ferrata cable: the cable, a rung, then the climber.
-       The helmet is only its visor; the harness is the gap cut at the waist. -->
+  <!-- Proposal B, "Top out" (owner, 2026-11-22): Garmin's Activities figure, arms up in a V, clipped
+       to the via ferrata cable beside it. Garmin's figure style: a round head and filled limbs that
+       narrow away from the body, each limb a chain of circles joined by their outer tangents. The
+       harness is the gap cut at the waist; the lanyard runs from it to a carabiner on the cable.
+       Drawn from the icon mock (workspace .dev/mocks/icons/icons.html). -->
   <defs>
     <mask id="harness" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
       <rect width="100" height="100" fill="#fff"/>
-      <line x1="25" y1="53" x2="52" y2="57" stroke="#000" stroke-width="3.5"/>
+      <line x1="37" y1="51" x2="60" y2="51" stroke="#000" stroke-width="3.4"/>
+    </mask>
+    <!-- The cable stops inside the carabiner, so the ring reads as a ring at 60 px; the mock hides it
+         with a background fill, which a transparent icon cannot. -->
+    <mask id="ring" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <circle cx="79.5" cy="48" r="2.3" fill="#000"/>
     </mask>
   </defs>
-  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M76 3V97" stroke-width="5"/>
-    <path d="M60 80H76" stroke-width="6"/>
-    <circle cx="43" cy="15" r="10" fill="currentColor" stroke="none"/>
-    <path d="M43 11L59 12.5" stroke-width="5"/>
-    <g mask="url(#harness)">
-      <path d="M42 32L38 57" stroke-width="15"/>
-      <path d="M38 59L53 67L63 78" stroke-width="11"/>
-      <path d="M37 59L32 78L40 94" stroke-width="11"/>
-    </g>
-    <path d="M46 35L60 30L72 22" stroke-width="10"/>
-    <path d="M41 55L70 50" stroke-width="4.5"/>
-    <circle cx="75.5" cy="49.5" r="4.6" stroke-width="3.6"/>
-  </g>
+  <path d="M80 4V96" fill="none" mask="url(#ring)" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
+  <g fill="currentColor" mask="url(#harness)"><circle cx="48" cy="29" r="9.5"/><circle cx="48" cy="53" r="8"/><polygon points="38.52,29.59 40.02,53.50 55.98,53.50 57.48,29.59"/><circle cx="53" cy="28" r="5.4"/><circle cx="62" cy="19" r="3.7"/><circle cx="71" cy="9" r="2.4"/><polygon points="57.29,31.27 64.94,21.24 59.76,16.06 49.73,23.71"/><polygon points="64.98,21.20 72.93,10.43 69.38,7.23 59.50,16.27"/><circle cx="43" cy="28" r="5.4"/><circle cx="34" cy="19" r="3.7"/><circle cx="25" cy="9" r="2.4"/><polygon points="46.27,23.71 36.24,16.06 31.06,21.24 38.71,31.27"/><polygon points="36.50,16.27 26.62,7.23 23.07,10.43 31.02,21.20"/><circle cx="52" cy="56" r="6.8"/><circle cx="57" cy="74" r="4.6"/><circle cx="61" cy="92" r="2.6"/><polygon points="45.71,58.58 52.74,75.74 61.55,73.30 58.72,54.96"/><polygon points="52.64,75.48 58.54,92.84 63.58,91.71 61.57,73.50"/><circle cx="44" cy="56" r="6.8"/><circle cx="39" cy="74" r="4.6"/><circle cx="35" cy="92" r="2.6"/><polygon points="37.28,54.96 34.45,73.30 43.26,75.74 50.29,58.58"/><polygon points="34.43,73.50 32.42,91.71 37.46,92.84 43.36,75.48"/><circle cx="48" cy="13" r="9"/></g>
+  <line x1="56" y1="53" x2="75" y2="49" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="79.5" cy="48" r="3.6" fill="none" stroke="currentColor" stroke-width="2.6"/>
 </svg>
