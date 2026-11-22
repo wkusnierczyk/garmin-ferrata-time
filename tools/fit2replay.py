@@ -9,7 +9,9 @@ at its last, so the replay ends where the recording does: [t, alt, lat, lon]. t 
 recording's local time, from its activity message; UTC, with a warning, without one); alt the
 altitude in whole metres (enhanced_altitude, else altitude); lat and lon in degrees to 5 decimals
 (about a metre). Each value is interpolated between the records around it that have it, across any
-gap, and null before the first or after the last record that has it. One entry per line.
+gap, and null before the first or after the last record that has it. Entries are written only where
+the recording has records: none across a gap, which the replay interpolates across. More than
+MAX_ENTRIES entries is a warning (the watch app's memory), not an error. One entry per line.
 
 Needs Garmin's FIT SDK for Python: pip install -r tools/requirements.txt. A recording is the
 climber's own track: keep it, and the replay made from it, out of the repository
@@ -23,6 +25,9 @@ import sys
 from garmin_fit_sdk import Decoder, Stream
 
 STEP = 10  # seconds of the recording between entries
+# Above this many entries the tool warns: about 14 hours of records, some 300 KB of the watch app's
+# 768 KB once loaded (3051 entries took 181 KB in the simulator, #57).
+MAX_ENTRIES = 5000
 SEMI = 180 / 2**31  # degrees per semicircle
 DAY = 86400
 FIT_EPOCH = 631065600  # the FIT epoch, 1989-12-31 00:00 UTC, in Unix seconds
@@ -66,6 +71,8 @@ def local_offset(messages):
 
 def replay(path):
     """The replay entries of the FIT file at path."""
+    if not Decoder(Stream.from_file(str(path))).is_fit():
+        raise ReplayError(f"{path}: not a FIT file")
     messages, errors = Decoder(Stream.from_file(str(path))).read(convert_datetimes_to_dates=False)
     if errors:
         raise ReplayError(f"{path}: {errors[0]}")
@@ -85,9 +92,15 @@ def replay(path):
     first, last = records[0]["timestamp"], records[-1]["timestamp"]
     day = (first + FIT_EPOCH + offset) % DAY
     entries = []
-    times = list(range(first, last + 1, STEP))
+    # A grid time only where the recording has a record in the 10 s from it: across a gap (the watch
+    # stopped) there are none, and the replay interpolates across it.
+    slots = sorted({(r["timestamp"] - first) // STEP for r in records})
+    times = [first + k * STEP for k in slots]
     if times[-1] != last:
         times.append(last)
+    if len(times) > MAX_ENTRIES:
+        print(f"{path}: {len(times)} entries, more than {MAX_ENTRIES}: the replay may not fit the watch "
+              "app's memory", file=sys.stderr)
     for t in times:
         a, la, lo = at(alt, alt_t, t), at(lat, pos_t, t), at(lon, pos_t, t)
         entries.append([
@@ -111,11 +124,10 @@ def main(argv=None):
     p.add_argument("-o", "--output", required=True, help="the replay to write, a .json file")
     args = p.parse_args(argv)
     try:
-        entries = replay(args.fit)
+        write(replay(args.fit), args.output)
     except (ReplayError, OSError) as e:
         print(e, file=sys.stderr)
         return 1
-    write(entries, args.output)
     return 0
 
 

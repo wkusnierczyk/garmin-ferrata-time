@@ -2,9 +2,14 @@
 recording is checked in)."""
 import json
 
-from garmin_fit_sdk import Encoder, Profile, convert_timestamp_to_datetime as to_datetime
+import pytest
 
-import fit2replay
+# Without the FIT SDK these tests are skipped, and the route tool's still run (CI installs it).
+pytest.importorskip("garmin_fit_sdk")
+
+from garmin_fit_sdk import Encoder, Profile, convert_timestamp_to_datetime as to_datetime  # noqa: E402
+
+import fit2replay  # noqa: E402
 
 MESG = Profile["mesg_num"]
 # 2025-08-07 06:00:00 UTC, in seconds since the FIT epoch (1989-12-31 00:00 UTC).
@@ -112,6 +117,34 @@ def test_utc_without_local_time(tmp_path, capsys):
     entries = run(tmp_path, fit(tmp_path, climb(seconds=11), local_offset=None))
     assert entries[0][0] == 6 * 3600
     assert "UTC" in capsys.readouterr().err
+
+
+def test_no_entries_across_a_gap(tmp_path):
+    # Records to 20 s, none for 1000 s, then to 1040 s: no entries in the gap.
+    records = [r for r in climb(seconds=1041, every=2) if not 20 < r["timestamp"] - T0 < 1020]
+    entries = run(tmp_path, fit(tmp_path, records))
+    assert [e[0] - 8 * 3600 for e in entries] == [0, 10, 20, 1020, 1030, 1040]
+
+
+def test_many_entries_warn(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(fit2replay, "MAX_ENTRIES", 6)
+    assert len(run(tmp_path, fit(tmp_path, climb()))) == 7
+    assert "more than 6" in capsys.readouterr().err
+
+
+def test_not_a_fit_file(tmp_path, capsys):
+    for name, data in [("empty.fit", b""), ("text.fit", b"not a fit file at all")]:
+        path = tmp_path / name
+        path.write_bytes(data)
+        assert fit2replay.main([str(path), "-o", str(tmp_path / "r.json")]) == 1
+        assert "not a FIT file" in capsys.readouterr().err
+    assert not (tmp_path / "r.json").exists()
+
+
+def test_unwritable_output_is_an_error(tmp_path, capsys):
+    out = tmp_path / "missing" / "r.json"
+    assert fit2replay.main([str(fit(tmp_path, climb())), "-o", str(out)]) == 1
+    assert "r.json" in capsys.readouterr().err
 
 
 def test_no_records_is_an_error(tmp_path, capsys):
