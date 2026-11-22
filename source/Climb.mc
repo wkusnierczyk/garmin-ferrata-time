@@ -318,6 +318,43 @@ module Climb {
         return [lo, hi];
     }
 
+    // The stretch around distance d the climber may be on when the altitude is sure to band metres up
+    // or down: [lo, hi], the route followed back and ahead from d while its real (net) height stays
+    // within band of d's, over flat stretches too, to where it first leaves that band each way. A
+    // descent is followed down like a climb up. On a route without descents this is the stretch
+    // firstDistanceAt and lastDistanceAt give around the height gained.
+    function stretchAround(d as Float, band as Number) as [Float, Float] {
+        var total = totalD().toFloat();
+        if (d < 0) { d = 0.0; }
+        if (d > total) { d = total; }
+        var n = netAtDistance(d), up = n + band, down = n - band;
+        // Ahead: from d to the first point out of the band.
+        var hi = total;
+        for (var i = sectionAt(d); i < count(); i++) {
+            var x0 = d > dAt(i) ? d : dAt(i).toFloat(), x1 = dAt(i + 1).toFloat();
+            if (x1 <= x0) { continue; }
+            var a = netAtDistance(x0), b = netAt(i + 1).toFloat();
+            if (b > up || b < down) {
+                var edge = b > up ? up : down;
+                hi = x0 + (edge - a) / (b - a) * (x1 - x0);
+                break;
+            }
+        }
+        // Back: from d to the first point out of the band.
+        var lo = 0.0;
+        for (var i = sectionAt(d); i >= 0; i--) {
+            var x0 = dAt(i).toFloat(), x1 = d < dAt(i + 1) ? d : dAt(i + 1).toFloat();
+            if (x1 <= x0) { continue; }
+            var a = netAtDistance(x1), b = netAt(i).toFloat();
+            if (b > up || b < down) {
+                var edge = b > up ? up : down;
+                lo = x1 - (edge - a) / (b - a) * (x1 - x0);
+                break;
+            }
+        }
+        return [lo, hi];
+    }
+
     // The share of a section rising from a to b at which it reaches u, kept within the section.
     function crossing(a as Float, b as Float, u as Float) as Float {
         if (b <= a) { return 0.0; }
@@ -415,6 +452,8 @@ module Climb {
         // and the real altitude.
         function net() as Float { return netAtDistance(d); }
         function altitude() as Number { return START_ALT + net().toNumber(); }
+        // The stretch the climber may be on, from how sure the altitude is (stretchAround).
+        function stretch() as [Float, Float] { return stretchAround(d, band); }
         function climbed() as Number { return Math.round(u).toNumber(); }
         function elapsed() as Float { var e = given; return e != null ? e : m * pace; }
         function left() as Float { return (totalM() - m) * pace; }

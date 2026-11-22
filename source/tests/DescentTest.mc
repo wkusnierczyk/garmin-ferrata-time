@@ -55,6 +55,32 @@ module DescentTest {
     }
 
     (:test)
+    function stretchFollowsTheRealHeight(logger as Logger) as Boolean {
+        Climb.use(downRoute(), :ferrata);
+        // Mid-descent at 75 m, sure to 10 m: from 85 m on the way down to 65 m, not the whole descent.
+        var s = Climb.stretchAround(125.0, 10);
+        Test.assertMessage(RouteTest.near(s[0], 115.0) && RouteTest.near(s[1], 135.0), "115 to 135, got " + s.toString());
+        // At the high point between the climb and the descent: 10 m down either way.
+        s = Climb.stretchAround(100.0, 10);
+        Test.assertMessage(RouteTest.near(s[0], 90.0) && RouteTest.near(s[1], 110.0), "90 to 110, got " + s.toString());
+        return true;
+    }
+
+    (:test)
+    function stretchAsBeforeWithoutDescents(logger as Logger) as Boolean {
+        // A climb, a flat stretch, a climb: the stretch the height gained gave, everywhere.
+        Climb.use(RouteTest.made([[100, 100], [50, 0], [100, 100]] as Array<Array<Number> >), :ferrata);
+        for (var d = 0; d <= 250; d += 5) {
+            var u = Climb.heightAtDistance(d.toFloat()), s = Climb.stretchAround(d.toFloat(), 25);
+            var lo = Climb.firstDistanceAt(u - 25), hi = Climb.lastDistanceAt(u + 25);
+            if (!RouteTest.near(s[0], lo) || !RouteTest.near(s[1], hi)) {
+                Test.assertMessage(false, "at " + d + ": " + s.toString() + " against " + [lo, hi].toString());
+            }
+        }
+        return true;
+    }
+
+    (:test)
     function stackFlatForDescent(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);
         Test.assertEqualMessage(Widgets.stackSize(1, true), 0, "no height by ascent");

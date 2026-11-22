@@ -45,8 +45,7 @@ module Widgets {
         var td = Climb.totalD().toFloat();
         // The climber: an orange outline around the stretch they could be on, a wide orange line
         // with a narrower black one inside it, under the sections.
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         stretch(d, lo, hi, x0, w, y0, h, CLIMBER, 0.033654);
         stretch(d, lo, hi, x0, w, y0, h, BLACK, 0.026442);
         // The sections, round-ended, climbed parts dimmed; rests are left as gaps for their rings.
@@ -209,8 +208,7 @@ module Widgets {
     // and ahead within the uncertainty stretch in smaller boxes beside it. All share the bottom yb.
     // Without points, only sections count, and a rest shows as walking ground (W).
     function difficulty(d as Draw, st as Climb.State, x as Float, yb as Float, points as Boolean) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var cur = st.cur;
         var left = NONE, right = NONE, leftDist = 1.0e9, rightDist = 1.0e9;
         // The neighbouring sections; a point at the same distance wins over them.
@@ -309,8 +307,7 @@ module Widgets {
     // One word for the point of interest the uncertainty stretch covers, right-aligned at x, its top
     // at yt. The nearest wins; on a tie, danger before exit before rest.
     function poi(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, rank = 9, word = "", colour = WHITE;
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
@@ -787,8 +784,7 @@ module Widgets {
     }
 
     function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
         var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
         // The climber: an orange line inside the gauge, with round ends.
@@ -1085,8 +1081,7 @@ module Widgets {
     // and a red dot; the climber as the orange outline of the stretch they could be on.
     function frontView(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Void {
         var pts = frontOnScreen(x0, x1, y0, y1);
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
         frontBrush(d, pts, lo, hi, 0.026442, CLIMBER);
         frontBrush(d, pts, lo, hi, 0.019231, BLACK);
@@ -1139,8 +1134,7 @@ module Widgets {
     const POI_START = 4;
 
     function poiKind(st as Climb.State, ends as Boolean) as Number {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, kind = -1;
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
