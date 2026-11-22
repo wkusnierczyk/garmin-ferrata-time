@@ -2,7 +2,8 @@
 # (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
 # release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
 # target device (#11), the store bundle (#12) and the checks that need no
-# SDK (#14) come with the design and functionality.
+# SDK (#14) come with the design and functionality. The unit tests run in a job of their own,
+# under a virtual display (#13, #46).
 #
 # A container, because the device definitions monkeyc compiles against are not in the public SDK
 # download: the SDK manager pulls them behind a Garmin sign-in, so they arrive in an image. The image

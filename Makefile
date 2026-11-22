@@ -52,8 +52,10 @@ sideload:
 # summary and fails the same way. Only one monkeydo session at a time: a second one hangs.
 .PHONY: test
 TEST_OUTPUT := test_build.prg
-test: sim
+# The key is checked before the simulator is started, so a missing key does not leave one running.
+test:
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make test DEV_KEY=/path/to/developer_key"; exit 1; }
+	@$(MAKE) --no-print-directory sim
 	@echo "Building the unit tests for $(DEVICE)..."
 	@$(MONKEYC) -f monkey.jungle -d $(DEVICE) -y "$(KEY)" -w --unit-test -o $(TEST_OUTPUT)
 	@echo "Running the unit tests in the simulator..."
