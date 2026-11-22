@@ -8,7 +8,7 @@ The route seen from the front, as on a topo photo of the face. The app's seventh
 
 ## Layout
 
-- The **front view** on the right, fitted into 184 to 368 px across and 64 to 352 px down, one scale across and up.
+- The **front view** on the right, fitted into 0.4423 to 0.8846 of the screen across and 0.1538 to 0.8462 down, one scale across and up.
 - On the left, the **current difficulty group**, 15 % larger than its base size, its box centred vertically on the screen.
 - Point symbols as on page 8 (`design/page-8.md`): danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause, start a green play, top a red stop.
 - Difficulty colours: heat with amber, no purple.

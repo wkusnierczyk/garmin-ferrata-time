@@ -10,7 +10,7 @@ The **ascent stack** alone: the route's sections as boxes as tall as the metres 
 
 | Setting | Value |
 |:--|:--|
-| Scale | 3 px per metre: 96 m in view, 24 m below the climber and 72 m above |
+| Scale | 0.0072 of the screen per metre: 96 m in view, 24 m below the climber and 72 m above |
 | Altitude ticks | every 20 m (100 ft in feet) |
 | The next altitude above the climber | 200 % of the other tick labels |
 | The altitudes just above and below it | 150 % |

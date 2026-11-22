@@ -4,7 +4,7 @@ using Toybox.System;
 
 import Toybox.Lang;
 
-// The widgets of design/widgets.md, drawn in the design's 416 px coordinates. Each takes the
+// The widgets of design/widgets.md, laid out in shares of the screen's width. Each takes the
 // climber's state and where to draw; a page places them.
 module Widgets {
 
@@ -18,9 +18,9 @@ module Widgets {
     const BLACK = Graphics.COLOR_BLACK;
 
     // The climber's ring on the ascent line, and the space kept between it and the numbers beside it.
-    const RING_R = 9;
-    const RING_OUTER = 10.5;
-    const NUMBER_SPACE = 5;
+    const RING_R = 0.021635;
+    const RING_OUTER = 0.02524;
+    const NUMBER_SPACE = 0.012019;
     // The metres climbed and left beside the ascent, flat or as a gauge: their size, as a share of the
     // screen's width (22 px at 416).
     const NUMBER_SIZE = 0.0529;
@@ -30,11 +30,11 @@ module Widgets {
     const CODE_DANGER = -3;
     const NONE = -99;
     const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"] as Array<String>;
-    const BOX_H = 38;
+    const BOX_H = 0.091346;
     // The letters' size (bold) in a box at size 1, as a share of the screen's width (26 px at 416).
     const BOX_FS = 0.0625;
     const SATELLITE = 0.72;
-    const BOX_GAP = 5;
+    const BOX_GAP = 0.012019;
 
     // ---------------------------------------------------------------- profile
 
@@ -45,8 +45,8 @@ module Widgets {
         // with a narrower black one inside it, under the sections.
         var lo = Climb.firstDistanceAt(st.u - st.band);
         var hi = Climb.lastDistanceAt(st.u + st.band);
-        stretch(d, lo, hi, x0, w, y0, h, CLIMBER, 14);
-        stretch(d, lo, hi, x0, w, y0, h, BLACK, 11);
+        stretch(d, lo, hi, x0, w, y0, h, CLIMBER, 0.033654);
+        stretch(d, lo, hi, x0, w, y0, h, BLACK, 0.026442);
         // The sections, round-ended, climbed parts dimmed; rests are left as gaps for their rings.
         var cx = x0 + st.d / td * w, cy = y0 - st.u / tu * h;
         for (var i = 0; i < Climb.count(); i++) {
@@ -55,12 +55,12 @@ module Widgets {
             var ax = x0 + Climb.dAt(i) / td * w, ay = y0 - Climb.uAt(i) / tu * h;
             var bx = x0 + Climb.dAt(i + 1) / td * w, by = y0 - Climb.uAt(i + 1) / tu * h;
             if (Climb.dAt(i + 1) <= st.d) {
-                d.brush(ax, ay, bx, by, 5, d.grade(g, true));
+                d.brush(ax, ay, bx, by, 0.012019, d.grade(g, true));
             } else if (Climb.dAt(i) >= st.d) {
-                d.brush(ax, ay, bx, by, 5, d.grade(g, false));
+                d.brush(ax, ay, bx, by, 0.012019, d.grade(g, false));
             } else {
-                d.brush(ax, ay, cx, cy, 5, d.grade(g, true));
-                d.brush(cx, cy, bx, by, 5, d.grade(g, false));
+                d.brush(ax, ay, cx, cy, 0.012019, d.grade(g, true));
+                d.brush(cx, cy, bx, by, 0.012019, d.grade(g, false));
             }
         }
         // The points, as hollow rings, dimmed once passed.
@@ -83,7 +83,7 @@ module Widgets {
 
     // The route between two distances, painted with a round brush of radius r.
     function stretch(d as Draw, lo as Float, hi as Float, x0 as Float, w as Float, y0 as Float, h as Float,
-            c as Number, r as Number) as Void {
+            c as Number, r as Float) as Void {
         var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
         var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
         var dd = lo;
@@ -99,8 +99,8 @@ module Widgets {
 
     // A point on the route: a ring, black inside so the route breaks there.
     function point(d as Draw, x as Float, y as Float, c as Number, passed as Boolean) as Void {
-        d.dot(x, y, 9, BLACK);
-        d.ring(x, y, 8, passed ? d.darken(c, 0.33) : c, 3);
+        d.dot(x, y, 0.021635, BLACK);
+        d.ring(x, y, 0.019231, passed ? d.darken(c, 0.33) : c, 0.007212);
     }
 
     // ---------------------------------------------------------------- ascent
@@ -110,10 +110,10 @@ module Widgets {
         var tu = Climb.totalU().toFloat();
         var top = y0 - h, ty = y0 - st.u / tu * h, up = st.climbed();
         // Back to front: the line, the ring's black inside, the end dots, the ring's outline.
-        d.line(x, y0, x, top, SCALE, 2);
+        d.line(x, y0, x, top, SCALE, 0.004808);
         d.dot(x, ty, RING_R, BLACK);
         // Each number centred on its stretch, kept clear of the ring, never past the line's end.
-        var gap = 20;
+        var gap = 0.048077;
         var yb = (ty + y0) / 2;
         if (yb < ty + gap) { yb = ty + gap; }
         if (yb > y0) { yb = y0; }
@@ -124,10 +124,10 @@ module Widgets {
         d.textRight(nx, yb, d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
         d.textRight(nx, ya, d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
         if (ends) {
-            d.dot(x, y0, 6, GREEN);
-            d.dot(x, top, 6, RED);
+            d.dot(x, y0, 0.014423, GREEN);
+            d.dot(x, top, 0.014423, RED);
         }
-        d.ring(x, ty, RING_R, CLIMBER, 3);
+        d.ring(x, ty, RING_R, CLIMBER, 0.007212);
     }
 
     // Drops what is measured or laid out from the loaded part's sections, for Climb.use when the part
@@ -141,13 +141,13 @@ module Widgets {
     }
 
     // The widest number the ascent widget can show, measured once per part.
-    var ascentWidest as Number? = null;
+    var ascentWidest as Float? = null;
 
-    function ascentNumbersWidth(d as Draw) as Number {
+    function ascentNumbersWidth(d as Draw) as Float {
         var w = ascentWidest;
         if (w == null) {
             // The widest is among those with the most digits, from the first such number up.
-            w = 0;
+            w = 0.0;
             var from = 1;
             while (from * 10 <= Climb.totalU()) { from *= 10; }
             for (var n = from; n <= Climb.totalU(); n++) {
@@ -167,7 +167,7 @@ module Widgets {
     // ---------------------------------------------------------------- difficulty
 
     function boxWidth(code as Number, k as Float) as Float {
-        return (code >= 1 ? 58 : 46) * k;
+        return (code >= 1 ? 0.139423 : 0.110577) * k;
     }
 
     // One box, centred on x with its bottom at yb, at size k.
@@ -181,11 +181,11 @@ module Widgets {
             text = "D"; colour = WARNING;
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
-        var w = Math.round(boxWidth(code, k)), h = Math.round(BOX_H * k), top = yb - h;
-        d.roundRect(x - w / 2, top, w, h, 8 * k, colour);
+        var w = d.whole(boxWidth(code, k)), h = d.whole(BOX_H * k), top = yb - h;
+        d.roundRect(x - w / 2, top, w, h, 0.019231 * k, colour);
         if (!filled) {
-            // The outline is the box in its colour with a black box 3 px inside it.
-            d.roundRect(x - w / 2 + 3, top + 3, w - 6, h - 6, 6 * k, BLACK);
+            // The outline is the box in its colour with a black box 0.0072 of the width inside it.
+            d.roundRect(x - w / 2 + 0.007212, top + 0.007212, w - 0.014423, h - 0.014423, 0.014423 * k, BLACK);
         }
         d.textCapCentre(x, top + h / 2, d.bold(BOX_FS * k), text, filled ? BLACK : colour);
     }
@@ -245,7 +245,7 @@ module Widgets {
 
     // The widest altitude the route can show in a font, per unit, measured once per font: slot 0 for
     // the altitude widget's, 1 for the column group's.
-    var widest as Array<Number?> = [null, null];
+    var widest as Array<Float?> = [null, null];
     var widestFeet as Array<Boolean> = [false, false];
 
     function feet() as Boolean {
@@ -259,10 +259,10 @@ module Widgets {
         return (Math.round(m / 10) * 10).toNumber();
     }
 
-    function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Number {
+    function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Float {
         var w = widest[slot];
         if (w == null || widestFeet[slot] != ft) {
-            w = 0;
+            w = 0.0;
             var step = ft ? 50 : 10;
             var last = altitudeValue(Climb.totalU().toFloat(), ft);
             for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
@@ -275,7 +275,7 @@ module Widgets {
         return w;
     }
 
-    function altitudeBox(d as Draw, ft as Boolean) as Number {
+    function altitudeBox(d as Draw, ft as Boolean) as Float {
         return widestAltitude(d, ft, d.semi(ALT_SIZE), 0);
     }
 
@@ -287,7 +287,7 @@ module Widgets {
         d.textCapTop(right, yt, font, altitudeValue(st.u, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         // The unit on the number's baseline.
         var baseline = yt + d.capHeight(font);
-        d.textTop(right + 4, baseline - d.ascent(unit), unit, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textTop(right + 0.009615, baseline - d.ascent(unit), unit, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // One word for the point of interest the uncertainty stretch covers, right-aligned at x, its top
@@ -322,25 +322,25 @@ module Widgets {
     // The altitude centred on x, its digits' top at yt.
     function altitudeCentred(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
-        var w = altitudeBox(d, ft) + 4 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
-        altitude(d, st, x - w / 2, yt);
+        var w = altitudeBox(d, ft) + 0.009615 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
+        altitude(d, st, x - d.half(w), yt);
     }
 
     // The altitude group: the altitude, with the poi word under it, right-aligned with the number.
     function altitudeGroup(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         altitude(d, st, x, yt);
-        poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(d.semi(ALT_SIZE)) + 12);
+        poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(d.semi(ALT_SIZE)) + 0.028846);
     }
 
     // ---------------------------------------------------------------- difficulty column
 
     // Equal boxes, the current one larger by COL_BIG; those before the climber at COL_DIM of their colour.
-    const COL_W = 64;
-    const COL_H = 40;
-    const COL_GAP = 8;
+    const COL_W = 0.153846;
+    const COL_H = 0.096154;
+    const COL_GAP = 0.019231;
     const COL_BIG = 1.08;
     const COL_DIM = 0.55;
-    const COL_SPACE = 10;
+    const COL_SPACE = 0.024038;
     // The letters' size (bold), and the altitudes' and their unit's, as shares of the screen's width
     // (26, 30 and 18 px at 416).
     const COL_FS = 0.0625;
@@ -371,25 +371,25 @@ module Widgets {
             if (!inColumn(i, st.cur)) { continue; }
             var g = section(i, false);
             var big = k == 0, f = big ? COL_BIG : 1.0;
-            var w = Math.round(COL_W * f), h = Math.round(COL_H * f);
-            var y = slotY(k, cy), top = Math.round(y - h / 2);
+            var w = d.whole(COL_W * f), h = d.whole(COL_H * f);
+            var y = slotY(k, cy), top = d.whole(y - h / 2);
             var colour = d.grade(g, false);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
-            d.roundRect(cx - w / 2, top, w, h, 8 * f, colour);
-            if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6 * f, BLACK); }
+            d.roundRect(cx - w / 2, top, w, h, 0.019231 * f, colour);
+            if (!big) { d.roundRect(cx - w / 2 + 0.007212, top + 0.007212, w - 0.014423, h - 0.014423, 0.014423 * f, BLACK); }
             d.textCapCentre(cx, top + h / 2, d.bold(COL_FS * f), BOX_NAME[g], big ? BLACK : colour);
         }
     }
 
     // The widest altitude the route can show in the column's font.
-    function columnAltitudeBox(d as Draw, ft as Boolean) as Number {
+    function columnAltitudeBox(d as Draw, ft as Boolean) as Float {
         return widestAltitude(d, ft, d.semi(COL_ALT), 1);
     }
 
     // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
     function columnGroupWidth(d as Draw) as Float {
         var ft = feet();
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 0.007212 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
     }
 
     // How far the column reaches above and below its centre.
@@ -399,7 +399,7 @@ module Widgets {
 
     // The difficulty column group, centred on the screen as one group, at height cy.
     function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean) as Void {
-        columnGroupAt(d, st, 208 - columnGroupWidth(d) / 2, cy, outer);
+        columnGroupAt(d, st, 0.5 - columnGroupWidth(d) / 2, cy, outer);
     }
 
     // The difficulty column group: the column, with the altitudes where the difficulty changes to its
@@ -423,7 +423,7 @@ module Widgets {
             d.textCapMiddle(ax, y, font, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
             var baseline = y + d.capHeight(font) / 2;
-            d.textTop(ax + 3, baseline - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+            d.textTop(ax + 0.007212, baseline - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
 
@@ -432,19 +432,19 @@ module Widgets {
     // The sections as boxes to scale, in a window from top to bottom that moves with the climber, who
     // stays a quarter of the way up from its bottom: by ascent (byUp) each box as tall as the metres
     // its section climbs, by path as tall as its length along the route.
-    const STACK_W = 60;
-    const STACK_NAMES = 80;
+    const STACK_W = 0.144231;
+    const STACK_NAMES = 0.192308;
 
     // The points' names, by rank.
     const POI_WORDS = ["Danger", "Exit", "Rest", "Top"] as Array<String>;
 
     // The section names' distance from the column, clear of the points' rings on its right edge.
-    const NAME_GAP = 18;
+    const NAME_GAP = 0.043269;
 
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
         var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
-        return d.width(d.semi(TICK_SIZE * BIG_SCALE[0]), top.format("%d")) + 14.0;
+        return d.width(d.semi(TICK_SIZE * BIG_SCALE[0]), top.format("%d")) + 0.033654;
     }
 
     // The points of interest on the stack: rings on the column's right edge (x) at their place on it,
@@ -455,7 +455,7 @@ module Widgets {
     // beside it in its colour; with none in range, the one nearest the climber, unnamed. Returns the
     // y of each name shown.
     function stackPoints(d as Draw, st as Climb.State, byUp as Boolean, top as Float, bottom as Float, cy as Float,
-            here as Float, scale as Float, x as Float, nameR as Number, stepM as Float) as Array<Float> {
+            here as Float, scale as Float, x as Float, nameR as Float, stepM as Float) as Array<Float> {
         // Each point: where it sits, its stretch (lo to hi metres along the route), colour, rank.
         var at = [] as Array<Float>, lo = [] as Array<Float>, hi = [] as Array<Float>;
         var colour = [] as Array<Number>, rank = [] as Array<Number>;
@@ -486,7 +486,7 @@ module Widgets {
             near[p] = ahead <= stepM && behind <= stepM / 2;
             away[p] = ahead > behind ? (ahead > 0 ? ahead : 0.0) : (behind > 0 ? behind : 0.0);
             ys[p] = cy - ((byUp ? Climb.heightAtDistance(at[p]) : at[p]) - here) * scale;
-            if (ys[p] < top + 6 || ys[p] > bottom - 6) { continue; }
+            if (ys[p] < top + 0.014423 || ys[p] > bottom - 0.014423) { continue; }
             var k = order.size();
             order.add(p);
             while (k > 0 && ys[order[k - 1]] > ys[p]) { order[k] = order[k - 1]; k--; }
@@ -497,7 +497,7 @@ module Widgets {
         var g = 0;
         while (g < order.size()) {
             var best = order[g], end = g + 1;
-            while (end < order.size() && ys[order[end]] - ys[order[end - 1]] < 18) { end++; }
+            while (end < order.size() && ys[order[end]] - ys[order[end - 1]] < 0.043269) { end++; }
             for (var m = g; m < end; m++) {
                 var p = order[m];
                 var better = near[p] && !near[best] ||
@@ -505,16 +505,17 @@ module Widgets {
                 if (better) { best = p; }
             }
             var c = colour[best], y = ys[best];
-            d.dot(x, y, 8, BLACK);
-            d.ring(x, y, 7, at[best] <= st.d ? d.darken(c, 0.33) : c, 3);
+            d.dot(x, y, 0.019231, BLACK);
+            d.ring(x, y, 0.016827, at[best] <= st.d ? d.darken(c, 0.33) : c, 0.007212);
             if (near[best]) {
-                var half = nameR * nameR - (y - 208) * (y - 208);
-                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (x + 14)).toFloat();
-                // Not within 20 px of a name already shown, as in the mock.
+                var half = nameR * nameR - (y - 0.5) * (y - 0.5);
+                var room = (0.5 + Math.sqrt(half > 0 ? half : 0) - (x + 0.033654)).toFloat();
+                // Not within 0.0481 of the width of a name already shown, as in the mock. A strict limit is
+                // rounded down, so a distance of exactly that is clear, as it was in whole pixels.
                 var clear = true;
-                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 20) { clear = false; } }
-                if (room >= 30 && clear) {
-                    d.textCapMiddle(x + 14, y, d.semi(NAME_SIZE), fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 0.048076) { clear = false; } }
+                if (room >= 0.072115 && clear) {
+                    d.textCapMiddle(x + 0.033654, y, d.semi(NAME_SIZE), fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
                     named.add(y);
                 }
             }
@@ -542,11 +543,13 @@ module Widgets {
         return fitIn(d, d.semi(NAME_SIZE), name, w);
     }
 
-    // The same in a given font.
+    // The same in a given font. Compared in whole pixels, as text is measured: a name exactly as wide as
+    // the room fits.
     function fitIn(d as Draw, font as Graphics.FontType, name as String, w as Float) as String {
-        if (d.width(font, name) <= w) { return name; }
+        var room = d.s(w);
+        if (d.dc.getTextWidthInPixels(name, font) <= room) { return name; }
         var n = name.length();
-        while (n > 1 && d.width(font, name.substring(0, n) + "…") > w) { n--; }
+        while (n > 1 && d.dc.getTextWidthInPixels(name.substring(0, n) + "…", font) > room) { n--; }
         return name.substring(0, n) + "…";
     }
 
@@ -566,27 +569,27 @@ module Widgets {
     // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
     // from the centre: the screen's edge, or inside a gauge around it.
     function stack(d as Draw, st as Climb.State, byUp as Boolean, left as Float, top as Float, bottom as Float,
-            scale as Float, names as Boolean, stepM as Number, stepFt as Number, nameR as Number) as Void {
+            scale as Float, names as Boolean, stepM as Number, stepFt as Number, nameR as Float) as Void {
         var cy = bottom - (bottom - top) / 4, here = byUp ? st.u : st.d;
         var right = left + STACK_W, cx = left + STACK_W / 2;
         var n = Climb.count();
-        d.clip(left - 2, top, STACK_W + 4, bottom - top);
+        d.clip(left - 0.004808, top, STACK_W + 0.009615, bottom - top);
         // The boxes: the current one filled, the others black with their sides in their colour.
         for (var i = 0; i < n; i++) {
             var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
-            if (yt > bottom + 2 || yb < top - 2 || stackSize(i, byUp) == 0) { continue; }
+            if (yt > bottom + 0.004808 || yb < top - 0.004808 || stackSize(i, byUp) == 0) { continue; }
             var c = stackColour(d, st, i), now = i == st.cur;
             if (now) {
                 d.rect(left, yt, STACK_W, yb - yt, c);
             } else {
                 d.rect(left, yt, STACK_W, yb - yt, BLACK);
-                d.rect(left, yt, 3, yb - yt, c);
-                d.rect(right - 3, yt, 3, yb - yt, c);
+                d.rect(left, yt, 0.007212, yb - yt, c);
+                d.rect(right - 0.007212, yt, 0.007212, yb - yt, c);
             }
             // Letters centred on the part in view, left out when it is too short for them.
             var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
             var font = d.bold(COL_FS * (now ? COL_BIG : 1));
-            if (vb - vt >= d.capHeight(font) + 10) {
+            if (vb - vt >= d.capHeight(font) + 0.024038) {
                 d.textCapCentre(cx, (vt + vb) / 2, font, BOX_NAME[section(i, false)], now ? BLACK : c);
             }
         }
@@ -594,41 +597,41 @@ module Widgets {
         // flat section is a line in its own colour; the start and the top close the column.
         for (var i = 0; i < n; i++) {
             var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
-            if (yt > bottom + 2 || yb < top - 2) { continue; }
+            if (yt > bottom + 0.004808 || yb < top - 0.004808) { continue; }
             if (stackSize(i, byUp) == 0) {
-                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, i));
+                d.rect(left, yb - 0.003606, STACK_W, 0.007212, stackColour(d, st, i));
                 continue;
             }
             if (i == 0) {
-                d.rect(left, yb - 3, STACK_W, 3, stackColour(d, st, i));
+                d.rect(left, yb - 0.007212, STACK_W, 0.007212, stackColour(d, st, i));
             } else if (stackSize(i - 1, byUp) > 0) {
                 var closer = (i - st.cur).abs() <= (i - 1 - st.cur).abs() ? i : i - 1;
-                d.rect(left, yb - 1.5, STACK_W, 3, stackColour(d, st, closer));
+                d.rect(left, yb - 0.003606, STACK_W, 0.007212, stackColour(d, st, closer));
             }
-            if (i == n - 1) { d.rect(left, yt, STACK_W, 3, stackColour(d, st, i)); }
+            if (i == n - 1) { d.rect(left, yt, STACK_W, 0.007212, stackColour(d, st, i)); }
         }
         d.unclip();
         var ft = feet(), step = ft ? stepFt : stepM;
         // The points of interest, one ring for each group whose rings would touch; the y of each one
         // that shows its name, for the section names to give way to.
         var named = stackPoints(d, st, byUp, top, bottom, cy, here, scale, right, nameR, ft ? stepFt / 3.28084 : stepM.toFloat());
-        // The names on the right, centred on the part in view, cut to fit the round screen, each 20 px
-        // clear of the points' names and of the section names already shown.
+        // The names on the right, centred on the part in view, cut to fit the round screen, each 0.0481 of
+        // the width clear of the points' names and of the section names already shown.
         if (names) {
             for (var i = 0; i < n; i++) {
                 var yb = cy - (stackAt(i, byUp) - here) * scale, yt = cy - (stackAt(i + 1, byUp) - here) * scale;
                 if (yt > bottom || yb < top) { continue; }
                 var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
                 var flat = stackSize(i, byUp) == 0;
-                if (!flat && vb - vt < 16) { continue; }
+                if (!flat && vb - vt < 0.038461) { continue; }
                 var ny = flat ? yb : (vt + vb) / 2;
                 var touches = false;
-                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 20) { touches = true; } }
+                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 0.048076) { touches = true; } }
                 if (touches) { continue; }
                 named.add(ny);
-                var half = nameR * nameR - (ny - 208) * (ny - 208);
-                var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
-                if (room < 30) { continue; }
+                var half = nameR * nameR - (ny - 0.5) * (ny - 0.5);
+                var room = (0.5 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
+                if (room < 0.072115) { continue; }
                 d.textCapMiddle(right + NAME_GAP, ny, d.semi(NAME_SIZE), fitName(d, Climb.NAME[i], room),
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
@@ -648,7 +651,7 @@ module Widgets {
             var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
             // By path a flat stretch at this altitude may be reached before the window's bottom.
             if (y < top || y > bottom) { continue; }
-            d.rect(left - 9, y - 1, 6, 2, SCALE);
+            d.rect(left - 0.021635, y - 0.002404, 0.014423, 0.004808, SCALE);
             ticks.add(a);
             ys.add(y);
         }
@@ -666,16 +669,16 @@ module Widgets {
                 if (last >= 0) {
                     var lastFont = tickFont(d, last, next);
                     var gap = (ys[last] - ys[t]).abs();
-                    if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 6) { continue; }
+                    if (gap < (d.capHeight(font) + d.capHeight(lastFont)) / 2 + 0.014423) { continue; }
                 }
-                d.textCapMiddle(left - 14, ys[t], font, ticks[t].format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
+                d.textCapMiddle(left - 0.033654, ys[t], font, ticks[t].format("%d"), d.MUTED, Graphics.TEXT_JUSTIFY_RIGHT);
                 last = t;
             }
         }
         // The climber: the orange ring on the column's left edge, with no line across the column, which
         // hid the letters.
         d.dot(left, cy, RING_R, BLACK);
-        d.ring(left, cy, RING_R, CLIMBER, 3);
+        d.ring(left, cy, RING_R, CLIMBER, 0.007212);
     }
 
     // ---------------------------------------------------------------- gauge, page 6
@@ -685,13 +688,13 @@ module Widgets {
     // climbed parts dimmed; rests, exits and dangers as rings, dimmed once passed; the climber as a
     // thicker orange line on the gauge's inner side over the stretch they could be on, rounded at its
     // ends, clear of the sections.
-    const G_R = 192;
+    const G_R = 0.461538;
     const G_FROM = 232;
     const G_SPAN = 284;
-    const G_PEN = 12;
-    // The climber's line: its width, and its radius 3 px inside the sections.
-    const G_INNER = 6;
-    const G_INNER_R = G_R - G_PEN / 2 - 3 - G_INNER / 2;
+    const G_PEN = 0.028846;
+    // The climber's line: its width, and its radius 0.0072 of the width inside the sections.
+    const G_INNER = 0.014423;
+    const G_INNER_R = G_R - G_PEN / 2 - 0.007212 - G_INNER / 2;
 
     // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
     // to their length (or, byUp, the metres they climb), so no section is too short to draw or see.
@@ -784,8 +787,8 @@ module Widgets {
 
     function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
         var p = d.onCircle(G_R, gaugeAngle(dist, byUp));
-        d.dot(p[0], p[1], 8, BLACK);
-        d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
+        d.dot(p[0], p[1], 0.019231, BLACK);
+        d.ring(p[0], p[1], 0.016827, dist <= st.d ? d.darken(c, 0.33) : c, 0.007212);
     }
 
     // The current difficulty in a large filled box centred on (x, y), its letters bold at size (a share
@@ -802,8 +805,8 @@ module Widgets {
 
     // ---------------------------------------------------------------- selection gauge (page 9)
 
-    // The points' rings inside the gauge, 4 px clear of the sections.
-    const SEL_POI_R = G_R - G_PEN / 2 - 4 - 8.5;
+    // The points' rings inside the gauge, 0.0096 of the width clear of the sections.
+    const SEL_POI_R = G_R - G_PEN / 2 - 0.009615 - 0.020433;
 
     // Whether the point at distance dist is in section i or at its foot or top.
     function holds(i as Number, dist as Float) as Boolean {
@@ -835,8 +838,8 @@ module Widgets {
 
     function selectionPoint(d as Draw, dist as Float, c as Number, lit as Boolean) as Void {
         var p = d.onCircle(SEL_POI_R, gaugeAngle(dist, true));
-        d.dot(p[0], p[1], 8, BLACK);
-        d.ring(p[0], p[1], 7, lit ? c : d.darken(c, 0.33), 3);
+        d.dot(p[0], p[1], 0.019231, BLACK);
+        d.ring(p[0], p[1], 0.016827, lit ? c : d.darken(c, 0.33), 0.007212);
     }
 
     // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,
@@ -857,9 +860,9 @@ module Widgets {
     // A chevron centred on (x, y) pointing left (dir -1) or right (1), round-ended; dimmed when there
     // is nothing that way.
     function chevron(d as Draw, x as Float, y as Float, dir as Number, on as Boolean) as Void {
-        var c = on ? WHITE : 0x444444, tip = x + dir * 7, back = x - dir * 7;
-        d.brush(back, y - 13, tip, y, 2.5, c);
-        d.brush(tip, y, back, y + 13, 2.5, c);
+        var c = on ? WHITE : 0x444444, tip = x + dir * 0.016827, back = x - dir * 0.016827;
+        d.brush(back, y - 0.03125, tip, y, 0.00601, c);
+        d.brush(tip, y, back, y + 0.03125, 0.00601, c);
     }
 
     // What comes next: the next section of a different difficulty and the distance to its start along
@@ -875,8 +878,8 @@ module Widgets {
         var rest = " in " + m.format("%d") + " m";
         var font = d.bold(0.0673);  // 28 px at 416
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
-        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w), y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w) + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // The ascent widget laid flat: a line from the start (x0) to the top (x1) at y, the climber's ring
@@ -884,9 +887,9 @@ module Widgets {
     // centred on its stretch, kept clear of the ring, never past the line's end.
     function ascentFlat(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y as Float, ends as Boolean) as Void {
         var tu = Climb.totalU().toFloat(), rx = x0 + st.u / tu * (x1 - x0), up = st.climbed();
-        d.rect(x0, y - 1, x1 - x0, 2, SCALE);
+        d.rect(x0, y - 0.002404, x1 - x0, 0.004808, SCALE);
         d.dot(rx, y, RING_R, BLACK);
-        var gap = 26, ny = y + 24;
+        var gap = 0.0625, ny = y + 0.057692;
         var lx = (x0 + rx) / 2;
         if (lx > rx - gap) { lx = rx - gap; }
         if (lx < x0) { lx = x0; }
@@ -896,10 +899,10 @@ module Widgets {
         d.textCapCentre(lx, ny, d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
         d.textCapCentre(rxn, ny, d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
         if (ends) {
-            d.dot(x0, y, 6, GREEN);
-            d.dot(x1, y, 6, RED);
+            d.dot(x0, y, 0.014423, GREEN);
+            d.dot(x1, y, 0.014423, RED);
         }
-        d.ring(rx, y, RING_R, CLIMBER, 3);
+        d.ring(rx, y, RING_R, CLIMBER, 0.007212);
     }
 
     // ---------------------------------------------------------------- ascent gauge
@@ -908,23 +911,23 @@ module Widgets {
     // top to the route's top (lower right), the climber's orange ring at the height climbed, the start
     // and top as green and red dots, and the metres climbed and left just past the arc's two ends, in
     // the gap at the bottom.
-    const AG_R = 192;
+    const AG_R = 0.461538;
     const AG_FROM = 232;
     const AG_SPAN = 284;
 
     function ascentGauge(d as Draw, st as Climb.State, ends as Boolean) as Void {
         var tu = Climb.totalU().toFloat(), up = st.climbed();
         d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
-        d.dc.setPenWidth(d.s(2));
-        d.dc.drawArc(d.s(208), d.s(208), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
+        d.dc.setPenWidth(d.s(0.004808));
+        d.dc.drawArc(d.s(0.5), d.s(0.5), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
         var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
         d.dot(r[0], r[1], RING_R, BLACK);
         if (ends) {
             var p0 = d.onCircle(AG_R, AG_FROM), p1 = d.onCircle(AG_R, AG_FROM - AG_SPAN);
-            d.dot(p0[0], p0[1], 6, GREEN);
-            d.dot(p1[0], p1[1], 6, RED);
+            d.dot(p0[0], p0[1], 0.014423, GREEN);
+            d.dot(p1[0], p1[1], 0.014423, RED);
         }
-        d.ring(r[0], r[1], RING_R, CLIMBER, 3);
+        d.ring(r[0], r[1], RING_R, CLIMBER, 0.007212);
         var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
         d.textCapCentre(n0[0], n0[1], d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
         d.textCapCentre(n1[0], n1[1], d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
@@ -1008,7 +1011,7 @@ module Widgets {
     }
 
     // The route between two distances as a thick line with round ends and joints.
-    function frontStretch(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, pen as Number, c as Number) as Void {
+    function frontStretch(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, pen as Float, c as Number) as Void {
         if (d1 <= d0) { return; }
         var dc = d.dc, r = d.s(pen) / 2;
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
@@ -1033,17 +1036,17 @@ module Widgets {
         var lo = Climb.firstDistanceAt(st.u - st.band);
         var hi = Climb.lastDistanceAt(st.u + st.band);
         // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
-        frontBrush(d, pts, lo, hi, 11, CLIMBER);
-        frontBrush(d, pts, lo, hi, 8, BLACK);
+        frontBrush(d, pts, lo, hi, 0.026442, CLIMBER);
+        frontBrush(d, pts, lo, hi, 0.019231, BLACK);
         for (var i = 0; i < Climb.count(); i++) {
             var g = section(i, false), a = Climb.dAt(i).toFloat(), b = Climb.dAt(i + 1).toFloat();
             if (b <= st.d) {
-                frontStretch(d, pts, a, b, 8, d.grade(g, true));
+                frontStretch(d, pts, a, b, 0.019231, d.grade(g, true));
             } else if (a >= st.d) {
-                frontStretch(d, pts, a, b, 8, d.grade(g, false));
+                frontStretch(d, pts, a, b, 0.019231, d.grade(g, false));
             } else {
-                frontStretch(d, pts, a, st.d, 8, d.grade(g, true));
-                frontStretch(d, pts, st.d, b, 8, d.grade(g, false));
+                frontStretch(d, pts, a, st.d, 0.019231, d.grade(g, true));
+                frontStretch(d, pts, st.d, b, 0.019231, d.grade(g, false));
             }
         }
         for (var i = 0; i < Climb.count(); i++) {
@@ -1052,12 +1055,12 @@ module Widgets {
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
         var s0 = pts[0], s1 = pts[pts.size() - 1];
-        d.dot(s0[0], s0[1], 6, GREEN);
-        d.dot(s1[0], s1[1], 6, RED);
+        d.dot(s0[0], s0[1], 0.014423, GREEN);
+        d.dot(s1[0], s1[1], 0.014423, RED);
     }
 
     // The route between two distances, painted with a round brush of radius r.
-    function frontBrush(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, r as Number, c as Number) as Void {
+    function frontBrush(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, r as Float, c as Number) as Void {
         if (d1 <= d0) { return; }
         var p = frontAt(pts, d0);
         for (var j = frontIndex(pts, d0); j < pts.size(); j++) {
@@ -1071,8 +1074,8 @@ module Widgets {
 
     function frontPoint(d as Draw, pts as Array<Array<Float>>, dist as Float, c as Number, st as Climb.State) as Void {
         var p = frontAt(pts, dist);
-        d.dot(p[0], p[1], 8, BLACK);
-        d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
+        d.dot(p[0], p[1], 0.019231, BLACK);
+        d.ring(p[0], p[1], 0.016827, dist <= st.d ? d.darken(c, 0.33) : c, 0.007212);
     }
 
     // ---------------------------------------------------------------- current difficulty group
@@ -1111,7 +1114,7 @@ module Widgets {
         return kind;
     }
 
-    // A point's symbol, filled, size px across, its left edge at x and its bottom at yb, after safety
+    // A point's symbol, filled, size across, its left edge at x and its bottom at yb, after safety
     // signs and media controls: danger a yellow triangle (a warning), exit a green arrow pointing down
     // to the right (a way off), a rest a pause (two blue bars), the start play (a green triangle
     // pointing right), the top stop (a red square).
@@ -1134,10 +1137,10 @@ module Widgets {
         } else if (kind == 1) {
             // The arrow across the square the cross took, round-ended: its shaft from the upper left,
             // its head's two strokes back from the tip, along the bottom and up the right side.
-            var k = h * 0.75, a = k * 1.1, cy = yb - k - 2;
-            d.brush(cx - k, cy - k, cx + k, cy + k, 2, GREEN);
-            d.brush(cx + k - a, cy + k, cx + k, cy + k, 2, GREEN);
-            d.brush(cx + k, cy + k - a, cx + k, cy + k, 2, GREEN);
+            var k = h * 0.75, a = k * 1.1, cy = yb - k - 0.004808;
+            d.brush(cx - k, cy - k, cx + k, cy + k, 0.004808, GREEN);
+            d.brush(cx + k - a, cy + k, cx + k, cy + k, 0.004808, GREEN);
+            d.brush(cx + k, cy + k - a, cx + k, cy + k, 0.004808, GREEN);
         }
     }
 
@@ -1145,32 +1148,32 @@ module Widgets {
     // on (cx, by); above it on one baseline the altitude, unit included, right-aligned with the box's
     // right edge, and the point of interest as a filled symbol (10 % smaller) starting where the box's
     // corner rounding ends; below it what comes next, "K4 125 m", centred.
-    // With fit (page 7), the box widens to the line above; without it (page 8) it keeps 88 by 62 times k
-    // and the symbol moves left only if the altitude would touch it.
+    // With fit (page 7), the box widens to the line above; without it (page 8) it keeps 0.2115 by 0.1490
+    // of the width times k and the symbol moves left only if the altitude would touch it.
     function currentDifficultyGroup(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float,
             fit as Boolean) as Void {
-        var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
+        var bh = 0.149038 * k, rx = bh / 6.5, size = 0.043269 * k, ft = feet();
         // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
         // the route's widest altitude and its unit, so the symbol always starts at the rounding.
         // Sizes as shares of the screen's width, times k: 26, 16, 46 and (nextShort) 24 px at 416.
         var font = d.semi(0.0625 * k), small = d.semi(0.0385 * k);
-        var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(small, ft ? "ft" : "m");
-        var bw = fit && need > 88 * k ? need : 88 * k;
+        var need = rx + size + 0.014423 + columnAltitudeBox(d, ft) + 0.007212 + d.width(small, ft ? "ft" : "m");
+        var bw = fit && need > 0.211538 * k ? need : 0.211538 * k;
         bigDifficulty(d, st, cx, by, bw, bh, 0.1106 * k);
-        var base = by - bh / 2 - 12 * k;
+        var base = by - bh / 2 - 0.028846 * k;
         var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
-        var right = cx + bw / 2 - d.width(small, unit) - 3;
+        var right = cx + bw / 2 - d.width(small, unit) - 0.007212;
         d.textCapTop(right, base - d.capHeight(font), font, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textTop(right + 3, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textTop(right + 0.007212, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         // The symbol starts where the box's corner rounding ends (or, without fit, further left if the
         // altitude would touch it).
         var kind = poiKind(st, true);
         if (kind >= 0) {
             // The danger triangle, the widest symbol, spans 1.1 times its size.
-            var x = cx - bw / 2 + rx, clear = right - d.width(font, alt) - 6 - 1.1 * size;
+            var x = cx - bw / 2 + rx, clear = right - d.width(font, alt) - 0.014423 - 1.1 * size;
             poiSymbol(d, kind, fit || x < clear ? x : clear, base, size);
         }
-        nextShort(d, st, cx, by + bh / 2 + 26 * k, k);
+        nextShort(d, st, cx, by + bh / 2 + 0.0625 * k, k);
     }
 
     // What comes next without "in": "K4 125 m", the grade in its colour, centred on x.
@@ -1185,7 +1188,7 @@ module Widgets {
         var rest = " " + m.format("%d") + " m";
         var font = d.bold(0.0577 * k);
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
-        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w), y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w) + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 }

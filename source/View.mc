@@ -85,7 +85,7 @@ class View extends WatchUi.View {
         Pages.selected = sel;
         Pages.draw(page, d, f.tracker.state());
         if (dotsMs > 0) { pageDots(d); }
-        if (f.paused()) { d.text(208, 22, d.semi(0.0529), "PAUSED", 0xffd166); }
+        if (f.paused()) { d.text(0.5, 0.052885, d.semi(0.0529), "PAUSED", 0xffd166); }
     }
 
     // Where this page sits among the others, as dots along the left edge.
@@ -93,8 +93,8 @@ class View extends WatchUi.View {
         var n = Pages.COUNT;
         for (var i = 0; i < n; i++) {
             var a = Math.toRadians(180 + (i - (n - 1) / 2.0) * 5.0);
-            var x = 208 + 198 * Math.cos(a), y = 208 - 198 * Math.sin(a);
-            if (i == page) { d.dot(x, y, 4, Graphics.COLOR_WHITE); } else { d.dot(x, y, 2.5, 0x666666); }
+            var x = 0.5 + 0.475962 * Math.cos(a), y = 0.5 - 0.475962 * Math.sin(a);
+            if (i == page) { d.dot(x, y, 0.009615, Graphics.COLOR_WHITE); } else { d.dot(x, y, 0.00601, 0x666666); }
         }
     }
 
