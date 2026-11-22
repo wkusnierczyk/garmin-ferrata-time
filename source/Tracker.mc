@@ -116,7 +116,11 @@ class Tracker {
         if ("landmark".equals(p["kind"] as Object?)) {
             var at = (p["at"] as Number) + shift();
             // The place is known now: time moves it on from here, and the band starts again.
-            if (at >= 0 && at <= Climb.totalD()) { d = at.toFloat(); moveT = rd.t; syncT = rd.t; }
+            // The pace follows the corrected place at once (Codex on #89).
+            if (at >= 0 && at <= Climb.totalD()) {
+                d = at.toFloat(); moveT = rd.t; syncT = rd.t;
+                repace(elapsedAt(rd.t));
+            }
         }
         var s = synced(rd);
         if (s != null) { u = s; }
@@ -160,6 +164,12 @@ class Tracker {
             }
             if (to > d) { d = to; }
         }
+        repace(elapsed);
+    }
+
+    // The pace from the place and the time taken: elapsed minutes per guidebook minute done, once
+    // enough is done to trust it.
+    function repace(elapsed as Float) as Void {
         var m = Climb.minuteAtDistance(d);
         pace = m >= PACE_AFTER && elapsed > 0 ? elapsed / m : 1.0;
     }

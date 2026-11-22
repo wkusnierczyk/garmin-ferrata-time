@@ -341,10 +341,25 @@ module TrackerTest {
         Test.assertMessage(near(t.d, 300.0), "the estimate ran ahead, d " + t.d);
         t.syncAt(1, at(25, 1100.0));
         Test.assertMessage(near(t.d, 100.0), "at the landmark, d " + t.d);
+        // The pace follows the landmark at once, before any reading (Codex on #89).
+        Test.assertMessage(t.pace > 2.49 && t.pace < 2.51, "pace at the sync " + t.pace);
         t.update(new Reading(1100.0, null, null, 25 * 60 + 1));
         Test.assertMessage(t.d < 101.0, "one second later, d " + t.d);
         // 25 minutes for 10 guidebook ones: pace 2.5, so 5 minutes more are 2 guidebook minutes, 40 m.
         Test.assertMessage(t.pace > 2.49 && t.pace < 2.51, "pace " + t.pace);
+        t.update(at(30, 1100.0));
+        Test.assertMessage(t.d > 139.0 && t.d < 141.0, "five minutes on, d " + t.d);
+        return true;
+    }
+
+    (:test)
+    function landmarkSyncNextReadingLater(logger as Logger) as Boolean {
+        // The next reading five minutes after the sync, none between (Codex on #89): 40 m, not 80.
+        var t = new Tracker(withLandmark());
+        t.start(:head, at(0, 1000.0));
+        for (var k = 1; k <= 10; k++) { t.update(at(k, 1000.0 + 10 * k)); }
+        for (var k = 11; k <= 25; k++) { t.update(at(k, 1100.0)); }
+        t.syncAt(1, at(25, 1100.0));
         t.update(at(30, 1100.0));
         Test.assertMessage(t.d > 139.0 && t.d < 141.0, "five minutes on, d " + t.d);
         return true;
