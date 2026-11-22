@@ -15,8 +15,8 @@ module Fonts {
     const SEMI = [0.0433, 0.0529, 0.0721, 0.0865, 0.1106, 0.1394, 0.2019] as Array<Float>;
     const BOLD = [0.0433, 0.0625, 0.0865, 0.1250, 0.1683] as Array<Float>;
 
-    var semiLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[7];
-    var boldLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[5];
+    var semiLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[SEMI.size()];
+    var boldLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[BOLD.size()];
 
     // The nearest size to share, the larger on a tie (within the sizes' rounding).
     function nearest(share as Numeric, sizes as Array<Float>) as Number {
