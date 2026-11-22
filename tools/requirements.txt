@@ -1,0 +1,4 @@
+# What tools/fit2replay.py and its tests need; tools/route.py needs nothing beyond Python 3.
+# pip install -r tools/requirements.txt (in a virtual environment).
+garmin-fit-sdk==21.222.0
+pytest
