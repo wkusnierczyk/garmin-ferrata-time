@@ -53,8 +53,8 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
 </style>
 <main>
   <aside class="faces">
-    <figure><div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by length along the route"></svg></div><figcaption>Page 6 · gauge by length</figcaption></figure>
-    <figure><div class="dial"><svg id="live5" viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by ascent"></svg></div><figcaption>Page 6 · gauge by ascent</figcaption></figure>
+    <figure><div class="dial"><svg id="live" viewBox="0 0 1 1" role="img" aria-label="Page 6, gauge by length along the route"></svg></div><figcaption>Page 6 · gauge by length</figcaption></figure>
+    <figure><div class="dial"><svg id="live5" viewBox="0 0 1 1" role="img" aria-label="Page 6, gauge by ascent"></svg></div><figcaption>Page 6 · gauge by ascent</figcaption></figure>
   </aside>
   <div class="side">
   <section>
@@ -80,9 +80,9 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="next-by"><option value="path" selected>along the route</option><option value="up">up (metres climbed)</option></select>
       <div hidden>
       <label for="scale">Scale by ascent (page 4)</label>
-      <select id="scale"><option value="2">2 px per metre (144 m in view)</option><option value="2.5" selected>2.5 px per metre (115 m in view)</option><option value="3">3 px per metre (96 m in view)</option></select>
+      <select id="scale"><option value="0.004808">0.0048 of the width per metre (144 m in view)</option><option value="0.006010" selected>0.006 of the width per metre (115 m in view)</option><option value="0.007212">0.0072 of the width per metre (96 m in view)</option></select>
       <label for="path-scale">Scale by path </label>
-      <select id="path-scale"><option value="0.75">0.75 px per metre (384 m of path in view)</option><option value="1" selected>1 px per metre (288 m in view)</option><option value="1.5">1.5 px per metre (192 m in view)</option></select>
+      <select id="path-scale"><option value="0.001803">0.0018 of the width per metre (384 m of path in view)</option><option value="0.002404" selected>0.0024 of the width per metre (288 m in view)</option><option value="0.003606">0.0036 of the width per metre (192 m in view)</option></select>
       <label for="step">Altitude ticks every</label>
       <select id="step"><option value="5">5 (m or ft)</option><option value="10" selected>10</option><option value="20">20</option><option value="50">50</option></select>
       <label class="check"><input id="names" type="checkbox" checked> Section names on the right</label>
@@ -108,7 +108,7 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
     <h2>To look at</h2>
     <ul>
       <li>The gauge runs 284° from the lower left, over the top, to the lower right, leaving the bottom for the ascent. Page 6a makes each section's arc its length along the route, page 6b the metres it climbs: walks and rests shrink there, walls take most of the arc. Sections are separated by a hair's gap. Each section gets at least 3° of the sweep (the menu: none, 2, 3 or 5°), the others sharing the rest in proportion, so no section is too short to draw or to see; the watch draws arcs in whole degrees, and one shorter than a degree came out as a full circle.</li>
-      <li>The climber is a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on, leaving the sections uncovered. The first version's orange outline around the stretch stays as an option.</li>
+      <li>The climber is a thicker orange line (0.0144 of the screen's width, round ends) on the gauge's inner side, 0.0072 of the width clear of the sections, over the stretch they could be on, leaving the sections uncovered. The first version's orange outline around the stretch stays as an option.</li>
       <li>The line above the difficulty is split at the centre: the poi word ends just left of it, the altitude's number is right-aligned with the difficulty box's right edge, its unit past it, so it stays put when the word comes and goes.</li>
       <li>"Next" is the next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m; after the last change it reads "Top in …". A setting gives the distance in metres up instead.</li>
       <li>The flat ascent puts the metres climbed under its left stretch and the metres left under its right one, kept clear of the ring.</li>
@@ -197,31 +197,31 @@ function state(m) {
 
 // The numbers sit left of the height scale, right-aligned a small space before the climber's ring.
 const NUMBER_FONT = "Barlow Condensed, Arial Narrow, sans-serif";
-const RING_OUTER = 9 + 2.5 / 2, NUMBER_SPACE = 5;
+const RING_OUTER = 0.0216 + 0.006 / 2, NUMBER_SPACE = 0.012;
 
 const line = (x1, y1, x2, y2, c, w) =>
-  `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  `<line x1="${x1.toFixed(4)}" y1="${y1.toFixed(4)}" x2="${x2.toFixed(4)}" y2="${y2.toFixed(4)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
 
-// The profile alone, in the design's 416 px coordinates.
+// The profile alone, in fractions of the screen's width.
 // The ascent widget: a vertical line for the route's height, the climber's height on it as an
 // orange ring, the metres climbed below the ring and the metres left above it, and optionally the
 // start and the top as a green and a red dot. The line stands at x, from y0 (start) up to y0 - h.
 function ascent(st, x, y0, h, ends) {
   const Y = u => y0 - u / TU * h, ty = Y(st.u), up = Math.round(st.u);
-  const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" fill="#fff" font-size="22" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
+  const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(4)}" y="${y.toFixed(4)}" text-anchor="end" fill="#fff" font-size="0.0529" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
   // Back to front: the line, the ring's black inside (hiding the line, not the end dots), the end
   // dots, the ring's orange outline.
-  let s = line(x, Y(0), x, Y(TU), SCALE, 2);
-  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="9" fill="#000"/>`;
+  let s = line(x, Y(0), x, Y(TU), SCALE, 0.0048);
+  s += `<circle cx="${x}" cy="${ty.toFixed(4)}" r="0.0216" fill="#000"/>`;
   // Centred on their stretches, kept clear of the ring when it nears either end, but never past the end.
-  const gap = 20;
+  const gap = 0.0481;
   s += num(Math.min(Math.max((ty + Y(0)) / 2, ty + gap), Y(0)), up) +
     num(Math.max(Math.min((Y(TU) + ty) / 2, ty - gap), Y(TU)), TU - up);
   if (ends) {
-    s += `<circle cx="${x}" cy="${Y(0)}" r="6" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="6" fill="${END_RED}"/>`;
+    s += `<circle cx="${x}" cy="${Y(0)}" r="0.0144" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="0.0144" fill="${END_RED}"/>`;
   }
   // Sized to ring an end's dot when it reaches it.
-  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="2.5"/>`;
+  s += `<circle cx="${x}" cy="${ty.toFixed(4)}" r="0.0216" fill="none" stroke="${CLIMBER}" stroke-width="0.006"/>`;
   return s;
 }
 
@@ -232,17 +232,17 @@ function ascent(st, x, y0, h, ends) {
 // (opt.colours, one of MAPS) and whether to show danger points (opt.dangers).
 function profile(st, x0, w, y0, h, opt) {
   const colours = opt.colours.c, dangers = opt.dangers;
-  const pen = 10;
+  const pen = 0.024;
   const X = d => x0 + d / TD * w, Y = u => y0 - u / TU * h;
   let s = "";
   // The climber: an orange outline around the stretch of route they could be on, from how sure the
   // position is. Drawn as a wide orange stroke with a narrower black one inside it.
   const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
   let pts = [];
-  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(1)},${Y(heightAt(dd)).toFixed(1)}`);
-  pts.push(`${X(hi).toFixed(1)},${Y(heightAt(hi)).toFixed(1)}`);
+  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(4)},${Y(heightAt(dd)).toFixed(4)}`);
+  pts.push(`${X(hi).toFixed(4)},${Y(heightAt(hi)).toFixed(4)}`);
   const band = (c, wd) => `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${wd}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  s += band(CLIMBER, 28) + band("#000", 22);
+  s += band(CLIMBER, 0.0673) + band("#000", 0.0529);
   // The sections.
   const cx = X(st.d), cy = Y(st.u);
   for (let i = 0; i < N; i++) {
@@ -255,15 +255,15 @@ function profile(st, x0, w, y0, h, opt) {
   // Rests: blue rings on the middle of the rest stretch, hollow like the exits.
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) {
     const md = (D[i] + D[i + 1]) / 2;
-    s += `<circle cx="${X(md).toFixed(1)}" cy="${Y(heightAt(md)).toFixed(1)}" r="8" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(md).toFixed(4)}" cy="${Y(heightAt(md)).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="0.0072"/>`;
   }
   // Dangers: red rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(p.d).toFixed(4)}" cy="${Y(heightAt(p.d)).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="0.0072"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
-  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
-  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="6" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="3" fill="#000"/>`;
+  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(4)}" cy="${Y(U[i]).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="0.0072"/>`;
+  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="0.0144" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="0.0072" fill="#000"/>`;
   return s;
 }
 
@@ -271,18 +271,18 @@ function profile(st, x0, w, y0, h, opt) {
 // (1 for the middle box).
 // Grades are filled in their colour with black letters; rests, exits and dangers are outlined in
 // their colour with letters in it.
-const boxWidth = (text, k) => (text.length > 1 ? 58 : 46) * k;
+const boxWidth = (text, k) => (text.length > 1 ? 0.1394 : 0.1106) * k;
 function badge(x, yb, k, text, colour, filled) {
-  const w = boxWidth(text, k), h = 38 * k, fs = 26 * k, y = yb - h / 2;
+  const w = boxWidth(text, k), h = 0.0913 * k, fs = 0.0625 * k, y = yb - h / 2;
   const box = filled
-    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${8 * k}" fill="${colour}"/>`
-    : `<rect x="${x - w / 2 + 1.5}" y="${y - h / 2 + 1.5}" width="${w - 3}" height="${h - 3}" rx="${7 * k}" fill="#000" stroke="${colour}" stroke-width="3"/>`;
+    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${0.0192 * k}" fill="${colour}"/>`
+    : `<rect x="${x - w / 2 + 0.0036}" y="${y - h / 2 + 0.0036}" width="${w - 0.0072}" height="${h - 0.0072}" rx="${0.0168 * k}" fill="#000" stroke="${colour}" stroke-width="0.0072"/>`;
   // Centred on the capitals: the baseline sits half the cap height (0.7 em in Barlow Condensed) below the middle.
-  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
 }
 const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"];
 // The satellites' size against the middle box, and their gap from it.
-const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 5;
+const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 0.012;
 
 // What a box shows for a section, or for a point on the route.
 // With rests left out of the widget, a rest stretch shows as walking ground.
@@ -329,7 +329,9 @@ function difficulty(st, x, y, opt) {
 // a box as wide as the widest altitude this route can show, the box starting at x; the unit follows
 // it. The top of the digits is at yt (cap height 0.7 em in Barlow Condensed). Rounded to 10 m, or
 // 50 ft, since the position is only known to within 25 m.
-const ALT_SIZE = 46;
+const ALT_SIZE = 0.1106;
+// The canvas measures in pixels: text is measured on a screen this many pixels wide, then scaled back.
+const MEASURE = 1000;
 const altValue = (u, feet) => {
   const m = START_ALT + u;
   return feet ? Math.round(m * 3.28084 / 50) * 50 : Math.round(m / 10) * 10;
@@ -339,17 +341,17 @@ const altWidest = {};
 function altBox(feet) {
   if (altWidest[feet] === undefined) {
     const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `600 ${ALT_SIZE}px ${NUMBER_FONT}`;
+    ctx.font = `600 ${ALT_SIZE * MEASURE}px ${NUMBER_FONT}`;
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width);
+    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width / MEASURE);
     altWidest[feet] = w;
   }
   return altWidest[feet];
 }
 function altitude(st, x, yt, feet) {
-  const y = (yt + 0.7 * ALT_SIZE).toFixed(1), right = x + altBox(feet);
-  return `<text x="${right.toFixed(1)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
-    `<text x="${(right + 4).toFixed(1)}" y="${y}" font-family="${NUMBER_FONT}" font-size="25" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
+  const y = (yt + 0.7 * ALT_SIZE).toFixed(4), right = x + altBox(feet);
+  return `<text x="${right.toFixed(4)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
+    `<text x="${(right + 0.0096).toFixed(4)}" y="${y}" font-family="${NUMBER_FONT}" font-size="0.0601" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
 }
 
 // The poi widget: one word for the point of interest the uncertainty stretch covers, REST, EXIT or
@@ -367,48 +369,48 @@ function poi(st, x, yt, opt) {
   if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_YELLOW });
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
-  const f = found[0], fs = 24;
-  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
+  const f = found[0], fs = 0.0577;
+  return `<text x="${x.toFixed(4)}" y="${(yt + 0.7 * fs).toFixed(4)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="0.0024" fill="${f.colour}">${f.word}</text>`;
 }
 
 // The altitude group: the altitude widget with the poi widget under it, the poi word right-aligned
 // with the altitude number (not its unit). x is where the altitude's box starts, yt the top of its
 // digits.
 function altitudeGroup(st, x, yt, opt) {
-  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 12, opt);
+  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 0.0288, opt);
 }
 
 // ---------------------------------------------------------------- page 2
 
 // A box in the vertical difficulty column: equal sizes, the current one larger by k.
-const COL_W = 64, COL_H = 40, COL_GAP = 8, COL_BIG = 1.08, COL_FS = 26, COL_DIM = 0.55;
+const COL_W = 0.1538, COL_H = 0.0962, COL_GAP = 0.0192, COL_BIG = 1.08, COL_FS = 0.0625, COL_DIM = 0.55;
 function columnBox(x, y, k, text, colour, filled) {
   const w = COL_W * k, h = COL_H * k, fs = COL_FS * k;
   const box = filled
-    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${8 * k}" fill="${colour}"/>`
-    : `<rect x="${x - w / 2 + 1.5}" y="${y - h / 2 + 1.5}" width="${w - 3}" height="${h - 3}" rx="${7 * k}" fill="#000" stroke="${colour}" stroke-width="3"/>`;
-  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${0.0192 * k}" fill="${colour}"/>`
+    : `<rect x="${x - w / 2 + 0.0036}" y="${y - h / 2 + 0.0036}" width="${w - 0.0072}" height="${h - 0.0072}" rx="${0.0168 * k}" fill="#000" stroke="${colour}" stroke-width="0.0072"/>`;
+  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
 }
 const fade = (c, f) => { const n = parseInt(c.slice(1), 16);
   return hex((((n >> 16) & 255) * f | 0) << 16 | (((n >> 8) & 255) * f | 0) << 8 | ((n & 255) * f | 0)); };
 
 // The altitude at a border, right-aligned at x, its digits centred on y.
-const COL_ALT = 30;
+const COL_ALT = 0.0721;
 const colWidest = {};
 function colAltBox(feet) {
   if (colWidest[feet] === undefined) {
     const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `600 ${COL_ALT}px ${NUMBER_FONT}`;
+    ctx.font = `600 ${COL_ALT * MEASURE}px ${NUMBER_FONT}`;
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width);
+    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width / MEASURE);
     colWidest[feet] = w;
   }
   return colWidest[feet];
 }
 function borderAltitude(u, x, y, feet, unit) {
-  const base = (y + 0.35 * COL_ALT).toFixed(1);
-  let s = `<text x="${x.toFixed(1)}" y="${base}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${COL_ALT}" font-weight="600" fill="#fff">${altValue(u, feet)}</text>`;
-  if (unit) s += `<text x="${(x + 3).toFixed(1)}" y="${base}" font-family="${NUMBER_FONT}" font-size="18" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
+  const base = (y + 0.35 * COL_ALT).toFixed(4);
+  let s = `<text x="${x.toFixed(4)}" y="${base}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${COL_ALT}" font-weight="600" fill="#fff">${altValue(u, feet)}</text>`;
+  if (unit) s += `<text x="${(x + 0.0072).toFixed(4)}" y="${base}" font-family="${NUMBER_FONT}" font-size="0.0433" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
   return s;
 }
 
@@ -416,14 +418,14 @@ function borderAltitude(u, x, y, feet, unit) {
 // altitudes as one group.
 // The difficulty column group's width, and the group drawn with its left edge at left, centred on cy.
 function colGroupWidth(opt) {
-  return COL_W * COL_BIG + 10 + colAltBox(opt.feet) + (opt.eachUnit ? 3 + (opt.feet ? 14 : 12) : 0);
+  return COL_W * COL_BIG + 0.024 + colAltBox(opt.feet) + (opt.eachUnit ? 0.0072 + (opt.feet ? 0.0337 : 0.0288) : 0);
 }
 // The column's top and bottom edges around cy.
 const colTop = cy => cy - (COL_H * COL_BIG / 2 + 2 * (COL_GAP + COL_H));
 const colBottom = cy => cy + (COL_H * COL_BIG / 2 + 2 * (COL_GAP + COL_H));
 function colGroup(st, opt, left, cy) {
   const colours = opt.colours.c, H = COL_H * COL_BIG, W = COL_W * COL_BIG;
-  const altW = colAltBox(opt.feet), cx = left + W / 2, ax = cx + W / 2 + 10 + altW;
+  const altW = colAltBox(opt.feet), cx = left + W / 2, ax = cx + W / 2 + 0.024 + altW;
   // Centre of slot k: 0 is the climber's, positive above.
   const slotY = k => k === 0 ? cy : cy - Math.sign(k) * (H / 2 + COL_GAP + COL_H / 2 + (Math.abs(k) - 1) * (COL_H + COL_GAP));
   let s = "";
@@ -451,7 +453,7 @@ function colGroup(st, opt, left, cy) {
 
 // Page 2, version 1: the group centred on the screen.
 function page2(st, opt) {
-  return colGroup(st, opt, 208 - colGroupWidth(opt) / 2, 208);
+  return colGroup(st, opt, 0.5 - colGroupWidth(opt) / 2, 0.5);
 }
 
 // The ascent widget's numbers: the widest the route can show, measured once.
@@ -459,9 +461,9 @@ let ascWidest;
 function ascNumbersWidth() {
   if (ascWidest === undefined) {
     const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `600 22px ${NUMBER_FONT}`;
+    ctx.font = `600 ${0.0529 * MEASURE}px ${NUMBER_FONT}`;
     ascWidest = 0;
-    for (let n = 0; n <= TU; n++) ascWidest = Math.max(ascWidest, ctx.measureText(String(n)).width);
+    for (let n = 0; n <= TU; n++) ascWidest = Math.max(ascWidest, ctx.measureText(String(n)).width / MEASURE);
   }
   return ascWidest;
 }
@@ -469,38 +471,38 @@ function ascNumbersWidth() {
 // Page 3, version 1: the ascent on the left and the difficulty column group on the right, spread
 // across the screen with equal space before, between and after them, both as tall as the column;
 // the current altitude centred at the top.
-const P3_LEFT = 56, P3_RIGHT = 360, P3_CY = 228;
+const P3_LEFT = 0.1346, P3_RIGHT = 0.8654, P3_CY = 0.5481;
 function page3(st, opt) {
   const ascLeft = ascNumbersWidth() + NUMBER_SPACE + RING_OUTER, ascW = ascLeft + RING_OUTER;
   const grpW = colGroupWidth(opt);
   const gap = (P3_RIGHT - P3_LEFT - ascW - grpW) / 3;
   const lx = P3_LEFT + gap + ascLeft, top = colTop(P3_CY), bottom = colBottom(P3_CY);
-  const altW = altBox(opt.feet) + 4 + (opt.feet ? 19 : 16);
+  const altW = altBox(opt.feet) + 0.0096 + (opt.feet ? 0.0457 : 0.0385);
   return ascent(st, lx, bottom, bottom - top, opt.ends) + colGroup(st, opt, lx + RING_OUTER + gap, P3_CY) +
-    altitude(st, 208 - altW / 2, 40, opt.feet);
+    altitude(st, 0.5 - altW / 2, 0.0962, opt.feet);
 }
 
 // ---------------------------------------------------------------- page 4
 
 // The difficulty stack: the sections as boxes whose heights are the metres they climb, in a window
 // that moves with the climber, who stays a quarter of the way up from its bottom.
-const ST_TOP = 64, ST_BOTTOM = 352, ST_W = 60, ST_GAP = 3;
+const ST_TOP = 0.1538, ST_BOTTOM = 0.8462, ST_W = 0.1442, ST_GAP = 0.0072;
 const textWidth = (() => { const ctx = document.createElement("canvas").getContext("2d");
-  return (t, px) => { ctx.font = `600 ${px}px ${NUMBER_FONT}`; return ctx.measureText(t).width; }; })();
+  return (t, size) => { ctx.font = `600 ${size * MEASURE}px ${NUMBER_FONT}`; return ctx.measureText(t).width / MEASURE; }; })();
 // Cut a name to fit a width, ending in an ellipsis when cut.
-function fit(t, px, w) {
-  if (textWidth(t, px) <= w) return t;
-  while (t.length > 1 && textWidth(t + "…", px) > w) t = t.slice(0, -1);
+function fit(t, size, w) {
+  if (textWidth(t, size) <= w) return t;
+  while (t.length > 1 && textWidth(t + "…", size) > w) t = t.slice(0, -1);
   return t.trimEnd() + "…";
 }
 // by "up": each box as tall as the metres its section climbs (page 4); by "path": as tall as its
 // length along the route (page 5).
-function stack(st, opt, by, ST_LEFT = 164) {
+function stack(st, opt, by, ST_LEFT = 0.3942) {
   const up = by === "up", colours = opt.colours.c, scale = up ? opt.scale : opt.pathScale;
   const at = i => up ? U[i] : D[i], size = i => up ? UP[i] : LEN[i], here = up ? st.u : st.d;
   const cy = ST_BOTTOM - (ST_BOTTOM - ST_TOP) / 4;
   const Y = v => cy - (v - here) * scale, right = ST_LEFT + ST_W, cx = ST_LEFT + ST_W / 2;
-  let s = `<defs><clipPath id="st-win"><rect x="0" y="${ST_TOP}" width="416" height="${ST_BOTTOM - ST_TOP}"/></clipPath></defs><g clip-path="url(#st-win)">`;
+  let s = `<defs><clipPath id="st-win"><rect x="0" y="${ST_TOP}" width="1" height="${ST_BOTTOM - ST_TOP}"/></clipPath></defs><g clip-path="url(#st-win)">`;
   let names = "", borders = "";
   // A section's box: its code (rests as W unless shown as R) and colour, dimmed behind the climber.
   const box = i => {
@@ -510,10 +512,10 @@ function stack(st, opt, by, ST_LEFT = 164) {
     if (i < st.cur) colour = fade(colour, COL_DIM);
     return { text: g < 0 ? "R" : BOX_NAME[g], colour };
   };
-  const line = (y, c) => `<line x1="${ST_LEFT}" y1="${y.toFixed(1)}" x2="${right}" y2="${y.toFixed(1)}" stroke="${c}" stroke-width="3"/>`;
+  const line = (y, c) => `<line x1="${ST_LEFT}" y1="${y.toFixed(4)}" x2="${right}" y2="${y.toFixed(4)}" stroke="${c}" stroke-width="0.0072"/>`;
   for (let i = 0; i < N; i++) {
     const yb = Y(at(i)), yt = Y(at(i + 1));
-    if (yt > ST_BOTTOM + 2 || yb < ST_TOP - 2) continue;
+    if (yt > ST_BOTTOM + 0.0048 || yb < ST_TOP - 0.0048) continue;
     const now = i === st.cur, before = i < st.cur, { text, colour } = box(i);
     // The part of the box inside the window, for centring its letters and its name.
     const vt = Math.max(yt, ST_TOP), vb = Math.min(yb, ST_BOTTOM), vm = (vt + vb) / 2;
@@ -525,29 +527,29 @@ function stack(st, opt, by, ST_LEFT = 164) {
       // The boxes meet with no gap: the current one filled, the others black with their sides in
       // their colour; the borders between them are drawn after.
       s += now
-        ? `<rect x="${ST_LEFT}" y="${yt.toFixed(1)}" width="${ST_W}" height="${(yb - yt).toFixed(1)}" fill="${colour}"/>`
-        : `<rect x="${ST_LEFT}" y="${yt.toFixed(1)}" width="${ST_W}" height="${(yb - yt).toFixed(1)}" fill="#000"/>` +
-          `<line x1="${ST_LEFT + 1.5}" y1="${yt.toFixed(1)}" x2="${ST_LEFT + 1.5}" y2="${yb.toFixed(1)}" stroke="${colour}" stroke-width="3"/>` +
-          `<line x1="${right - 1.5}" y1="${yt.toFixed(1)}" x2="${right - 1.5}" y2="${yb.toFixed(1)}" stroke="${colour}" stroke-width="3"/>`;
-      if (vb - vt >= fs + 6) {
-        s += `<text x="${cx}" y="${(vm + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${now ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+        ? `<rect x="${ST_LEFT}" y="${yt.toFixed(4)}" width="${ST_W}" height="${(yb - yt).toFixed(4)}" fill="${colour}"/>`
+        : `<rect x="${ST_LEFT}" y="${yt.toFixed(4)}" width="${ST_W}" height="${(yb - yt).toFixed(4)}" fill="#000"/>` +
+          `<line x1="${ST_LEFT + 0.0036}" y1="${yt.toFixed(4)}" x2="${ST_LEFT + 0.0036}" y2="${yb.toFixed(4)}" stroke="${colour}" stroke-width="0.0072"/>` +
+          `<line x1="${right - 0.0036}" y1="${yt.toFixed(4)}" x2="${right - 0.0036}" y2="${yb.toFixed(4)}" stroke="${colour}" stroke-width="0.0072"/>`;
+      if (vb - vt >= fs + 0.0144) {
+        s += `<text x="${cx}" y="${(vm + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="${now ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
       }
       // The border at this box's bottom, shared with the section below: in the colour of whichever
       // of the two is closer to the current section (the current one's own where it is one of them).
       // Below a flat section the border is that section's own line. The route's start and top close
       // the column in the end box's colour.
       if (i === 0) {
-        borders += line(yb - 1.5, colour);
+        borders += line(yb - 0.0036, colour);
       } else if (size(i - 1) > 0) {
         const closer = Math.abs(i - st.cur) <= Math.abs(i - 1 - st.cur) ? i : i - 1;
         borders += line(yb, box(closer).colour);
       }
-      if (i === N - 1) borders += line(yt + 1.5, colour);
+      if (i === N - 1) borders += line(yt + 0.0036, colour);
     }
     // The name on the right, centred on the visible part, cut to fit the round screen.
-    const ny = size(i) === 0 ? yb : vm, room = 208 + Math.sqrt(Math.max(0, 200 * 200 - (ny - 208) ** 2)) - (right + 12);
-    if (opt.names && room > 30 && (size(i) === 0 || vb - vt >= 16)) {
-      names += `<text x="${right + 12}" y="${(ny + 0.35 * 20).toFixed(1)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="20" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 20, room)}</text>`;
+    const ny = size(i) === 0 ? yb : vm, room = 0.5 + Math.sqrt(Math.max(0, 0.4808 * 0.4808 - (ny - 0.5) ** 2)) - (right + 0.0288);
+    if (opt.names && room > 0.0721 && (size(i) === 0 || vb - vt >= 0.0385)) {
+      names += `<text x="${right + 0.0288}" y="${(ny + 0.35 * 0.0481).toFixed(4)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="0.0481" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 0.0481, room)}</text>`;
     }
   }
   s += borders;
@@ -563,27 +565,27 @@ function stack(st, opt, by, ST_LEFT = 164) {
   let lastLabel = Infinity;
   for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
     const y = Y(up ? toU(v) : firstAt(toU(v)));
-    s += `<line x1="${ST_LEFT - 9}" y1="${y.toFixed(1)}" x2="${ST_LEFT - 3}" y2="${y.toFixed(1)}" stroke="#777" stroke-width="2"/>`;
-    if (lastLabel - y >= 18) {
-      s += `<text x="${ST_LEFT - 14}" y="${(y + 0.35 * 18).toFixed(1)}" text-anchor="end" fill="#99aaaa" font-size="18" font-weight="600" font-family="${NUMBER_FONT}">${v}</text>`;
+    s += `<line x1="${ST_LEFT - 0.0216}" y1="${y.toFixed(4)}" x2="${ST_LEFT - 0.0072}" y2="${y.toFixed(4)}" stroke="#777" stroke-width="0.0048"/>`;
+    if (lastLabel - y >= 0.0433) {
+      s += `<text x="${ST_LEFT - 0.0337}" y="${(y + 0.35 * 0.0433).toFixed(4)}" text-anchor="end" fill="#99aaaa" font-size="0.0433" font-weight="600" font-family="${NUMBER_FONT}">${v}</text>`;
       lastLabel = y;
     }
   }
   // The climber: a white line across the column, with the orange ring on its right edge, clear of the letters.
-  s += `<line x1="${ST_LEFT - 12}" y1="${cy}" x2="${right + 12}" y2="${cy}" stroke="#fff" stroke-width="3"/>` +
-    `<circle cx="${right}" cy="${cy}" r="9" fill="#000"/><circle cx="${right}" cy="${cy}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="3"/>`;
+  s += `<line x1="${ST_LEFT - 0.0288}" y1="${cy}" x2="${right + 0.0288}" y2="${cy}" stroke="#fff" stroke-width="0.0072"/>` +
+    `<circle cx="${right}" cy="${cy}" r="0.0216" fill="#000"/><circle cx="${right}" cy="${cy}" r="0.0216" fill="none" stroke="${CLIMBER}" stroke-width="0.0072"/>`;
   return s;
 }
 function page4(st, opt) { return stack(st, opt, "up"); }
-// Page 5: the stack by path, with the ascent widget on its left, the two spread across 56 to 360 px with equal
+// Page 5: the stack by path, with the ascent widget on its left, the two spread across 0.1346 to 0.8654 of the width with equal
 // space before, between and after them. The stack's part is its tick labels, its column and a
 // name allowance (P6_NAMES); the names may run on to the round edge. The ascent is as tall as the
 // stack's window.
-const P6_LEFT = 56, P6_RIGHT = 360, P6_NAMES = 80;
+const P6_LEFT = 0.1346, P6_RIGHT = 0.8654, P6_NAMES = 0.1923;
 function page5(st, opt) {
   const ascLeft = ascNumbersWidth() + NUMBER_SPACE + RING_OUTER, ascW = ascLeft + RING_OUTER;
-  const labels = textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), 18) + 14;
-  const stackW = labels + ST_W + 12 + P6_NAMES;
+  const labels = textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), 0.0433) + 0.0337;
+  const stackW = labels + ST_W + 0.0288 + P6_NAMES;
   const gap = (P6_RIGHT - P6_LEFT - ascW - stackW) / 3, lx = P6_LEFT + gap + ascLeft;
   return ascent(st, lx, ST_BOTTOM, ST_BOTTOM - ST_TOP, opt.ends) + stack(st, opt, "path", lx + RING_OUTER + gap + labels);
 }
@@ -594,13 +596,13 @@ function page5(st, opt) {
 // its top at the lower right, leaving the bottom free. Sections in their colours, climbed parts
 // dimmed; rests, exits and dangers as rings on it, dimmed once passed; the climber as the orange
 // outline of the stretch they could be on. By path (each section's arc its length) or by ascent.
-const G_R = 192, G_FROM = 232, G_SPAN = 284, G_PEN = 12, G_INNER = 6;
-const gPoint = (a, r = G_R) => [208 + r * Math.cos(a * Math.PI / 180), 208 - r * Math.sin(a * Math.PI / 180)];
+const G_R = 0.4615, G_FROM = 232, G_SPAN = 284, G_PEN = 0.0288, G_INNER = 0.0144;
+const gPoint = (a, r = G_R) => [0.5 + r * Math.cos(a * Math.PI / 180), 0.5 - r * Math.sin(a * Math.PI / 180)];
 function arc(a0, a1, colour, pen, r = G_R, cap = "butt") {
   if (Math.abs(a1 - a0) < 0.05) return "";
   const [x0, y0] = gPoint(a0, r), [x1, y1] = gPoint(a1, r);
   const large = Math.abs(a1 - a0) > 180 ? 1 : 0, sweep = a1 < a0 ? 1 : 0;
-  return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${large} ${sweep} ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${colour}" stroke-width="${pen}" stroke-linecap="${cap}"/>`;
+  return `<path d="M${x0.toFixed(4)} ${y0.toFixed(4)} A${r} ${r} 0 ${large} ${sweep} ${x1.toFixed(4)} ${y1.toFixed(4)}" fill="none" stroke="${colour}" stroke-width="${pen}" stroke-linecap="${cap}"/>`;
 }
 // The gauge's angles with a minimum per section (minDeg degrees): a section whose share of the
 // sweep (by its length, or by the metres it climbs) would be smaller gets the minimum, and the
@@ -638,9 +640,9 @@ function gauge(st, opt) {
   const a0 = A(lo), a1 = A(hi) - 0.01;
   if (opt.mark === "inner") {
     // Or a thicker orange line on the gauge's inner side, over the same stretch, clear of the sections.
-    s += arc(a0, a1, CLIMBER, G_INNER, G_R - G_PEN / 2 - 3 - G_INNER / 2, "round");
+    s += arc(a0, a1, CLIMBER, G_INNER, G_R - G_PEN / 2 - 0.0072 - G_INNER / 2, "round");
   } else {
-    s += arc(a0, a1, CLIMBER, G_PEN + 10, G_R, "round") + arc(a0, a1, "#000", G_PEN + 4, G_R, "round");
+    s += arc(a0, a1, CLIMBER, G_PEN + 0.024, G_R, "round") + arc(a0, a1, "#000", G_PEN + 0.0096, G_R, "round");
   }
   // The sections, each with a hair of gap after it; climbed parts dimmed.
   const ac = A(st.d);
@@ -654,7 +656,7 @@ function gauge(st, opt) {
   }
   // The points, as hollow rings on the gauge.
   const ring = (d, colour) => { const [x, y] = gPoint(A(d));
-    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="3"/>`; };
+    return `<circle cx="${x.toFixed(4)}" cy="${y.toFixed(4)}" r="0.0168" fill="#000" stroke="${mark(colour, d <= st.d)}" stroke-width="0.0072"/>`; };
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) s += ring((D[i] + D[i + 1]) / 2, REST);
   for (const i of EXIT_AT) s += ring(D[i], EXIT_GREEN);
   if (opt.dangers) for (const p of DANGER_AT) s += ring(p.d, DANGER_YELLOW);
@@ -665,14 +667,14 @@ function gauge(st, opt) {
 // ring on it, the metres climbed below its left stretch and the metres left below its right one,
 // each centred on its stretch, kept clear of the ring, never past the line's end.
 function ascentFlat(st, x0, x1, y, ends) {
-  const X = u => x0 + u / TU * (x1 - x0), rx = X(st.u), up = Math.round(st.u), fs = 22;
-  const num = (x, t) => `<text x="${x.toFixed(1)}" y="${(y + 22 + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="${fs}" font-weight="600" font-family="${NUMBER_FONT}">${t}</text>`;
-  let s = `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${SCALE}" stroke-width="2"/>`;
-  s += `<circle cx="${rx.toFixed(1)}" cy="${y}" r="9" fill="#000"/>`;
-  const gap = 26;
+  const X = u => x0 + u / TU * (x1 - x0), rx = X(st.u), up = Math.round(st.u), fs = 0.0529;
+  const num = (x, t) => `<text x="${x.toFixed(4)}" y="${(y + 0.0529 + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="#fff" font-size="${fs}" font-weight="600" font-family="${NUMBER_FONT}">${t}</text>`;
+  let s = `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${SCALE}" stroke-width="0.0048"/>`;
+  s += `<circle cx="${rx.toFixed(4)}" cy="${y}" r="0.0216" fill="#000"/>`;
+  const gap = 0.0625;
   s += num(Math.max(Math.min((x0 + rx) / 2, rx - gap), x0), up) + num(Math.min(Math.max((rx + x1) / 2, rx + gap), x1), TU - up);
-  if (ends) s += `<circle cx="${x0}" cy="${y}" r="6" fill="${EXIT_GREEN}"/><circle cx="${x1}" cy="${y}" r="6" fill="${END_RED}"/>`;
-  return s + `<circle cx="${rx.toFixed(1)}" cy="${y}" r="9" fill="none" stroke="${CLIMBER}" stroke-width="2.5"/>`;
+  if (ends) s += `<circle cx="${x0}" cy="${y}" r="0.0144" fill="${EXIT_GREEN}"/><circle cx="${x1}" cy="${y}" r="0.0144" fill="${END_RED}"/>`;
+  return s + `<circle cx="${rx.toFixed(4)}" cy="${y}" r="0.0216" fill="none" stroke="${CLIMBER}" stroke-width="0.006"/>`;
 }
 
 // What comes next: the next section of a different difficulty (a rest counts as walking), and how
@@ -682,9 +684,9 @@ function nextUp(st, opt, y) {
   let i = st.cur + 1;
   while (i < N && Math.max(GRADE[i], 0) === here) i++;
   const dist = i < N ? (byPath ? D[i] - st.d : U[i] - st.u) : (byPath ? TD - st.d : TU - st.u);
-  const m = Math.max(0, Math.round(dist / 5) * 5), fs = 28;
+  const m = Math.max(0, Math.round(dist / 5) * 5), fs = 0.0673;
   const what = i < N ? BOX_NAME[Math.max(GRADE[i], 0)] : "Top", colour = i < N ? grade(colours, Math.max(GRADE[i], 0), false) : "#fff";
-  return `<text x="208" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}"><tspan fill="${colour}">${what}</tspan><tspan fill="#fff"> in ${m} m${byPath ? "" : " up"}</tspan></text>`;
+  return `<text x="0.5" y="${(y + 0.35 * fs).toFixed(4)}" text-anchor="middle" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}"><tspan fill="${colour}">${what}</tspan><tspan fill="#fff"> in ${m} m${byPath ? "" : " up"}</tspan></text>`;
 }
 
 // Page 6, version 1: the gauge; the current difficulty large in the middle; above it, the poi word
@@ -692,20 +694,20 @@ function nextUp(st, opt, y) {
 // right of centre, always); below it, what comes next; at the bottom, the ascent laid flat.
 function page6(st, opt) {
   const colours = opt.colours.c, g = Math.max(GRADE[st.cur], 0), colour = grade(colours, g, false);
-  const bw = 132, bh = 92, by = 186, fs = 70;
+  const bw = 0.3173, bh = 0.2212, by = 0.4471, fs = 0.1683;
   let s = gauge(st, opt);
-  s += `<rect x="${208 - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="14" fill="${colour}"/>` +
-    `<text x="208" y="${(by + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="#000" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${BOX_NAME[g]}</text>`;
-  const lineTop = 100, afs = 30;
+  s += `<rect x="${0.5 - bw / 2}" y="${by - bh / 2}" width="${bw}" height="${bh}" rx="0.0337" fill="${colour}"/>` +
+    `<text x="0.5" y="${(by + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="#000" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${BOX_NAME[g]}</text>`;
+  const lineTop = 0.2404, afs = 0.0721;
   // The poi word and the altitude share a baseline: both are capitals and digits, so their bottoms align.
   const base = lineTop + 0.7 * afs;
-  s += poi(st, 200, base - 0.7 * 24, opt);
+  s += poi(st, 0.4808, base - 0.7 * 0.0577, opt);
   // The altitude: the number right-aligned with the difficulty box's right edge, the unit past it.
-  const ay = base.toFixed(1), ax = 208 + bw / 2;
+  const ay = base.toFixed(4), ax = 0.5 + bw / 2;
   s += `<text x="${ax}" y="${ay}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${afs}" font-weight="600" fill="#fff">${altValue(st.u, opt.feet)}</text>` +
-    `<text x="${ax + 3}" y="${ay}" font-family="${NUMBER_FONT}" font-size="18" font-weight="600" fill="#99aaaa">${opt.feet ? "ft" : "m"}</text>`;
-  s += nextUp(st, opt, 262);
-  s += ascentFlat(st, 124, 292, 314, opt.ends);
+    `<text x="${ax + 0.0072}" y="${ay}" font-family="${NUMBER_FONT}" font-size="0.0433" font-weight="600" fill="#99aaaa">${opt.feet ? "ft" : "m"}</text>`;
+  s += nextUp(st, opt, 0.6298);
+  s += ascentFlat(st, 0.2981, 0.7019, 0.7548, opt.ends);
   return s;
 }
 
@@ -714,11 +716,11 @@ function page6(st, opt) {
 // on the rectangle's bottom, and its widest possible extent (two-character boxes in all three slots)
 // ending at the rectangle's right edge, so the middle box stays put whatever the satellites show.
 function page(st, opt) {
-  const x0 = 92, w = 260, y0 = 318, h = 226;
+  const x0 = 0.2212, w = 0.625, y0 = 0.7644, h = 0.5433;
   const reach = boxWidth("K1", 1) / 2 + DIFFICULTY_GAP + boxWidth("K1", DIFFICULTY_K);
   return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, x0 + w - reach, y0, opt) +
     // In the rectangle's upper left, a small space right of the ascent line, level with its top.
-    altitudeGroup(st, x0 + RING_OUTER + 8, y0 - h, opt);
+    altitudeGroup(st, x0 + RING_OUTER + 0.0192, y0 - h, opt);
 }
 
 const speed = document.getElementById("speed");
@@ -761,7 +763,7 @@ function stills() {
     for (const f of [0.03, 0.4, 0.65, 0.97]) {
       const st = state(demoMinute(f));
       r.insertAdjacentHTML("beforeend",
-        `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="Page 6, gauge by ${by === "up" ? "ascent" : "length"}, at ${Math.round(f * 100)} percent">${page6(st, { ...opts(), gaugeBy: by })}</svg></div>` +
+        `<figure><div class="dial"><svg viewBox="0 0 1 1" role="img" aria-label="Page 6, gauge by ${by === "up" ? "ascent" : "length"}, at ${Math.round(f * 100)} percent">${page6(st, { ...opts(), gaugeBy: by })}</svg></div>` +
         `<figcaption>${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
     }
   }
