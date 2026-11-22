@@ -1,4 +1,5 @@
 using Toybox.Graphics;
+using Toybox.System;
 
 import Toybox.Lang;
 import Toybox.Test;
@@ -103,10 +104,14 @@ module DescentTest {
         return true;
     }
 
-    // Every page at every 10 m of the route, each in turn, into a small bitmap: a throw fails the test.
+    // Every page at every 10 m of the route, each in turn, into a bitmap: a throw fails the test. As
+    // wide as the screen, since the pens are shares of it and a pen under a pixel wide throws; two
+    // colours, so it takes a bit a pixel.
     function drawsEverywhere(r as Route, from as Number, to as Number) as Boolean {
         Climb.use(r, :ferrata);
-        var bitmap = Graphics.createBufferedBitmap({:width => 64, :height => 64}).get() as Graphics.BufferedBitmap;
+        var w = System.getDeviceSettings().screenWidth;
+        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w,
+            :palette => [Graphics.COLOR_BLACK, Graphics.COLOR_WHITE] as Array<Graphics.ColorValue>}).get() as Graphics.BufferedBitmap;
         var dc = bitmap.getDc();
         for (var page = from; page <= to; page++) {
             for (var dist = 0; dist <= Climb.totalD(); dist += 10) {
