@@ -81,6 +81,16 @@ module Widgets {
         d.top(x0 + w, y0 - h);
     }
 
+    // The profile's y at a distance along the route (#56: the tests first; for now the height gained).
+    function profileY(dist as Float, y0 as Float, h as Float) as Float {
+        return y0 - Climb.heightAtDistance(dist) / Climb.totalU() * h;
+    }
+
+    // The stack's altitude ticks (#56: the tests first; for now none).
+    function stackTicks(byUp as Boolean, vLo as Float, vHi as Float, step as Number, k as Float) as [Array<Number>, Array<Float>] {
+        return [[] as Array<Number>, [] as Array<Float>];
+    }
+
     // The route between two distances, painted with a round brush of radius r.
     function stretch(d as Draw, lo as Float, hi as Float, x0 as Float, w as Float, y0 as Float, h as Float,
             c as Number, r as Float) as Void {

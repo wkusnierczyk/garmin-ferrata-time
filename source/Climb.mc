@@ -387,6 +387,8 @@ module Climb {
 
         // The real altitude: net height, where u is the height gained.
         function altitude() as Number { return START_ALT + netAtDistance(d).toNumber(); }
+        // The height the altitude widgets add to the start's (#56: the tests first; for now u).
+        function net() as Float { return u; }
         function climbed() as Number { return Math.round(u).toNumber(); }
         function elapsed() as Float { var e = given; return e != null ? e : m * pace; }
         function left() as Float { return (totalM() - m) * pace; }
