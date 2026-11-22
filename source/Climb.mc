@@ -161,7 +161,10 @@ module Climb {
     }
 
     function totalD() as Number { return dAt(count()); }
-    function totalU() as Number { return uAt(count()); }
+    // At least 1: an approach that gains no height (flat, or going down) would leave the pages that
+    // draw the climb by height dividing by 0. Pages on the approach hide height figures (owner,
+    // 2026-11-22); until then, a guard against dividing by 0.
+    function totalU() as Number { var u = uAt(count()); return u > 0 ? u : 1; }
     function totalM() as Number { return mAt(count()); }
 
     // The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs
@@ -225,6 +228,17 @@ module Climb {
         if (d >= totalD()) { return totalM().toFloat(); }
         var i = sectionAt(d);
         return mAt(i) + (d - dAt(i)) / LEN[i].toFloat() * MIN[i];
+    }
+
+    // The distance at which the guidebook minutes reach m: the start's before it, the end's past it.
+    function distanceAtMinute(m as Float) as Float {
+        if (m <= 0) { return 0.0; }
+        for (var i = 0; i < count(); i++) {
+            if (m <= mAt(i + 1)) {
+                return MIN[i] > 0 ? dAt(i) + (m - mAt(i)) / MIN[i].toFloat() * LEN[i] : dAt(i + 1).toFloat();
+            }
+        }
+        return totalD().toFloat();
     }
 
     // Where the climber is when the height since the start of the part reads u (net), having been
@@ -321,12 +335,20 @@ module Climb {
         return (t / 60).format("%d") + ":" + (t % 60).format("%02d");
     }
 
-    // The climber's state at guidebook minute m.
+    // The climber's state at guidebook minute m (the demo), or at a place the tracker worked out
+    // (placed).
     class State {
         var m as Float;
         var cur as Number = 0;
         var d as Float = 0.0;
         var u as Float = 0.0;
+        // How sure the place is, in metres up or down.
+        var band as Number = UNCERTAINTY;
+        // Own pace against the guidebook, and the clock at the start of the part.
+        var pace as Float = PACE;
+        var startClock as Float = START_CLOCK.toFloat();
+        // Minutes since the start of the part, when the tracker gives them; else the demo's, m at pace.
+        var given as Float? = null;
 
         function initialize(minute as Float) {
             m = minute;
@@ -342,16 +364,37 @@ module Climb {
             u = uAt(cur) + f * (UP[cur] > 0 ? UP[cur] : 0);
         }
 
+        // The state at distance d along the part, u the height gained there, elapsed minutes since the
+        // part started (pauses included) at pace against the guidebook, the part started at
+        // startClock (minutes of the day), the place sure to band metres.
+        static function placed(d as Float, u as Float, elapsed as Float, pace as Float, startClock as Float,
+                band as Number) as State {
+            var st = new State(0.0);
+            var td = totalD().toFloat();
+            st.d = d < 0 ? 0.0 : (d > td ? td : d);
+            st.u = u;
+            st.m = minuteAtDistance(st.d);
+            st.cur = count() - 1;
+            for (var i = 0; i < count(); i++) {
+                if (st.d < dAt(i + 1)) { st.cur = i; break; }
+            }
+            st.given = elapsed;
+            st.pace = pace;
+            st.startClock = startClock;
+            st.band = band;
+            return st;
+        }
+
         // The real altitude: net height, where u is the height gained.
         function altitude() as Number { return START_ALT + netAtDistance(d).toNumber(); }
         function climbed() as Number { return Math.round(u).toNumber(); }
-        function elapsed() as Float { return m * PACE; }
-        function left() as Float { return (totalM() - m) * PACE; }
-        function clock() as Float { return START_CLOCK + elapsed(); }
+        function elapsed() as Float { var e = given; return e != null ? e : m * pace; }
+        function left() as Float { return (totalM() - m) * pace; }
+        function clock() as Float { return startClock + elapsed(); }
         function finish() as Float { return clock() + left(); }
 
         // Minutes until the start of section i, at the climber's pace.
-        function untilStart(i as Number) as Float { return (mAt(i) - m) * PACE; }
+        function untilStart(i as Number) as Float { return (mAt(i) - m) * pace; }
 
         // The next section ahead that is D or harder, by its half-step grade; -1 if none.
         function nextHard() as Number {
