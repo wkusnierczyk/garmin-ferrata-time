@@ -517,6 +517,8 @@ def test_unknown_kind_folded(tmp_path, capsys):
     ("Ǿ ǿ ǣ Ǽ", "O o ae AE"),
     # Quotes, of any kind, to the apostrophe; the charset has no double quote.
     ("“A” „B“ «C» ‛D’ ʼE `F′", "'A' 'B' 'C' 'D' 'E 'F'"),
+    # The plain double quote too (Codex on #86).
+    ('Ferrata "Nord"', "Ferrata 'Nord'"),
     # Minus and fraction slash.
     ("−5 1⁄2", "-5 1/2"),
     # Micro sign and Greek mu.
