@@ -253,4 +253,148 @@ module TrackerTest {
         Test.assertEqualMessage(t.state().climbed(), 0, "nothing climbed");
         return true;
     }
+
+    // ---------------------------------------------------------------- from the review of #89
+
+    // Review Focus 3: before the pace is trusted (10 guidebook minutes), a pause does not count as
+    // walking. A 200 m traverse of 10 minutes, then a climb.
+    (:test)
+    function pauseBeforePaceTrustedHolds(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.made([[200, 0], [100, 100]]));
+        t.start(:head, at(0, 1000.0));
+        t.update(at(2, 1000.0));
+        var d = t.d;
+        t.pause(at(2, 1000.0));
+        t.update(at(32, 1000.0));
+        t.resume(at(32, 1000.0));
+        Test.assertMessage(near(t.d, d), "the pause moved the place: " + t.d + ", was " + d);
+        // Then on at the climber's pace, 1.0: a minute is 20 m.
+        t.update(at(33, 1000.0));
+        Test.assertMessage(near(t.d, d + 20.0), "a minute on: d " + t.d);
+        return true;
+    }
+
+    (:test)
+    function unsyncedPauseHolds(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:elsewhere, at(0, 1250.0));
+        t.update(at(2, 1252.0));
+        var d = t.d;
+        t.pause(at(2, 1252.0));
+        t.update(at(32, 1252.0));
+        t.resume(at(32, 1252.0));
+        Test.assertMessage(near(t.d, d), "the pause moved the place: " + t.d + ", was " + d);
+        return true;
+    }
+
+    // Review Focus 1: a start sync confirmed while the watch had no altitude is applied at the first
+    // reading that has one.
+    (:test)
+    function startSyncWaitsForAltitude(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:head, at(0, null));
+        t.update(at(1, 1250.0));
+        Test.assertMessage(t.offset != null && near(t.offset as Float, 40.0), "offset " + t.offset);
+        Test.assertEqualMessage(t.drifts.size(), 0, "a first sync, no drift");
+        Test.assertMessage(near(t.altitude() as Float, 1290.0), "altitude " + t.altitude());
+        return true;
+    }
+
+    // 100 m up, 200 m flat, 100 m up, a landmark at the start of the flat.
+    function withLandmark() as Route {
+        var sections = [] as Array<Dictionary>;
+        var steps = [[100, 100], [200, 0], [100, 100]];
+        for (var i = 0; i < 3; i++) {
+            sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => 1, "min" => 10,
+                "name" => "S" + i, "side" => 0.0});
+        }
+        return Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
+            "sections" => sections, "points" => [
+                {"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
+                {"kind" => "landmark", "at" => 100, "alt" => 1100, "name" => "Ledge start"},
+                {"kind" => "top", "at" => 400, "name" => "Top"}]}) as Route;
+    }
+
+    // A landmark sync on a flat is not undone by the next reading; the place goes on from it at the
+    // climber's pace.
+    (:test)
+    function landmarkSyncSurvivesNextReading(logger as Logger) as Boolean {
+        var t = new Tracker(withLandmark());
+        t.start(:head, at(0, 1000.0));
+        for (var k = 1; k <= 10; k++) { t.update(at(k, 1000.0 + 10 * k)); }
+        for (var k = 11; k <= 25; k++) { t.update(at(k, 1100.0)); }
+        Test.assertMessage(near(t.d, 300.0), "the estimate ran ahead, d " + t.d);
+        t.syncAt(1, at(25, 1100.0));
+        Test.assertMessage(near(t.d, 100.0), "at the landmark, d " + t.d);
+        t.update(new Reading(1100.0, null, null, 25 * 60 + 1));
+        Test.assertMessage(t.d < 101.0, "one second later, d " + t.d);
+        // 25 minutes for 10 guidebook ones: pace 2.5, so 5 minutes more are 2 guidebook minutes, 40 m.
+        Test.assertMessage(t.pace > 2.49 && t.pace < 2.51, "pace " + t.pace);
+        t.update(at(30, 1100.0));
+        Test.assertMessage(t.d > 139.0 && t.d < 141.0, "five minutes on, d " + t.d);
+        return true;
+    }
+
+    (:test)
+    function syncWithoutAltitudeKeepsBand(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:head, at(0, 1290.0));
+        t.update(at(65, 1300.0));
+        var b = t.band();
+        t.syncAt(HEAD, at(65, null));
+        Test.assertEqualMessage(t.band(), b, "no sync, no reset");
+        // The sync is applied at the next reading with an altitude, and the band starts again.
+        t.update(at(66, 1300.0));
+        Test.assertMessage(near(t.offset as Float, -10.0), "offset " + t.offset);
+        Test.assertEqualMessage(t.band(), 10, "synced");
+        return true;
+    }
+
+    (:test)
+    function nothingAfterEnd(logger as Logger) as Boolean {
+        var t = climbing(30);
+        t.end(TOP, at(6, 1320.0));
+        var n = t.drifts.size(), d = t.d, offset = t.offset;
+        t.syncAt(BENCH, at(7, 1500.0));
+        t.end(TOP, at(8, 1700.0));
+        Test.assertEqualMessage(t.drifts.size(), n, "no drift after the end");
+        Test.assertMessage(near(t.d, d) && t.offset == offset, "place and offset kept");
+        return true;
+    }
+
+    // The clock comes from the readings' time, so a replay shows its own.
+    (:test)
+    function clockFromReadings(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:head, new Reading(1290.0, null, null, (8 * 60 + 30) * 60));
+        t.update(new Reading(1300.0, null, null, (8 * 60 + 40) * 60));
+        Test.assertEqualMessage(Climb.clockText(t.state().clock()), "8:40", "clock");
+        return true;
+    }
+
+    (:test)
+    function distanceAtMinuteIsInverse(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        for (var k = 0; k <= Climb.totalM() * 2; k++) {
+            var m = k / 2.0;
+            var back = Climb.minuteAtDistance(Climb.distanceAtMinute(m));
+            Test.assertMessage(near(back, m), "m " + m + " back " + back);
+        }
+        Test.assertMessage(near(Climb.distanceAtMinute(Climb.totalM() + 5.0), Climb.totalD().toFloat()), "past the end");
+        Test.assertMessage(near(Climb.distanceAtMinute(-3.0), 0.0), "before the start");
+        return true;
+    }
+
+    // A placed state at the demo's place, pace and clock reads as the demo's state.
+    (:test)
+    function placedMatchesDemo(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        for (var k = 0; k < Climb.totalM(); k += 3) {
+            var a = new Climb.State(k.toFloat());
+            var b = Climb.State.placed(a.d, a.u, a.elapsed(), Climb.PACE, Climb.START_CLOCK.toFloat(), Climb.UNCERTAINTY);
+            Test.assertMessage(a.cur == b.cur && near(a.m, b.m) && near(a.left(), b.left()) && near(a.clock(), b.clock()),
+                "k " + k + ": cur " + a.cur + "/" + b.cur + " m " + a.m + "/" + b.m);
+        }
+        return true;
+    }
 }

@@ -1,9 +1,8 @@
-using Toybox.System;
-
 import Toybox.Lang;
 
 // One reading from an input (the watch's sensors, or the demo): the watch's altitude in metres, null
-// when it has none yet; the position, null without a fix; t in seconds, monotonic.
+// when it has none yet; the position, null without a fix; t in seconds since the local midnight of
+// the day the input started, monotonic (it keeps counting past midnight), so it gives the clock too.
 class Reading {
     var alt as Float?;
     var lat as Float?;
@@ -40,13 +39,17 @@ class Tracker {
     // Own pace against the guidebook: minutes taken per guidebook minute.
     var pace as Float = 1.0;
 
-    // When the part started, the last sync and the last reading, in reading seconds; the watch's last
-    // altitude (null when the last reading had none); the clock at the start of the part.
+    // When the part started, the last sync, the last reading, and up to when the place has been moved
+    // by time (active time only: a pause never moves it), in reading seconds; the watch's last
+    // altitude (null when the last reading had none); the clock at the start of the part, in minutes.
     var partT as Number = 0;
     var syncT as Number = 0;
     var lastT as Number = 0;
+    var moveT as Number = 0;
     var alt as Float? = null;
     var startClock as Float = 0.0;
+    // A known altitude confirmed while the watch had none: synced at the first reading that has one.
+    var pending as Float? = null;
 
     // Guidebook minutes done before the pace is trusted; until then it is 1 (my call, the plan).
     const PACE_AFTER = 10;
@@ -66,6 +69,7 @@ class Tracker {
     // has one, else the ferrata; unsynced).
     function start(where as Symbol, rd as Reading) as Void {
         offset = null;
+        pending = null;
         drifts = [] as Array<Float>;
         pausedFrom = null;
         var ferrata = where == :head || where == :elsewhere && !route.hasApproach();
@@ -86,6 +90,7 @@ class Tracker {
     function pause(rd as Reading) as Void {
         if (phase != APPROACH && phase != ASCENT) { return; }
         update(rd);
+        moveT = rd.t;
         pausedFrom = phase;
         phase = PAUSED;
     }
@@ -100,15 +105,16 @@ class Tracker {
     // Sync at a known point (an index into the route's points) the climber confirms. A landmark in the
     // part in use also sets the place to it, even behind: the climber said where they are.
     function syncAt(point as Number, rd as Reading) as Void {
+        if (phase == IDLE || phase == ENDED) { return; }
         var p = route.points[point];
         lastT = rd.t;
         alt = rd.alt;
         var known = p["alt"];
         if (known != null) { sync((known as Number).toFloat(), rd); }
-        syncT = rd.t;
         if ("landmark".equals(p["kind"] as Object?)) {
             var at = (p["at"] as Number) + shift();
-            if (at >= 0 && at <= Climb.totalD()) { d = at.toFloat(); }
+            // The place is known now: time moves it on from here, and the band starts again.
+            if (at >= 0 && at <= Climb.totalD()) { d = at.toFloat(); moveT = rd.t; syncT = rd.t; }
         }
         var s = synced(rd);
         if (s != null) { u = s; }
@@ -117,6 +123,7 @@ class Tracker {
     // End at a point: its altitude, when known, is checked against the watch's and the drift kept,
     // not applied to the climb done.
     function end(point as Number, rd as Reading) as Void {
+        if (phase == IDLE || phase == ENDED) { return; }
         var known = route.points[point]["alt"];
         var a = rd.alt, o = offset;
         if (known != null && a != null && o != null) { drifts.add((known as Number) - a - o); }
@@ -125,15 +132,23 @@ class Tracker {
     }
 
     // A new reading: the height maps to a stretch of the route ahead (Climb.stretchAhead), time moves
-    // the place within it at the climber's pace, and the place never goes back. Unsynced, time alone
-    // moves it; with no altitude, it holds. Paused, only the pace follows the time.
+    // the place within it at the climber's pace, and the place never goes back. Time moves it on from
+    // where it is by the active time since the last reading, so a pause or a landmark sync is never
+    // undone. Unsynced, time alone moves it; with no altitude, it holds (the time waits for the next
+    // reading with one). Paused, only the pace follows the time, which counts pauses.
     function update(rd as Reading) as Void {
         if (phase == IDLE || phase == ENDED) { return; }
         lastT = rd.t;
         alt = rd.alt;
+        var known = pending;
+        if (known != null) { sync(known, rd); }
         var elapsed = elapsedAt(rd.t);
-        if (phase != PAUSED && rd.alt != null) {
-            var timeD = Climb.distanceAtMinute(elapsed / pace);
+        if (phase == PAUSED) {
+            moveT = rd.t;
+        } else if (rd.alt != null) {
+            var active = (rd.t - moveT) / 60.0;
+            moveT = rd.t;
+            var timeD = Climb.distanceAtMinute(Climb.minuteAtDistance(d) + active / pace);
             var s = synced(rd);
             var to = timeD;
             if (s != null) {
@@ -178,16 +193,18 @@ class Tracker {
         partT = rd.t;
         syncT = rd.t;
         lastT = rd.t;
+        moveT = rd.t;
+        pending = null;
         alt = rd.alt;
-        var c = System.getClockTime();
-        startClock = c.hour * 60 + c.min + c.sec / 60.0;
+        startClock = rd.t / 60.0;
     }
 
-    // The offset becomes known less the watch's; a change from an earlier one is a drift. Nothing
-    // without a watch reading.
+    // The offset becomes known less the watch's; a change from an earlier one is a drift. Without a
+    // watch reading, it waits for the first one with an altitude.
     function sync(known as Float, rd as Reading) as Void {
         var a = rd.alt;
-        if (a == null) { return; }
+        if (a == null) { pending = known; return; }
+        pending = null;
         var next = known - a, o = offset;
         if (o != null) { drifts.add(next - o); }
         offset = next;
