@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "id": "demo",
+  "name": "Demo",
+  "short": "Demo",
+  "place": "Made up",
+  "source": {"geometry": "made up", "elevation": "made up", "text": "the 0.1.0 prototype's demo climb (Climb.mc)"},
+  "approach": [
+    {"len": 120, "up": 20, "grade": 0, "min": 12, "name": "Approach", "side": -1.0}
+  ],
+  "sections": [
+    {"len": 35, "up": 90, "grade": 5, "min": 20, "name": "First wall", "side": -0.3},
+    {"len": 10, "up": 0, "grade": -1, "min": 10, "name": "Ledge", "side": -1.0},
+    {"len": 140, "up": 30, "grade": 3, "min": 14, "name": "Ledge traverse", "side": -0.6},
+    {"len": 25, "up": 110, "grade": 7, "min": 20, "name": "Dihedral", "side": 0.2},
+    {"len": 150, "up": 10, "grade": 1, "min": 15, "name": "Band", "side": 1.0},
+    {"len": 30, "up": 0, "grade": -1, "min": 10, "name": "Bench", "side": 1.0},
+    {"len": 40, "up": 5, "grade": 1, "min": 6, "name": "Band", "side": -1.0},
+    {"len": 45, "up": 70, "grade": 5, "min": 12, "name": "Slabs", "side": -0.4},
+    {"len": 15, "up": 85, "grade": 9, "min": 15, "name": "Overhang", "side": 0.2},
+    {"len": 60, "up": 5, "grade": 7, "min": 8, "name": "Bridge", "side": -1.0},
+    {"len": 20, "up": 60, "grade": 7, "min": 12, "name": "Ladders", "side": 0.2},
+    {"len": 70, "up": 45, "grade": 3, "min": 12, "name": "Exit gully", "side": 0.6}
+  ],
+  "points": [
+    {"kind": "approach", "at": -120, "alt": 1270, "name": "Car park"},
+    {"kind": "head", "at": 0, "alt": 1290, "name": "Ferrata head"},
+    {"kind": "danger", "at": 55, "name": "Rockfall"},
+    {"kind": "exit", "at": 210, "name": "Band exit"},
+    {"kind": "landmark", "at": 390, "alt": 1530, "name": "Bench"},
+    {"kind": "exit", "at": 475, "name": "Last exit"},
+    {"kind": "danger", "at": 520, "name": "Exposed bridge"},
+    {"kind": "top", "at": 640, "alt": 1800, "name": "Top"}
+  ]
+}

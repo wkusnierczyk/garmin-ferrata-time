@@ -2,8 +2,9 @@
 # (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
 # release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
 # target device (#11), the store bundle (#12) and the checks that need no
-# SDK (#14) come with the design and functionality. The unit tests run in a job of their own,
-# under a virtual display (#13, #46).
+# SDK (#14) come with the design and functionality. Two jobs beside the build: the unit tests, in
+# the same container under a virtual display (#13, #46), and the route tool's tests with the route
+# files checked against their sources, on the runner (#47).
 #
 # A container, because the device definitions monkeyc compiles against are not in the public SDK
 # download: the SDK manager pulls them behind a Garmin sign-in, so they arrive in an image. The image
@@ -35,6 +36,23 @@ permissions:
   packages: read
 
 jobs:
+  # The route tool's tests, and the route files current with their sources (#47). Its own job on the
+  # runner, not a step in the build's container: the tester image has no Python. pytest from apt,
+  # for the runner's system Python, rather than pip installing into it.
+  routes:
+    name: routes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Test the route tool, and check make routes changes nothing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pytest
+          python3 -m pytest tools/tests -v
+          make routes
+          git diff --exit-code -- resources/routes
+          test -z "$(git status --porcelain -- resources/routes)"
+
   build:
     name: build
     runs-on: ubuntu-latest
