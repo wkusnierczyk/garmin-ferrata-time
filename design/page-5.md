@@ -10,7 +10,7 @@ The **path stack** with the **ascent gauge** around it: the route's sections as 
 
 | Setting | Value |
 |:--|:--|
-| Scale | 1 px per metre of path: 288 m in view |
+| Scale | 0.0024 of the screen per metre of path: 288 m in view |
 | Altitude ticks | every 10 m (50 ft in feet), where the route first reaches each altitude: they crowd on walls and spread on walks |
 | The next altitude to reach | 200 % of the other tick labels: the first tick above the altitude now, which may sit further along the route than the climber |
 | The altitudes just above and below it | 150 % |
@@ -19,7 +19,7 @@ The **path stack** with the **ascent gauge** around it: the route's sections as 
 | Points of interest | on: rings on the column's right edge, as on page 4 |
 | Their names | on, while the climber is in range: one tick step (10 m of path) before to half a step after |
 | Ascent gauge | an arc from the start (lower left) over the top to the route's top (lower right), the climber's ring at the height climbed, the start and top as green and red dots, the metres climbed and left past its ends |
-| Layout | the stack centred as a group: tick labels (as wide as the larger label), column, 80 px for names |
+| Layout | the stack centred as a group: tick labels (as wide as the larger label), column, 0.1923 of the screen's width for names |
 | Difficulty colours | heat with amber, no purple; rests shown as W |
 
 Points of interest as on page 4 (`design/page-4.md`): danger yellow, exit green, rest blue, the top red; one ring per group of touching rings, by precedence in range (danger, exit, rest, top) and by nearness out of it.

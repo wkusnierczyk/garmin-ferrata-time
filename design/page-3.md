@@ -10,8 +10,8 @@ Two upright widgets side by side, composed from existing widgets with no new dra
 
 - The **ascent** on the left, with its end dots; its line runs from the difficulty column's bottom edge to its top edge.
 - The **difficulty column group** on the right, with altitudes at the outer edges too.
-- The two spread across the screen with equal space before, between and after them, across 56 to 360 px of the 416 px screen, so the column's lowest altitude stays inside the round edge.
-- The column centred 20 px below the screen's middle, to make room for the **altitude**, centred at the top (its digits' top at 40 px).
+- The two spread across the screen with equal space before, between and after them, across 0.1346 to 0.8654 of the screen's width, so the column's lowest altitude stays inside the round edge.
+- The column centred 0.0481 of the screen below its middle, to make room for the **altitude**, centred at the top (its digits' top at 0.0962 of the screen down).
 - Difficulty colours: heat with amber, no purple.
 
 The ascent's climber ring and the current box share a height only by chance: one is the height climbed, the other the sections around the climber.
