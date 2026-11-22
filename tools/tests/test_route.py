@@ -503,11 +503,30 @@ def test_names_folded(tmp_path):
     assert point(out, "top")["name"] == "Gipfel AEro"
 
 
-def test_unknown_kind_not_folded(tmp_path):
-    odd = {"kind": "spring", "at": 10, "name": "Quelle Größe"}
+def test_unknown_kind_folded(tmp_path, capsys):
+    # Points of unknown kinds pass through unchecked, but their names are folded and checked too.
+    odd = {"kind": "spring", "at": 999, "flow": "good", "name": "Quelle Größe"}
     code, out = build(tmp_path, fixture(lambda r: r["points"].append(dict(odd))))
     assert code == 0
-    assert odd in out["points"]
+    assert dict(odd, name="Quelle Grosse") in out["points"]
+    rejects(tmp_path, capsys, fixture(lambda r: r["points"].append(dict(odd, name="Quelle!"))),
+            "spring 7 'Quelle!': name: '!' (U+0021) is not in the fonts' charset")
+
+
+@pytest.mark.parametrize("text,folded", [
+    # NFKD first, then the table: accents on special letters.
+    ("Ǿ ǿ ǣ Ǽ", "O o ae AE"),
+    # Quotes, of any kind, to the apostrophe; the charset has no double quote.
+    ("“A” „B“ «C» ‛D’ ʼE `F′", "'A' 'B' 'C' 'D' 'E 'F'"),
+    # Minus and fraction slash.
+    ("−5 1⁄2", "-5 1/2"),
+    # Micro sign and Greek mu.
+    ("µm μm", "um um"),
+    # Invisible marks dropped: soft hyphen, zero-width space, non-joiner, joiner, variation selector.
+    ("Klet\u00adter\u200bsteig\u200c\u200d\ufe0f", "Klettersteig"),
+])
+def test_fold_more(text, folded):
+    assert route.fold(text) == folded
 
 
 @pytest.mark.parametrize("change,message", [

@@ -30,12 +30,17 @@ EARTH_RADIUS = 6371000.0
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
 # until then a test compares the two whenever the file is there.
 TEXT_CHARSET = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…")
-# Letters NFKD does not take apart, spelled out; and typographic marks, written plainly.
+# What NFKD leaves: letters it does not take apart, spelled out; typographic marks, written plainly
+# (the charset has no double quote, so every quote becomes '); invisible marks, dropped.
 FOLD = {
     "ß": "ss", "ẞ": "SS", "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ø": "o", "Ø": "O",
     "ł": "l", "Ł": "L", "đ": "d", "Đ": "D", "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th",
-    "ħ": "h", "Ħ": "H", "ı": "i", "ŧ": "t", "Ŧ": "T", "ŋ": "ng", "Ŋ": "Ng",
-    "‘": "'", "’": "'", "‚": ",", "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-",
+    "ħ": "h", "Ħ": "H", "ı": "i", "ŧ": "t", "Ŧ": "T", "ŋ": "ng", "Ŋ": "Ng", "μ": "u",
+    "‘": "'", "’": "'", "‛": "'", "“": "'", "”": "'", "„": "'", "«": "'", "»": "'", "ʼ": "'",
+    "`": "'", "′": "'", "‚": ",",
+    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-", "⁄": "/",
+    "\u00ad": "", "\u200b": "", "\u200c": "", "\u200d": "",
+    **{chr(c): "" for c in range(0xFE00, 0xFE10)},  # variation selectors
 }
 
 
@@ -244,22 +249,24 @@ def check_rules(r):
 
 
 def fold(text):
-    """text with accents dropped and special letters spelled out. What it returns may still hold
-    characters outside TEXT_CHARSET."""
+    """text with accents dropped (NFKD, combining marks removed) and what remains looked up in
+    FOLD, so a letter with an accent on a special letter (ǿ, ǣ) folds too. What it returns may still
+    hold characters outside TEXT_CHARSET."""
     out = []
     for c in text:
         if c in TEXT_CHARSET:  # kept as it is, even where NFKD would take it apart (… to ...)
             out.append(c)
             continue
-        c = FOLD.get(c, c)
-        out.append("".join(d for d in unicodedata.normalize("NFKD", c) if not unicodedata.combining(d)))
+        for d in unicodedata.normalize("NFKD", c):
+            if not unicodedata.combining(d):
+                out.append(d if d in TEXT_CHARSET else FOLD.get(d, d))
     return "".join(out)
 
 
 def fold_names(r):
-    """A copy of route r with every name, short and place folded, and a problem for each character
-    left outside TEXT_CHARSET. Fields of the wrong type, and points of unknown kinds, stay as they
-    are: check_shape reports the former, and the latter pass through."""
+    """A copy of route r with every name, short and place folded, points of unknown kinds included,
+    and a problem for each character left outside TEXT_CHARSET. Fields of the wrong type stay as
+    they are, for check_shape to report."""
     if not isinstance(r, dict):
         return r, []
     r = copy.deepcopy(r)
@@ -282,9 +289,10 @@ def fold_names(r):
                     one(s, "name", f"{section_label(part, i, s)}: ")
     if isinstance(r.get("points"), list):
         for i, p in enumerate(r["points"], 1):
-            if isinstance(p, dict) and p.get("kind") in KINDS:
-                name = p.get("name")
-                one(p, "name", f"{p['kind']} {i}" + (f" '{name}'" if isinstance(name, str) else "") + ": ")
+            if isinstance(p, dict):
+                kind, name = p.get("kind"), p.get("name")
+                one(p, "name", f"{kind if isinstance(kind, str) else 'point'} {i}"
+                    + (f" '{name}'" if isinstance(name, str) else "") + ": ")
     return r, out
 
 
