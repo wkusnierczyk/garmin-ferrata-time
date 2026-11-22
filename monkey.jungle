@@ -9,4 +9,9 @@ base.sourcePath = source
 
 # The replay (#57) is left out: its recording and the code that loads it are only in the replay build,
 # replay.jungle layered over this file (make run REPLAY=1), which swaps this exclusion for its opposite.
+# replay.jungle replaces this list rather than appending to it: keep it in step with any exclusion
+# added here.
 base.excludeAnnotations = replay
+
+# No base.resourcePath here: the default, resources. replay.jungle names it again with its own folder
+# added; keep that in step if one is set here.
