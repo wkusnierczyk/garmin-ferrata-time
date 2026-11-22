@@ -36,7 +36,7 @@ make run         # build, start the simulator, load it
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
 ```
 
-`tools/launcher_icon.py` renders the launcher icon, an orange climber clipped to the cable on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
+`tools/launcher_icon.py` renders the launcher icon, an orange climber with arms raised, clipped to the cable, in Garmin's figure style on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
 
 ## What it is
 
