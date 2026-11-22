@@ -125,7 +125,17 @@ module Widgets {
         d.ring(x, ty, RING_R, CLIMBER, 3);
     }
 
-    // The widest number the ascent widget can show, measured once.
+    // Drops what is measured or laid out from the loaded part's sections, for Climb.use when the part
+    // changes (Codex on #88).
+    function forgetRoute() as Void {
+        ascentWidest = null;
+        widest = [null, null];
+        gaugeStarts = [null, null];
+        front = null;
+        frontScreen = null;
+    }
+
+    // The widest number the ascent widget can show, measured once per part.
     var ascentWidest as Number? = null;
 
     function ascentNumbersWidth(d as Draw) as Number {
