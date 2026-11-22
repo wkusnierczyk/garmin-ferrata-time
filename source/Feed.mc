@@ -50,6 +50,14 @@ class Feed {
         return new ReplayInput(WatchUi.loadResource(Rez.JsonData.replay) as Array<Array>, ReplayInput.SPEED);
     }
 
+    // Whether the climb may be recorded as a Garmin activity (the Recorder, #53, keys on this, not on
+    // demo): never in the demo, never in a replay build, whose input is not the watch's.
+    (:noreplay)
+    function records() as Boolean { return !demo; }
+
+    (:replay)
+    function records() as Boolean { return false; }
+
     function tickMs() as Number { return demo ? DEMO_TICK_MS : SENSOR_TICK_MS; }
 
     // The clock the input reads: the demo's own, or the system's.
