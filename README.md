@@ -59,7 +59,19 @@ A route's GPX track, if it has one, is kept beside its source as `routes/<id>.gp
 - `min`, the guidebook's minutes for a section, may be left out; `len` and `min` are above 0, `side` from -1.0 to 1.0, `short` (the activity's name) 1 to 15 characters.
 - Names (`name`, `short`, `place`, and every section's and point's `name`, points of any kind) are folded to the characters the app's fonts carry: letters A to Z and a to z, digits, space and `' ( ) + , - . / : > ~ ° · …`. Accents are dropped (ü to u, é to e, ç to c), special letters spelled out (ß to ss, æ to ae, ø to o, œ to oe, ł to l, þ to th), quotes of every kind written as `'` (the fonts have no double quote), dashes and the minus as `-`, the fraction slash as `/`, the micro sign as `u`, and invisible marks (soft hyphens, zero-width spaces and joiners, variation selectors) dropped; any other character is an error naming the field and the character. `short` is counted after folding.
 
-The tool lists every problem it finds and writes nothing. Its tests: `python3 -m pytest tools/tests` (needs `pytest`); CI runs them and checks that `make routes` leaves the route files unchanged.
+The tool lists every problem it finds and writes nothing. The tools' tests, this one's and the replay tool's (below): `python3 -m pytest tools/tests`, with `pytest` and Garmin's FIT SDK for Python installed (`pip install -r tools/requirements.txt`, in a virtual environment); CI runs them and checks that `make routes` leaves the route files unchanged.
+
+## Replay
+
+A replay build plays a recorded climb through the tracker in the simulator, faster than real time, in the place of the watch's sensors: the end-to-end test of sync, place and pace while the routes are closed. Simulator only: it never records anything, `make sideload` refuses it, and the app's own build (`make build`) carries no recording and never plays one. The recording is a FIT file (an activity recorded on a Garmin watch, with barometric altitude), which `tools/fit2replay.py` turns into `resources-replay/replay.json`: an entry every 10 s, and one at the end, `[t, alt, lat, lon]` (the local time of day in seconds, the altitude in whole metres, the position in degrees to 5 decimals), each interpolated between the recording's records and `null` where it has none. The replay plays 60 times faster than the recording, a minute of the climb a second, so a 5 h 40 climb takes under 6 minutes, and then holds at its end. A recording is someone's own track: `resources-replay/replay.json` is ignored by git, and neither it nor the FIT is ever committed.
+
+```sh
+pip install -r tools/requirements.txt   # the FIT SDK for Python, garmin-fit-sdk (in a virtual environment)
+make replay FIT=/path/to/track.fit      # resources-replay/replay.json; PYTHON=... names the interpreter
+make run REPLAY=1                       # FerrataTime-replay.prg, the replay in the simulator
+```
+
+In a replay build the replay stands in for the sensors whatever the Demo climb setting says, and starts as they do: from wherever the recording starts, unsynced, so until the climb's start menu comes (#51) the place moves by time alone. The bundled route is still the demo's, not the recorded one's, until Daubenhorn comes (#55).
 
 ## What it is
 
