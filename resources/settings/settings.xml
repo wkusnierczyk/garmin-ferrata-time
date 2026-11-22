@@ -1,0 +1,6 @@
+<!-- The phone's settings; the watch has the same in its Settings menu (source/Settings.mc). -->
+<settings>
+    <setting propertyKey="@Properties.demo" title="@Strings.DemoTitle">
+        <settingConfig type="boolean"/>
+    </setting>
+</settings>

@@ -16,13 +16,15 @@ CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm
 
 ## Prototype 0.1.0
 
-A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded and no sensor is read; the route, the times and the position are invented. One product: the epix Pro (Gen 2) 47 mm.
+A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded; the route is invented, and in the demo the times and the position too. One product: the epix Pro (Gen 2) 47 mm.
+
+One setting, **Demo climb** (on by default), on the watch (hold Up, then Settings, then Demo) and in the Connect IQ app on the phone. On, the app plays the made-up climb below; off, it reads the watch's altitude and GPS position instead, and works out the place on the route from the height climbed and the time. Until the climb's start menu comes (#51), the sensors start from wherever the watch is, on the approach, without setting the altitude from a known point, so the place moves by time alone. Changing the setting starts the climb again. The demo goes through the same tracker as the sensors: its watch reads 12 m low, and the start at the head corrects that, as a real start at a known point would.
 
 | Input | Does |
 |---|---|
 | Up, down | change page |
-| Start | pause or resume the demo |
-| Hold Up | the Ask list; choosing a question does nothing yet |
+| Start | pause or resume the climb (the demo stops with it) |
+| Hold Up | the Ask list; choosing a question does nothing yet; its last item, Settings, opens the settings |
 | Back | leave |
 | Tap beside the box (page 9) | step to the section before or after |
 
