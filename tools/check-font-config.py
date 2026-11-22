@@ -24,6 +24,8 @@ import zlib
 
 WRITE = '--write' in sys.argv[1:]
 HASHES = 'fonts.sha256'
+# Where the SDK manager keeps the device definitions: macOS, then Linux. CIQ_DEVICES overrides.
+DEVICE_DIRS = ['~/Library/Application Support/Garmin/ConnectIQ/Devices', '~/.Garmin/ConnectIQ/Devices']
 LICENCE = 'resources/fonts/OFL-BarlowCondensed.txt'
 CIQ_SHAPES = {'round', 'semiround', 'rectangle', 'semioctagon'}
 
@@ -45,6 +47,8 @@ CHARSETS = {'SemiBold18': TEXT, 'SemiBold22': TEXT, 'SemiBold30': TEXT, 'SemiBol
 
 # The sizes the mocks draw in (.dev/mocks/pages-sulzfluh, pages-daubenhorn; px at 416 px wide), by
 # weight, and the font each merges into: the nearest, the larger on a tie, as Fonts.nearest picks.
+# The mocks live outside the repository, so this list is their record here; what the code asks for
+# is derived from source/ below (DRAW).
 MOCK = {'SemiBold': [15, 16.5, 18, 18.4, 20, 20.2, 22, 24, 25, 27, 28, 29.9, 30, 32, 34, 36, 36.8, 39,
                      40, 44, 46, 52, 56, 58, 64, 84],
         'Bold': [18.72, 20, 24, 26, 27.6, 28, 28.08, 30, 34, 36, 36.8, 52.9, 69, 70]}
@@ -229,6 +233,31 @@ same = all(os.path.exists(f'resources/fonts/{s}-{n}.{x}') and os.path.exists(f'{
            for s, n in refsize.values() for x in ('fnt', 'png'))
 ok(same, f"resources/fonts/'s bitmaps are {refdir}'s, byte for byte")
 
+# A product whose family has no fonts directory compiles with resources/fonts/'s copies, the
+# reference's sizes, far too large on a smaller screen (the fenix 7X at 280 px would draw text about
+# half as large again as it should), and nothing else would say so. As Climber Time's.
+dev_dir = os.environ.get('CIQ_DEVICES') or next(
+    (p for p in map(os.path.expanduser, DEVICE_DIRS) if os.path.isdir(p)), None)
+products = re.findall(r'<iq:product id="([^"]+)"', read('manifest.xml'))
+if dev_dir is None:
+    print(f"  SKIP  every product has a font family: no device definitions (looked in "
+          f"{', '.join(DEVICE_DIRS)}; set CIQ_DEVICES)")
+else:
+    families, missing = {}, []
+    for p in products:
+        f = os.path.join(dev_dir, p, 'compiler.json')
+        if os.path.exists(f):
+            families.setdefault(json.loads(read(f))['deviceFamily'], []).append(p)
+        else:
+            missing.append(p)
+    ok(not missing, f"every product in manifest.xml has a device definition in {dev_dir}"
+       + (f" (missing {missing})" if missing else ""))
+    want_fam = {f"{s}-{w}x{h}" for w, h, s in targets}
+    ok(set(families) == want_fam,
+       f"the {len(products)} product(s)' families are exactly resolutions.json's targets"
+       + ("" if set(families) == want_fam else
+          f" (without fonts: {sorted(set(families) - want_fam)}, no product: {sorted(want_fam - set(families))})"))
+
 # The typeface and every bitmap, by the hashes make fonts records: a changed TTF, or a bitmap
 # copied over another of the same name, passes every other check.
 hashed = sorted([f'resources/fonts/{f}.ttf' for f in FACES.values()] + [LICENCE] +
@@ -305,6 +334,10 @@ for weight, const, fn in (('SemiBold', 'SEMI', 'semi'), ('Bold', 'BOLD', 'bold')
     ok(ids == IDS[weight], f"Fonts.{fn} loads the {weight} ids in Fonts.{const}'s order")
 
 
+def num(v):
+    return f"{v:g}"
+
+
 def nearest(px, sizes):
     """Fonts.nearest: the nearest size, the larger on a tie."""
     best = 0
@@ -313,6 +346,49 @@ def nearest(px, sizes):
             best = i
     return best
 
+
+# What the code asks for: every share passed to d.semi or d.bold as a number, or as a constant the
+# source declares (`const NAME = 0.1234;`), maps to a font. A share times a variable (a widget drawn
+# at size k) is not evaluated here.
+consts = {n: float(v) for n, v in re.findall(r'const (\w+) = (0\.\d+);', source)}
+asked, unknown = {'SemiBold': set(), 'Bold': set()}, set()
+for fn, arg in re.findall(r'\b(?:d|Fonts)\.(semi|bold)\(([^()]*)\)', source):
+    arg = arg.strip()
+    v = float(arg) if re.fullmatch(r'0\.\d+', arg) else consts.get(arg)
+    if v is None:
+        unknown.add(arg)
+    else:
+        asked['SemiBold' if fn == 'semi' else 'Bold'].add(round(v * rw, 1))
+for weight in IDS:
+    sizes = [refsize[i][1] for i in IDS[weight]]
+    out = sorted(px for px in asked[weight] if not sizes[0] * 0.8 <= px <= sizes[-1] * 1.2)
+    ok(not out, f"every {weight} size the code names ({len(asked[weight])}) lies within the fonts' range"
+       + (f" (outside: {out})" if out else ""))
+print(f"        named in source, px at {rw}: " + '; '.join(
+    f"{w} " + ', '.join(f"{px:g}->{IDS[w][nearest(px, [refsize[i][1] for i in IDS[w]])]}" for px in sorted(asked[w]))
+    for w in asked) + (f"; not evaluated: {', '.join(sorted(unknown))}" if unknown else ''))
+
+# The restricted fonts (numbers, grades) draw only what their charset holds: every string literal
+# drawn in one, by a call that names its size, and BOX_NAME, which the grade fonts draw.
+restricted = {i for i in want_ids if CHARSETS[i] != TEXT}
+bad = []
+for line in source.splitlines():
+    m = re.search(r'\b(?:d|Fonts)\.(semi|bold)\(([^()]*)\)', line)
+    if not m or not re.search(r'\.(text\w*|width)\(', line):
+        continue
+    arg = m.group(2).strip()
+    v = float(arg) if re.fullmatch(r'0\.\d+', arg) else consts.get(arg)
+    if v is None:
+        continue
+    weight = 'SemiBold' if m.group(1) == 'semi' else 'Bold'
+    fid = IDS[weight][nearest(v * rw, [refsize[i][1] for i in IDS[weight]])]
+    if fid in restricted:
+        drawn = re.sub(r'\.format\("[^"]*"\)', '', line[m.end():])
+        bad += [(fid, t) for t in re.findall(r'"([^"]*)"', drawn) if not set(t) <= set(CHARSETS[fid])]
+box = re.search(r'const BOX_NAME = \[([^\]]*)\]', source)
+box_glyphs = set(''.join(re.findall(r'"([^"]*)"', box.group(1)))) if box else set()
+ok(bool(box) and box_glyphs <= set(GRADES), f"BOX_NAME, which the grade fonts draw, is grade glyphs ({''.join(sorted(box_glyphs))})")
+ok(not bad, "every string literal drawn in a number or grade font is in its charset" + (f" (not {bad[:3]})" if bad else ""))
 
 merged = {}
 for weight, mocks in MOCK.items():
@@ -335,10 +411,6 @@ def resolution_table(text):
         elif out:
             break
     return out
-
-
-def num(v):
-    return f"{v:g}"
 
 
 def size_table():
