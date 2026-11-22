@@ -498,6 +498,9 @@ function page3(st, opt) {
 const ST_TOP = 0.1538, ST_BOTTOM = 0.8462, ST_W = 0.1442, ST_GAP = 0.0072;
 const textWidth = (() => { const ctx = document.createElement("canvas").getContext("2d");
   return (t, size) => { ctx.font = `600 ${size * MEASURE}px ${NUMBER_FONT}`; return ctx.measureText(t).width / MEASURE; }; })();
+// The names are measured at their share to seven places: the 0.0481 they are drawn at is a hair
+// wider, and would cut a name a letter shorter than the mock at 416 px did.
+const NAME_MEASURE = 0.0480769;
 // Cut a name to fit a width, ending in an ellipsis when cut.
 function fit(t, size, w) {
   if (textWidth(t, size) <= w) return t;
@@ -563,7 +566,7 @@ function stack(st, opt, by, ST_LEFT = 0.3942, nameR = 0.4808) {
     const nx = right + (opt.pois || opt.ringSide === "right" ? 0.0433 : 0.0288);
     const ny = size(i) === 0 ? yb : vm, room = 0.5 + Math.sqrt(Math.max(0, nameR * nameR - (ny - 0.5) ** 2)) - nx;
     if (opt.names && room > 0.0721 && (size(i) === 0 || vb - vt >= 0.0385)) {
-      names.push({ y: ny, svg: `<text x="${nx}" y="${(ny + 0.35 * 0.0481).toFixed(4)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="0.0481" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], 0.0481, room)}</text>` });
+      names.push({ y: ny, svg: `<text x="${nx}" y="${(ny + 0.35 * 0.0481).toFixed(4)}" fill="${before ? "#7d8a8a" : "#fff"}" font-size="0.0481" font-weight="600" font-family="${NUMBER_FONT}">${fit(NAME[i], NAME_MEASURE, room)}</text>` });
     }
   }
   s += borders;
@@ -630,7 +633,7 @@ function stack(st, opt, by, ST_LEFT = 0.3942, nameR = 0.4808) {
         shown.push(y);
         const onRight = px === right, x = onRight ? px + 0.0337 : px - 0.0337;
         const room = onRight ? 0.5 + Math.sqrt(Math.max(0, nameR * nameR - (y - 0.5) ** 2)) - x : 0.2885;
-        s += `<text x="${x}" y="${(y + 0.35 * 0.0481).toFixed(4)}" text-anchor="${onRight ? "start" : "end"}" fill="${p.c}" font-size="0.0481" font-weight="700" font-family="${NUMBER_FONT}">${fit(p.name, 0.0481, room)}</text>`;
+        s += `<text x="${x}" y="${(y + 0.35 * 0.0481).toFixed(4)}" text-anchor="${onRight ? "start" : "end"}" fill="${p.c}" font-size="0.0481" font-weight="700" font-family="${NUMBER_FONT}">${fit(p.name, NAME_MEASURE, room)}</text>`;
         if (onRight) names = names.filter(n => Math.abs(n.y - y) >= 0.0481);
       }
     }
@@ -650,21 +653,21 @@ function stack(st, opt, by, ST_LEFT = 0.3942, nameR = 0.4808) {
   // The label of the next altitude to reach is larger (opt.nextSize times the others); it is always
   // shown, and the others are left out around it. By path it is the first tick above the altitude now,
   // which may sit further along the route than the climber's line.
-  // Labels are 0.0432 of the width, not 0.0433 (18 / 416 rounded): ticks can sit exactly one label apart
-  // (24 m of path at 0.0018 per metre), and those keep both labels only if the size does not round up.
+  // Labels are 0.0433 of the width, carried to seven places here: ticks can sit exactly one label apart
+  // (24 m of path at 0.0018 per metre), and those keep both labels only at the exact size.
   const ticks = [], now = fromU(st.u);
   for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
     const y = Y(up ? toU(v) : firstAt(toU(v)));
     // By path a flat stretch at this altitude may be reached before the window's bottom.
     if (y < ST_TOP || y > ST_BOTTOM) continue;
     s += `<line x1="${ST_LEFT - 0.0216}" y1="${y.toFixed(4)}" x2="${ST_LEFT - 0.0072}" y2="${y.toFixed(4)}" stroke="#777" stroke-width="0.0048"/>`;
-    ticks.push({ v, y, fs: 0.0432 });
+    ticks.push({ v, y, fs: 0.0432692 });
   }
   const next = ticks.findIndex(t => t.v > now);
   // Its neighbours above and below are larger too (opt.nearSize).
   if (next >= 0) {
-    ticks[next].fs = 0.0432 * opt.nextSize;
-    for (const k of [next - 1, next + 1]) if (ticks[k]) ticks[k].fs = 0.0432 * opt.nearSize;
+    ticks[next].fs = 0.0432692 * opt.nextSize;
+    for (const k of [next - 1, next + 1]) if (ticks[k]) ticks[k].fs = 0.0432692 * opt.nearSize;
   }
   const label = t => `<text x="${ST_LEFT - 0.0337}" y="${(t.y + 0.35 * t.fs).toFixed(4)}" text-anchor="end" fill="#99aaaa" font-size="${t.fs}" font-weight="600" font-family="${NUMBER_FONT}">${t.v}</text>`;
   // Labels outward from the larger one (upward from the bottom where there is none), each kept clear
