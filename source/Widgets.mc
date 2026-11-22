@@ -323,7 +323,7 @@ module Widgets {
     function altitudeCentred(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
         var w = altitudeBox(d, ft) + 0.009615 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
-        altitude(d, st, x - w / 2, yt);
+        altitude(d, st, x - d.half(w), yt);
     }
 
     // The altitude group: the altitude, with the poi word under it, right-aligned with the number.
@@ -875,8 +875,8 @@ module Widgets {
         var rest = " in " + m.format("%d") + " m";
         var font = d.bold(0.0673);  // 28 px at 416
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
-        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w), y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w) + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // The ascent widget laid flat: a line from the start (x0) to the top (x1) at y, the climber's ring
@@ -1185,7 +1185,7 @@ module Widgets {
         var rest = " " + m.format("%d") + " m";
         var font = d.bold(0.0577 * k);
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
-        d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w), y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textCapMiddle(x - d.half(w) + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 }

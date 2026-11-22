@@ -77,6 +77,12 @@ class Draw {
         return (p < 0 ? p - NUDGE : p + NUDGE).toNumber();
     }
 
+    // Half a width, cut down to whole pixels, as a share: text centred on a point starts on a whole
+    // pixel, as when widths were whole pixels.
+    function half(v as Numeric) as Float {
+        return (s(v) / 2) / w;
+    }
+
     // A share rounded to whole pixels, as a share.
     function whole(v as Numeric) as Float {
         var p = v * w;

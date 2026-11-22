@@ -289,7 +289,7 @@ module Pages {
         d.pointer(0.177885, yp, 0.016827, WHITE);
         d.text(0.5, 0.105769, d.semi(0.0529), Climb.clockText(st.clock()), d.MUTED);
         var head = st.climbed().format("%d") + " / " + Climb.totalU().format("%d") + " m";
-        d.upMark(0.514423 - d.width(d.semi(0.1106), head) / 2 - 0.033654, 0.197115, 0.016827, WHITE);
+        d.upMark(0.514423 - d.half(d.width(d.semi(0.1106), head)) - 0.033654, 0.197115, 0.016827, WHITE);
         d.text(0.514423, 0.192308, d.semi(0.1106), head, WHITE);
         d.text(0.350962, 0.841346, d.semi(0.0865), st.altitude().format("%d") + " m", WHITE);
         d.text(0.350962, 0.903846, d.semi(0.0529), "altitude", d.MUTED);
