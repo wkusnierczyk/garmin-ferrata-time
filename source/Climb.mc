@@ -73,6 +73,7 @@ module Climb {
             SIDE[i] = (s["side"] as Numeric).toFloat();
         }
         cumD = null; cumU = null; cumM = null; cumN = null; cumW = null;
+        Widgets.forgetRoute();
 
         // Points: at is metres from the head, so the approach's are shifted by its length.
         var shift = ferrata ? 0 : Route.lengthOf(r.approach);

@@ -63,6 +63,19 @@ module RouteTest {
     }
 
     (:test)
+    function usingAnotherPartForgetsWidgetLayouts(logger as Logger) as Boolean {
+        // A layout measured on one part must not survive into another (Codex on #88).
+        Climb.use(demo(), :approach);
+        Widgets.gaugeStarts = [[0.0, 1.0] as Array<Float>, null] as Array<Array<Float>?>;
+        Widgets.ascentWidest = 99;
+        Climb.use(demo(), :ferrata);
+        Test.assertMessage(Widgets.gaugeStarts[0] == null, "gauge layout forgotten");
+        Test.assertMessage(Widgets.ascentWidest == null, "ascent width forgotten");
+        Test.assertMessage(Widgets.front == null && Widgets.frontScreen == null, "front view forgotten");
+        return true;
+    }
+
+    (:test)
     function useFerrataDropsApproach(logger as Logger) as Boolean {
         Climb.use(demo(), :ferrata);
         Test.assertEqualMessage(Climb.count(), 12, "sections");
