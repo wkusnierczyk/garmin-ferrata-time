@@ -64,6 +64,10 @@
         "fontId": "SemiBold84"
     },
     {
+        "fontCharset": " -:0123456789",
+        "fontId": "SemiBold104"
+    },
+    {
         "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
         "fontId": "Bold18"
     },

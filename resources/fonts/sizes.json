@@ -23,6 +23,7 @@
     {"weight": "SemiBold", "share": 0.1394, "px": 58, "glyphs": "numbers"},
     {"weight": "SemiBold", "share": 0.1538, "px": 64, "glyphs": "numbers"},
     {"weight": "SemiBold", "share": 0.2019, "px": 84, "glyphs": "numbers"},
+    {"weight": "SemiBold", "share": 0.2500, "px": 104, "glyphs": "numbers"},
     {"weight": "Bold", "share": 0.0433, "px": 18, "glyphs": "text"},
     {"weight": "Bold", "share": 0.0481, "px": 20, "glyphs": "text"},
     {"weight": "Bold", "share": 0.0577, "px": 24, "glyphs": "text"},

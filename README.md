@@ -86,6 +86,7 @@ The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its s
 | `SemiBold58` | SemiBold | 0.1394 (13.94 %) | 58 | numbers |
 | `SemiBold64` | SemiBold | 0.1538 (15.38 %) | 64 | numbers |
 | `SemiBold84` | SemiBold | 0.2019 (20.19 %) | 84 | numbers |
+| `SemiBold104` | SemiBold | 0.2500 (25.00 %) | 104 | numbers |
 | `Bold18` | Bold | 0.0433 (4.33 %) | 18 | text |
 | `Bold20` | Bold | 0.0481 (4.81 %) | 20 | text |
 | `Bold24` | Bold | 0.0577 (5.77 %) | 24 | text |
@@ -103,34 +104,35 @@ Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z 
 The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
 
 <!-- fonts.md: start -->
-| Resolution | Shape |   Element   |              Font               | Size |
-| ---------: | :---- | :---------- | :------------------------------ | ---: |
-|  416 x 416 | round | Bold18      | BarlowCondensedTabular bold     |   18 |
-|  416 x 416 | round | Bold20      | BarlowCondensedTabular bold     |   20 |
-|  416 x 416 | round | Bold24      | BarlowCondensedTabular bold     |   24 |
-|  416 x 416 | round | Bold26      | BarlowCondensedTabular bold     |   26 |
-|  416 x 416 | round | Bold28      | BarlowCondensedTabular bold     |   28 |
-|  416 x 416 | round | Bold30      | BarlowCondensedTabular bold     |   30 |
-|  416 x 416 | round | Bold34      | BarlowCondensedTabular bold     |   34 |
-|  416 x 416 | round | Bold36      | BarlowCondensedTabular bold     |   36 |
-|  416 x 416 | round | Bold52      | BarlowCondensedTabular bold     |   52 |
-|  416 x 416 | round | Bold70      | BarlowCondensedTabular bold     |   70 |
-|  416 x 416 | round | Semi bold16 | BarlowCondensedTabular semibold |   16 |
-|  416 x 416 | round | Semi bold18 | BarlowCondensedTabular semibold |   18 |
-|  416 x 416 | round | Semi bold20 | BarlowCondensedTabular semibold |   20 |
-|  416 x 416 | round | Semi bold22 | BarlowCondensedTabular semibold |   22 |
-|  416 x 416 | round | Semi bold24 | BarlowCondensedTabular semibold |   24 |
-|  416 x 416 | round | Semi bold28 | BarlowCondensedTabular semibold |   28 |
-|  416 x 416 | round | Semi bold30 | BarlowCondensedTabular semibold |   30 |
-|  416 x 416 | round | Semi bold32 | BarlowCondensedTabular semibold |   32 |
-|  416 x 416 | round | Semi bold36 | BarlowCondensedTabular semibold |   36 |
-|  416 x 416 | round | Semi bold40 | BarlowCondensedTabular semibold |   40 |
-|  416 x 416 | round | Semi bold44 | BarlowCondensedTabular semibold |   44 |
-|  416 x 416 | round | Semi bold46 | BarlowCondensedTabular semibold |   46 |
-|  416 x 416 | round | Semi bold52 | BarlowCondensedTabular semibold |   52 |
-|  416 x 416 | round | Semi bold58 | BarlowCondensedTabular semibold |   58 |
-|  416 x 416 | round | Semi bold64 | BarlowCondensedTabular semibold |   64 |
-|  416 x 416 | round | Semi bold84 | BarlowCondensedTabular semibold |   84 |
+| Resolution | Shape |   Element    |              Font               | Size |
+| ---------: | :---- | :----------- | :------------------------------ | ---: |
+|  416 x 416 | round | Bold18       | BarlowCondensedTabular bold     |   18 |
+|  416 x 416 | round | Bold20       | BarlowCondensedTabular bold     |   20 |
+|  416 x 416 | round | Bold24       | BarlowCondensedTabular bold     |   24 |
+|  416 x 416 | round | Bold26       | BarlowCondensedTabular bold     |   26 |
+|  416 x 416 | round | Bold28       | BarlowCondensedTabular bold     |   28 |
+|  416 x 416 | round | Bold30       | BarlowCondensedTabular bold     |   30 |
+|  416 x 416 | round | Bold34       | BarlowCondensedTabular bold     |   34 |
+|  416 x 416 | round | Bold36       | BarlowCondensedTabular bold     |   36 |
+|  416 x 416 | round | Bold52       | BarlowCondensedTabular bold     |   52 |
+|  416 x 416 | round | Bold70       | BarlowCondensedTabular bold     |   70 |
+|  416 x 416 | round | Semi bold104 | BarlowCondensedTabular semibold |  104 |
+|  416 x 416 | round | Semi bold16  | BarlowCondensedTabular semibold |   16 |
+|  416 x 416 | round | Semi bold18  | BarlowCondensedTabular semibold |   18 |
+|  416 x 416 | round | Semi bold20  | BarlowCondensedTabular semibold |   20 |
+|  416 x 416 | round | Semi bold22  | BarlowCondensedTabular semibold |   22 |
+|  416 x 416 | round | Semi bold24  | BarlowCondensedTabular semibold |   24 |
+|  416 x 416 | round | Semi bold28  | BarlowCondensedTabular semibold |   28 |
+|  416 x 416 | round | Semi bold30  | BarlowCondensedTabular semibold |   30 |
+|  416 x 416 | round | Semi bold32  | BarlowCondensedTabular semibold |   32 |
+|  416 x 416 | round | Semi bold36  | BarlowCondensedTabular semibold |   36 |
+|  416 x 416 | round | Semi bold40  | BarlowCondensedTabular semibold |   40 |
+|  416 x 416 | round | Semi bold44  | BarlowCondensedTabular semibold |   44 |
+|  416 x 416 | round | Semi bold46  | BarlowCondensedTabular semibold |   46 |
+|  416 x 416 | round | Semi bold52  | BarlowCondensedTabular semibold |   52 |
+|  416 x 416 | round | Semi bold58  | BarlowCondensedTabular semibold |   58 |
+|  416 x 416 | round | Semi bold64  | BarlowCondensedTabular semibold |   64 |
+|  416 x 416 | round | Semi bold84  | BarlowCondensedTabular semibold |   84 |
 <!-- fonts.md: end -->
 
 Regenerating them:

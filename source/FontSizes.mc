@@ -5,14 +5,15 @@ import Toybox.Lang;
 module FontSizes {
 
     const SEMI = [0.0385, 0.0433, 0.0481, 0.0529, 0.0577, 0.0673, 0.0721, 0.0769, 0.0865, 0.0962, 0.1058, 0.1106,
-        0.1250, 0.1394, 0.1538, 0.2019] as Array<Float>;
+        0.1250, 0.1394, 0.1538, 0.2019, 0.2500] as Array<Float>;
     const BOLD = [0.0433, 0.0481, 0.0577, 0.0625, 0.0673, 0.0721, 0.0817, 0.0865, 0.1250, 0.1683] as Array<Float>;
 
     function semiId(i as Number) as ResourceId {
         return ([Rez.Fonts.SemiBold16, Rez.Fonts.SemiBold18, Rez.Fonts.SemiBold20, Rez.Fonts.SemiBold22,
             Rez.Fonts.SemiBold24, Rez.Fonts.SemiBold28, Rez.Fonts.SemiBold30, Rez.Fonts.SemiBold32,
             Rez.Fonts.SemiBold36, Rez.Fonts.SemiBold40, Rez.Fonts.SemiBold44, Rez.Fonts.SemiBold46,
-            Rez.Fonts.SemiBold52, Rez.Fonts.SemiBold58, Rez.Fonts.SemiBold64, Rez.Fonts.SemiBold84] as Array<ResourceId>)[i];
+            Rez.Fonts.SemiBold52, Rez.Fonts.SemiBold58, Rez.Fonts.SemiBold64, Rez.Fonts.SemiBold84,
+            Rez.Fonts.SemiBold104] as Array<ResourceId>)[i];
     }
 
     function boldId(i as Number) as ResourceId {
