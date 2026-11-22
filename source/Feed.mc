@@ -1,11 +1,13 @@
 using Toybox.System;
+using Toybox.WatchUi;
 
 import Toybox.Lang;
 
 // The input the demo setting chooses, feeding the tracker: what the view does each tick, kept out of
 // the view so the tests can drive it. The demo starts at the head (synced, so its 12 m low watch shows
 // as the offset) at 0.1.0's pace, and starts again after the hold at the top; the sensors start from
-// wherever the climber is, unsynced, until the climb flow (#51) asks where.
+// wherever the climber is, unsynced, until the climb flow (#51) asks where. A replay build (make run
+// REPLAY=1, replay.jungle) plays its recording in the sensors' place, whatever the setting says.
 class Feed {
 
     // The demo moves fast, so it is read every 250 ms; the sensors once a second.
@@ -29,11 +31,32 @@ class Feed {
     }
 
     // What the setting says, and the input for it: the tests replace both.
+    (:noreplay)
     function wantsDemo() as Boolean { return Settings.demo(); }
 
+    (:replay)
+    function wantsDemo() as Boolean { return false; }
+
     function newInput(isDemo as Boolean) as Input {
-        return isDemo ? new DemoInput(route) as Input : new SensorInput() as Input;
+        return isDemo ? new DemoInput(route) as Input : sensors();
     }
+
+    // The watch's sensors; in a replay build, the recording (resources-replay/replay.json).
+    (:noreplay)
+    function sensors() as Input { return new SensorInput(); }
+
+    (:replay)
+    function sensors() as Input {
+        return new ReplayInput(WatchUi.loadResource(Rez.JsonData.replay) as Array<Array>, ReplayInput.SPEED);
+    }
+
+    // Whether the climb may be recorded as a Garmin activity (the Recorder, #53, keys on this, not on
+    // demo): never in the demo, never in a replay build, whose input is not the watch's.
+    (:noreplay)
+    function records() as Boolean { return !demo; }
+
+    (:replay)
+    function records() as Boolean { return false; }
 
     function tickMs() as Number { return demo ? DEMO_TICK_MS : SENSOR_TICK_MS; }
 
