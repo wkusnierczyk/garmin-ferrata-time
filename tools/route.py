@@ -5,11 +5,14 @@ python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json 
 
 The source has the output's shape. The output lists its keys in a fixed order, one section or point
 per line, so a rebuild of an unchanged source changes nothing. On any error it prints every problem
-found, one per line, writes nothing and exits 1. Python 3, standard library only.
+found, one per line, writes nothing and exits 1; it warns, without failing, when the track's
+length is far from the route's and for each point past the track's end. Python 3, standard library
+only.
 """
 import argparse
 import json
 import math
+import os
 import sys
 import xml.etree.ElementTree as ET
 
@@ -57,7 +60,7 @@ def check_shape(r):
     for k in TOP_KEYS:
         if k not in r and k != "approach":
             out.append(f"{k} is missing")
-    if "format" in r and r["format"] != FORMAT:
+    if "format" in r and not (is_int(r["format"]) and r["format"] == FORMAT):
         out.append(f"format is {FORMAT}")
     for k in ("id", "name", "short", "place"):
         if k in r and not isinstance(r[k], str):
@@ -113,9 +116,9 @@ def check_shape(r):
                 for k in ("at", "alt"):
                     if k in p and not is_int(p[k]):
                         out.append(f"{label}: {k} is an integer")
-                for k in ("lat", "lon"):
-                    if k in p and not is_num(p[k]):
-                        out.append(f"{label}: {k} is a number")
+                for k, lim in (("lat", 90), ("lon", 180)):
+                    if k in p and not (is_num(p[k]) and -lim <= p[k] <= lim):
+                        out.append(f"{label}: {k} is a number from -{lim} to {lim}")
     return out
 
 
@@ -179,6 +182,9 @@ def check_rules(r):
     for p in pts:
         if p["kind"] in ("exit", "landmark") and p["at"] not in bounds:
             out.append(f"{point_label(p)} at {p['at']} is not on a section boundary")
+        elif p["kind"] in ("exit", "landmark") and p["at"] in (0, length):
+            # An exit starts a section, and the head and the top are known points already.
+            out.append(f"{point_label(p)} at {p['at']} is at the head or the top, not between them")
 
     # 3. Every point on the route; the top at the ferrata's length.
     for p in pts:
@@ -212,6 +218,8 @@ def check_rules(r):
                 out.append(f"{label}: side is from -1.0 to 1.0")
 
     # 6. The short name fits a session name.
+    if not r["short"]:
+        out.append("short is not empty")
     if len(r["short"]) > SHORT_MAX:
         out.append(f"short is at most {SHORT_MAX} characters ({len(r['short'])})")
 
@@ -222,9 +230,13 @@ def check_rules(r):
     return out
 
 
-def check(r):
-    """Every problem with route r, as messages; empty when it is valid."""
-    return check_shape(r) or check_rules(r)
+def check(r, stem=None):
+    """Every problem with route r, as messages; empty when it is valid. stem: the source's file
+    name without .src.json, which the id must equal."""
+    out = check_shape(r) or check_rules(r)
+    if stem is not None and isinstance(r, dict) and isinstance(r.get("id"), str) and r["id"] != stem:
+        out.append(f"id is {stem!r}, the source's file name (<id>.src.json)")
+    return out
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -237,13 +249,34 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def read_gpx(path):
     """The track points of a GPX file, as (lat, lon), whatever its namespace."""
-    track = []
-    for el in ET.parse(path).iter():
-        if el.tag.rsplit("}", 1)[-1] == "trkpt":
-            track.append((float(el.get("lat")), float(el.get("lon"))))
-    if len(track) < 2:
-        raise RouteError([f"{path}: a track has at least two points"])
+    try:
+        root = ET.parse(path).getroot()
+    except (OSError, ET.ParseError) as e:
+        raise RouteError([f"{path}: {e}"])
+    track, problems = [], []
+    n = 0
+    for el in root.iter():
+        if el.tag.rsplit("}", 1)[-1] != "trkpt":
+            continue
+        n += 1
+        try:
+            lat, lon = float(el.get("lat")), float(el.get("lon"))
+        except (TypeError, ValueError):
+            problems.append(f"{path}: track point {n}: lat and lon are numbers")
+            continue
+        if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
+            problems.append(f"{path}: track point {n}: lat {lat}, lon {lon} out of range")
+            continue
+        track.append((lat, lon))
+    if not problems and len(track) < 2:
+        problems.append(f"{path}: a track has at least two points")
+    if problems:
+        raise RouteError(problems)
     return track
+
+
+def track_length(track):
+    return sum(haversine(*a, *b) for a, b in zip(track, track[1:]))
 
 
 def position(track, dist):
@@ -264,12 +297,23 @@ def ordered(obj, keys):
     return {k: obj[k] for k in keys if k in obj}
 
 
-def build(r, track=None):
-    """Route r checked and in canonical form; lat and lon filled from track where missing."""
-    problems = check(r)
+TRACK_TOLERANCE = 0.20  # the share by which the track's length may differ from the route's
+
+
+def build(r, track=None, stem=None, warnings=None):
+    """Route r checked and in canonical form; lat and lon filled from track where missing.
+    Warnings about the track go into the list `warnings`, when given."""
+    problems = check(r, stem)
     if problems:
         raise RouteError(problems)
+    warnings = [] if warnings is None else warnings
     approach_len = sum(s["len"] for s in r.get("approach", []))
+    route_len = approach_len + sum(s["len"] for s in r["sections"])
+    if track is not None:
+        tlen = track_length(track)
+        if abs(tlen - route_len) > TRACK_TOLERANCE * route_len:
+            warnings.append(f"the track is {tlen:.0f} m long, the route {route_len} m "
+                            f"(more than {TRACK_TOLERANCE:.0%} apart)")
 
     def section(s):
         s = ordered(s, SECTION_KEYS)
@@ -281,7 +325,11 @@ def build(r, track=None):
             return p
         p = dict(p)
         if track is not None and "lat" not in p:
-            p["lat"], p["lon"] = (round(v, 6) for v in position(track, approach_len + p["at"]))
+            dist = approach_len + p["at"]
+            if dist > tlen:
+                warnings.append(f"{point_label(p)} at {p['at']} lies {dist - tlen:.0f} m beyond the "
+                                "track's end: placed at its end")
+            p["lat"], p["lon"] = (round(v, 6) for v in position(track, dist))
         for k in ("lat", "lon"):
             if k in p:
                 p[k] = float(p[k])
@@ -298,7 +346,7 @@ def build(r, track=None):
 def render(r):
     """The route as JSON text: top-level keys one per line, each section and point on its own."""
     def one(v):
-        return json.dumps(v, ensure_ascii=False)
+        return json.dumps(v, ensure_ascii=False, allow_nan=False)
 
     lines = []
     for k, v in r.items():
@@ -310,6 +358,10 @@ def render(r):
     return "{\n" + ",\n".join(lines) + "\n}\n"
 
 
+def reject_constant(name):
+    raise ValueError(f"{name} is not a number a route can hold")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="route.py", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -319,22 +371,42 @@ def main(argv=None):
     b.add_argument("--gpx", help="a track from the approach's start (or the head) to the top")
     args = ap.parse_args(argv)
 
+    name = os.path.basename(args.source)
+    stem = name[:-len(".src.json")] if name.endswith(".src.json") else None
+    problems, warnings = [], []
     try:
         with open(args.source, encoding="utf-8") as f:
-            data = json.load(f)
-        track = read_gpx(args.gpx) if args.gpx else None
-        text = render(build(data, track))
-    except RouteError as e:
-        for p in e.problems:
-            print(f"{args.source}: {p}", file=sys.stderr)
-        return 1
-    except (OSError, json.JSONDecodeError, ET.ParseError, TypeError, ValueError) as e:
+            data = json.load(f, parse_constant=reject_constant)
+    except (OSError, ValueError) as e:
         print(f"{args.source}: {e}", file=sys.stderr)
         return 1
-    with open(args.output, "w", encoding="utf-8") as f:
-        f.write(text)
+    if stem is None:
+        problems.append(f"{args.source}: the source is named <id>.src.json")
+    track = None
+    if args.gpx:
+        try:
+            track = read_gpx(args.gpx)
+        except RouteError as e:
+            problems += e.problems
+    try:
+        text = render(build(data, track, stem, warnings))
+    except RouteError as e:
+        problems = [f"{args.source}: {p}" for p in e.problems] + problems
+    except ValueError as e:  # a number JSON cannot hold, in a field the checks do not reach
+        problems.insert(0, f"{args.source}: {e}")
+    for w in warnings:
+        print(f"{args.gpx}: warning: {w}", file=sys.stderr)
+    if problems:
+        for p in problems:
+            print(p, file=sys.stderr)
+        return 1
+    try:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(text)
+    except OSError as e:
+        print(f"{args.output}: {e}", file=sys.stderr)
+        return 1
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

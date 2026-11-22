@@ -43,16 +43,17 @@ make sideload    # build for the watch on USB and copy it over (brew install lib
 A route is one JSON file, the format of `design/real-functionality.md` (section 4): the approach and the ferrata as sections (`len`, `up`, `grade`, `min`, `name`, `side`) and the points along them (`kind`, `at`, `alt`, `lat`, `lon`, `name`). The app does not read it yet; it still plays the climb in `source/Climb.mc`. Route files are generated, never edited by hand: each is written from a hand-made source of the same shape, `routes/<id>.src.json`, by `tools/route.py` (Python 3, nothing to install).
 
 ```sh
-make routes      # every routes/<id>.src.json to resources/routes/<id>.json
-python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json --gpx track.gpx
+make routes      # every routes/<id>.src.json to resources/routes/<id>.json, with routes/<id>.gpx if there
+python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json [--gpx routes/<id>.gpx]
 ```
 
-`--gpx` fills each point's missing `lat` and `lon` from a track that starts at the approach's start (or at the head, without an approach): the point `at` metres from the head is `at` plus the approach's length along the track. In the source:
+A route's GPX track, if it has one, is kept beside its source as `routes/<id>.gpx`, and `make routes` passes it with `--gpx`, which fills each point's missing `lat` and `lon` from the track. The track starts at the approach's start (or at the head, without an approach), and the point `at` metres from the head is placed `at` plus the approach's length along it, measured on the map (horizontal distance). The tool warns, without failing, when the track's length differs from the route's by more than 20 %, and for each point past the track's end, which it places at the end. `make routes` fails on a route file in `resources/routes/` with no source. In the source:
 
-- `at` is metres from the head, negative on the approach. `head` (at 0) and `top` (at the ferrata's length) are required; an `approach` point, at minus the approach's length, only with an `approach` list. Exits and landmarks sit on section boundaries. Other kinds are kept as they are and not checked.
+- `id` is the source's file name, `routes/<id>.src.json`.
+- `at` is metres from the head, negative on the approach. `head` (at 0) and `top` (at the ferrata's length) are required; an `approach` point, at minus the approach's length, only with an `approach` list. Exits and landmarks sit on the boundaries between the ferrata's sections (not on the approach, and not at the head or the top). `lat` and `lon` come together, within -90..90 and -180..180. Other kinds are kept as they are and not checked.
 - `grade` is in half steps, as the topo writes it: 1 A, 2 A/B, 3 B … 11 F, 12 F/G; 0 walking, -1 rest.
 - `up` may be negative. Between points with an `alt`, the sections' `up` must add up to the altitude difference within 15 m.
-- `min`, the guidebook's minutes for a section, may be left out; `len` and `min` are above 0, `side` from -1.0 to 1.0, `short` (the activity's name) at most 15 characters.
+- `min`, the guidebook's minutes for a section, may be left out; `len` and `min` are above 0, `side` from -1.0 to 1.0, `short` (the activity's name) 1 to 15 characters.
 
 The tool lists every problem it finds and writes nothing. Its tests: `python3 -m pytest tools/tests` (needs `pytest`); CI runs them and checks that `make routes` leaves the route files unchanged.
 

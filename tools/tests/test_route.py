@@ -1,6 +1,8 @@
 """Tests for tools/route.py: the demo route builds, and each validation rule rejects its case."""
 import copy
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -44,9 +46,10 @@ def fixture(change=None):
 
 def build(tmp_path, data, gpx=None):
     """Write data as a source, build it; return the exit code and the output (or None)."""
-    src = tmp_path / "r.src.json"
+    rid = data.get("id") if isinstance(data, dict) and isinstance(data.get("id"), str) else "x"
+    src = tmp_path / f"{rid}.src.json"
     out = tmp_path / "r.json"
-    src.write_text(json.dumps(data))
+    src.write_text(data if isinstance(data, str) else json.dumps(data))
     out.unlink(missing_ok=True)
     argv = ["build", str(src), "-o", str(out)]
     if gpx is not None:
@@ -311,3 +314,155 @@ def test_demo_output_is_current():
     # resources/routes/demo.json is what make routes writes from routes/demo.src.json.
     built = route.render(route.build(json.loads(DEMO.read_text())))
     assert (REPO / "resources" / "routes" / "demo.json").read_text() == built
+
+
+# Review of PR #78.
+
+def test_nan_rejected(tmp_path, capsys):
+    # NaN in a field no rule reaches (source) still fails, on load.
+    text = json.dumps(MINIMAL).replace('"geometry": "x"', '"geometry": NaN')
+    rejects(tmp_path, capsys, text, "NaN is not a number a route can hold")
+
+
+def test_infinity_rejected(tmp_path, capsys):
+    text = json.dumps(MINIMAL).replace('"side": -0.5', '"side": Infinity')
+    rejects(tmp_path, capsys, text, "Infinity is not a number a route can hold")
+
+
+def test_nan_not_written():
+    # render() never writes what JSON cannot hold, whatever reaches it.
+    with pytest.raises(ValueError):
+        route.render({"source": {"x": float("nan")}})
+
+
+@pytest.mark.parametrize("fmt", [True, 1.0, "1"])
+def test_format_is_the_integer_1(tmp_path, capsys, fmt):
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(format=fmt)), "format is 1")
+
+
+@pytest.mark.parametrize("kind,at", [("exit", 0), ("exit", 80), ("landmark", 0), ("landmark", 80)])
+def test_rule2_not_at_head_or_top(tmp_path, capsys, kind, at):
+    def change(r):
+        p = point(r, kind)
+        p["at"] = at
+        p.pop("alt", None)
+    rejects(tmp_path, capsys, fixture(change), f"at {at} is at the head or the top, not between them")
+
+
+@pytest.mark.parametrize("key,value,message", [
+    ("lat", 469.0, "lat is a number from -90 to 90"),
+    ("lat", -90.5, "lat is a number from -90 to 90"),
+    ("lon", 181, "lon is a number from -180 to 180"),
+])
+def test_lat_lon_range(tmp_path, capsys, key, value, message):
+    def change(r):
+        point(r, "top").update(lat=46.0, lon=8.0)
+        point(r, "top")[key] = value
+    rejects(tmp_path, capsys, fixture(change), message)
+
+
+def test_gpx_length_mismatch_warns(tmp_path, capsys):
+    # The route is 100 m; a track of about 222 m builds, with a warning.
+    code, _ = build(tmp_path, fixture(), gpx=gpx([(46.0, 8.0), (46.002, 8.0)]))
+    err = capsys.readouterr().err
+    assert code == 0
+    assert "t.gpx: warning: the track is 222 m long, the route 100 m (more than 20% apart)" in err
+
+
+def test_gpx_clamp_warns(tmp_path, capsys):
+    # A track of about 56 m: the points past it are placed at its end, each with a warning.
+    code, out = build(tmp_path, fixture(), gpx=gpx([(46.0, 8.0), (46.0005, 8.0)]))
+    err = capsys.readouterr().err
+    assert code == 0
+    assert "warning: top 'Top' at 80 lies 44 m beyond the track's end: placed at its end" in err
+    assert "warning: head 'Head'" not in err
+    assert point(out, "top")["lat"] == pytest.approx(46.0005)
+
+
+def test_gpx_close_enough_is_quiet(tmp_path, capsys):
+    length = route.haversine(46.0, 8.0, 46.0009, 8.0)  # about 100 m, the route's length
+    assert 95 < length < 105
+    code, _ = build(tmp_path, fixture(), gpx=gpx([(46.0, 8.0), (46.0009, 8.0)]))
+    assert code == 0
+    assert "warning" not in capsys.readouterr().err
+
+
+def test_missing_output_dir(tmp_path, capsys):
+    src = tmp_path / "t.src.json"
+    src.write_text(json.dumps(MINIMAL))
+    assert route.main(["build", str(src), "-o", str(tmp_path / "no" / "t.json")]) == 1
+    err = capsys.readouterr().err
+    assert "No such file or directory" in err and "Traceback" not in err
+
+
+def test_gpx_errors_name_file_and_point_and_come_with_route_errors(tmp_path, capsys):
+    bad = ('<gpx xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>'
+           '<trkpt lat="46" lon="8"/><trkpt lat="x" lon="8"/><trkpt lat="46.001" lon="8"/>'
+           '</trkseg></trk></gpx>')
+    code, out = build(tmp_path, fixture(lambda r: r.update(short="")), gpx=bad)
+    err = capsys.readouterr().err
+    assert code == 1 and out is None
+    assert "t.gpx: track point 2: lat and lon are numbers" in err
+    assert "t.src.json: short is not empty" in err
+
+
+def test_gpx_unreadable(tmp_path, capsys):
+    rejects_gpx = build(tmp_path, fixture(), gpx="<gpx><trk>")
+    assert rejects_gpx[0] == 1
+    assert "t.gpx: " in capsys.readouterr().err
+
+
+def test_short_not_empty(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(short="")), "short is not empty")
+
+
+def test_id_is_file_stem(tmp_path, capsys):
+    src = tmp_path / "other.src.json"
+    src.write_text(json.dumps(MINIMAL))
+    assert route.main(["build", str(src), "-o", str(tmp_path / "o.json")]) == 1
+    assert "id is 'other', the source's file name (<id>.src.json)" in capsys.readouterr().err
+
+
+def test_source_name(tmp_path, capsys):
+    src = tmp_path / "t.json"
+    src.write_text(json.dumps(MINIMAL))
+    assert route.main(["build", str(src), "-o", str(tmp_path / "o.json")]) == 1
+    assert "the source is named <id>.src.json" in capsys.readouterr().err
+
+
+# make routes, in a copy of the parts of the repository it uses.
+
+def repo_copy(tmp_path):
+    for rel in ("Makefile", "tools/route.py", "routes/demo.src.json"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(REPO / rel, tmp_path / rel)
+    (tmp_path / "resources" / "routes").mkdir(parents=True)
+    shutil.copy(REPO / "resources/routes/routes.xml", tmp_path / "resources/routes/routes.xml")
+    return tmp_path
+
+
+def make_routes(root):
+    return subprocess.run(["make", "--no-print-directory", "routes"], cwd=root,
+                          capture_output=True, text=True)
+
+
+needs_make = pytest.mark.skipif(shutil.which("make") is None, reason="needs make")
+
+
+@needs_make
+def test_make_routes_uses_gpx(tmp_path):
+    root = repo_copy(tmp_path)
+    (root / "routes/demo.gpx").write_text(gpx([(46.0, 8.0), (46.0068, 8.0)]))  # about 760 m
+    res = make_routes(root)
+    assert res.returncode == 0, res.stderr
+    out = json.loads((root / "resources/routes/demo.json").read_text())
+    assert all("lat" in p and "lon" in p for p in out["points"])
+
+
+@needs_make
+def test_make_routes_rejects_orphan(tmp_path):
+    root = repo_copy(tmp_path)
+    (root / "resources/routes/gone.json").write_text("{}")
+    res = make_routes(root)
+    assert res.returncode != 0
+    assert "resources/routes/gone.json has no source, routes/gone.src.json" in res.stderr

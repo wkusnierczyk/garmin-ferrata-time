@@ -46,11 +46,18 @@ sideload:
 	grep -q '<iq:product id="'"$$watch"'"/>' manifest.xml || { echo "manifest.xml does not list $$watch."; exit 1; }; \
 	$(MAKE) --no-print-directory build DEVICE=$$watch && tools/sideload.sh install $(OUTPUT)
 
-## Rebuild every route file, resources/routes/<id>.json, from its source, routes/<id>.src.json
+## Rebuild every route file, resources/routes/<id>.json, from its source, routes/<id>.src.json, with
+## the coordinates from its track, routes/<id>.gpx, when there is one. Fails on a route file with no
+## source.
 routes:
+	@for out in resources/routes/*.json; do \
+	  test -e "$$out" || continue; id=$$(basename "$$out" .json); \
+	  test -f "routes/$$id.src.json" || { echo "$$out has no source, routes/$$id.src.json" >&2; exit 1; }; \
+	done
 	@for src in routes/*.src.json; do \
-	  out=resources/routes/$$(basename "$$src" .src.json).json; \
-	  python3 tools/route.py build "$$src" -o "$$out" || exit 1; echo "$$out"; \
+	  id=$$(basename "$$src" .src.json); out=resources/routes/$$id.json; \
+	  gpx=; test -f "routes/$$id.gpx" && gpx="--gpx routes/$$id.gpx"; \
+	  python3 tools/route.py build "$$src" -o "$$out" $$gpx || exit 1; echo "$$out"; \
 	done
 
 ## Remove build output
