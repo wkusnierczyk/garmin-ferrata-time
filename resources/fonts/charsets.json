@@ -1,0 +1,50 @@
+[
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "SemiBold18"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "SemiBold22"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "SemiBold30"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "SemiBold36"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "SemiBold46"
+    },
+    {
+        "fontCharset": " -:0123456789",
+        "fontId": "SemiBold58"
+    },
+    {
+        "fontCharset": " -:0123456789",
+        "fontId": "SemiBold84"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "Bold18"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "Bold26"
+    },
+    {
+        "fontCharset": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~…·°",
+        "fontId": "Bold36"
+    },
+    {
+        "fontCharset": "/0123456789ABCDEFGKRW",
+        "fontId": "Bold52"
+    },
+    {
+        "fontCharset": "/0123456789ABCDEFGKRW",
+        "fontId": "Bold70"
+    }
+]
