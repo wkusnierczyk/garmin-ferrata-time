@@ -82,7 +82,7 @@ ol,ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
   <div class="grid">
     <section class="stage" aria-label="Watch simulator">
       <div class="tabs" id="tabs" role="group" aria-label="Screen"></div>
-      <div class="bezel"><svg id="watch" viewBox="0 0 454 454" role="img" aria-label="Simulated round watch screen"></svg></div>
+      <div class="bezel"><svg id="watch" viewBox="0 0 1 1" role="img" aria-label="Simulated round watch screen"></svg></div>
       <div class="transport">
         <button class="play" id="play" type="button">Play</button>
         <input id="pos" type="range" min="0" max="1000" step="1" value="370" aria-label="Position on the route">
@@ -286,7 +286,7 @@ function T(x,y,s,size,fill,o){
 }
 function chev(x,y,s,down,col){
   const d=down?-1:1;
-  return `<polyline points="${x-s},${y+d*s*.5} ${x},${y-d*s*.5} ${x+s},${y+d*s*.5}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<polyline points="${x-s},${y+d*s*.5} ${x},${y-d*s*.5} ${x+s},${y+d*s*.5}" fill="none" stroke="${col}" stroke-width="0.0077" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 function mapper(r,box,exag){
   exag=exag||3;
@@ -301,7 +301,7 @@ function mapper(r,box,exag){
 function pathD(r,f0,f1,map){
   if(f1<=f0)return '';
   const q=[];
-  const add=(s,x,h)=>{const v=map(s,x,h);q.push(v[0].toFixed(1)+' '+v[1].toFixed(1));};
+  const add=(s,x,h)=>{const v=map(s,x,h);q.push(v[0].toFixed(4)+' '+v[1].toFixed(4));};
   add(f0,xAt(r,f0),hAt(r,f0));
   r.P.forEach(p=>{if(p.s>f0&&p.s<f1)add(p.s,p.x,p.h);});
   add(f1,xAt(r,f1),hAt(r,f1));
@@ -319,150 +319,150 @@ function drawPath(r,map,f,P,o){
   s+='</g>';
   if(st.layers.rest)r.rests.forEach(m=>{
     const q=pt(m.f);
-    s+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot}" fill="${P.rest}" stroke="${P.bg}" stroke-width="3"/>`
-             :`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-2}" fill="${P.bg}" stroke="${P.dim}" stroke-width="3"/>`;
+    s+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot}" fill="${P.rest}" stroke="${P.bg}" stroke-width="0.0066"/>`
+             :`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-0.0044}" fill="${P.bg}" stroke="${P.dim}" stroke-width="0.0066"/>`;
   });
-  if(f<1){const q=pt(1);s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-3}" fill="${P.bg}" stroke="${P.fg}" stroke-width="2.5"/>`;}
+  if(f<1){const q=pt(1);s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${o.dot-0.0066}" fill="${P.bg}" stroke="${P.fg}" stroke-width="0.0055"/>`;}
   const c=pt(f);
-  if(P.glow)s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur+9}" fill="${P.fg}" opacity=".22"/>`;
-  s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur}" fill="${P.fg}" stroke="${P.bg}" stroke-width="3"/>`;
+  if(P.glow)s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur+0.0198}" fill="${P.fg}" opacity=".22"/>`;
+  s+=`<circle cx="${c[0]}" cy="${c[1]}" r="${o.cur}" fill="${P.fg}" stroke="${P.bg}" stroke-width="0.0066"/>`;
   return s;
 }
 function dotText(xc,y,col,label,P,size,solid){
-  const dot=solid?`<circle cx="${xc-34}" cy="${y-size*.33}" r="8" fill="${col}"/>`:`<circle cx="${xc-34}" cy="${y-size*.33}" r="6" fill="none" stroke="${P.dim}" stroke-width="3"/>`;
-  const inner=label==='now'?`<tspan font-weight="700">now</tspan>`:label==='–'?'–':`<tspan font-weight="700">${label}</tspan><tspan font-size="${Math.round(size*.55)}" fill="${P.mid}"> min</tspan>`;
-  return dot+T(xc+4,y,inner,size,solid?P.fg:P.dim,{});
+  const dot=solid?`<circle cx="${xc-0.0749}" cy="${y-size*.33}" r="0.0176" fill="${col}"/>`:`<circle cx="${xc-0.0749}" cy="${y-size*.33}" r="0.0132" fill="none" stroke="${P.dim}" stroke-width="0.0066"/>`;
+  const inner=label==='now'?`<tspan font-weight="700">now</tspan>`:label==='–'?'–':`<tspan font-weight="700">${label}</tspan><tspan font-size="${size*.55}" fill="${P.mid}"> min</tspan>`;
+  return dot+T(xc+0.0088,y,inner,size,solid?P.fg:P.dim,{});
 }
 function markerPair(D,P,y,xl,xr,size,capY){
   if(!st.layers.next)return '';
   let o=dotText(xl,y,P.rest,D.nextRest?mins(D.nextRest.min):'–',P,size,!!D.nextRest&&st.layers.rest);
   o+=dotText(xr,y,P.hard,D.nextHard?(D.nextHard.inside?'now':mins(D.nextHard.min)):'–',P,size,!!D.nextHard&&st.layers.hard);
-  return o+T(xl,capY,'next rest',13,P.mid,{sans:1})+T(xr,capY,'next hard',13,P.mid,{sans:1});
+  return o+T(xl,capY,'next rest',0.0286,P.mid,{sans:1})+T(xr,capY,'next hard',0.0286,P.mid,{sans:1});
 }
 function leftLine(D,P,y,size){
-  return T(227,y,`<tspan font-weight="700" fill="${P.fg}">${hm(D.left)}</tspan><tspan font-size="${Math.round(size*.6)}" fill="${P.mid}"> left</tspan>`,size,P.fg);
+  return T(0.5,y,`<tspan font-weight="700" fill="${P.fg}">${hm(D.left)}</tspan><tspan font-size="${size*.6}" fill="${P.mid}"> left</tspan>`,size,P.fg);
 }
 
 /* ---------- watch face layouts ---------- */
 function facePath(D,P){
-  const r=D.r,m=mapper(r,{x:132,y:98,w:190,h:214});
-  let o=T(227,80,clk(START+D.elapsed),64,P.fg,{w:700});
-  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:7,dot:8,cur:7});
-  o+=T(227,370,`<tspan font-size="58" font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan> /${r.total} m</tspan>`,24,P.mid);
-  o+=markerPair(D,P,214,78,376,24,236);
-  o+=leftLine(D,P,414,30);
+  const r=D.r,m=mapper(r,{x:0.2907,y:0.2159,w:0.4185,h:0.4714});
+  let o=T(0.5,0.1762,clk(START+D.elapsed),0.141,P.fg,{w:700});
+  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:0.0154,dot:0.0176,cur:0.0154});
+  o+=T(0.5,0.815,`<tspan font-size="0.1278" font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan> /${r.total} m</tspan>`,0.0529,P.mid);
+  o+=markerPair(D,P,0.4714,0.1718,0.8282,0.0529,0.5198);
+  o+=leftLine(D,P,0.9119,0.0661);
   return o;
 }
 function arcD(R,a,b){
-  const pt=t=>[(227+R*Math.sin(t*Math.PI/180)).toFixed(1),(227-R*Math.cos(t*Math.PI/180)).toFixed(1)];
+  const pt=t=>[(0.5+R*Math.sin(t*Math.PI/180)).toFixed(4),(0.5-R*Math.cos(t*Math.PI/180)).toFixed(4)];
   if(b-a<.3)return '';
   const p=pt(a),q=pt(b);
   return `M${p[0]} ${p[1]}A${R} ${R} 0 ${b-a>180?1:0} 1 ${q[0]} ${q[1]}`;
 }
 function faceRing(D,P){
-  const r=D.r,f=D.f,R=203,th=s=>-135+270*s;
-  const pt=s=>[227+R*Math.sin(th(s)*Math.PI/180),227-R*Math.cos(th(s)*Math.PI/180)];
-  let o=`<g fill="none" stroke-linecap="round"><path d="${arcD(R,th(0),th(1))}" stroke="${P.dim}" stroke-width="14"/>`;
-  if(f>0)o+=`<path d="${arcD(R,th(0),th(f))}" stroke="${P.done}" stroke-width="14"/>`;
+  const r=D.r,f=D.f,R=0.4471,th=s=>-135+270*s;
+  const pt=s=>[0.5+R*Math.sin(th(s)*Math.PI/180),0.5-R*Math.cos(th(s)*Math.PI/180)];
+  let o=`<g fill="none" stroke-linecap="round"><path d="${arcD(R,th(0),th(1))}" stroke="${P.dim}" stroke-width="0.0308"/>`;
+  if(f>0)o+=`<path d="${arcD(R,th(0),th(f))}" stroke="${P.done}" stroke-width="0.0308"/>`;
   if(st.layers.hard)r.hard.forEach(h=>{
-    if(f>h.a)o+=`<path d="${arcD(R,th(h.a),th(Math.min(h.b,f)))}" stroke="${P.hardDim}" stroke-width="14"/>`;
-    if(f<h.b)o+=`<path d="${arcD(R,th(Math.max(h.a,f)),th(h.b))}" stroke="${P.hard}" stroke-width="14"/>`;
+    if(f>h.a)o+=`<path d="${arcD(R,th(h.a),th(Math.min(h.b,f)))}" stroke="${P.hardDim}" stroke-width="0.0308"/>`;
+    if(f<h.b)o+=`<path d="${arcD(R,th(Math.max(h.a,f)),th(h.b))}" stroke="${P.hard}" stroke-width="0.0308"/>`;
   });
   o+='</g>';
   if(st.layers.rest)r.rests.forEach(m=>{
     const q=pt(m.f);
-    o+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="10" fill="${P.rest}" stroke="${P.bg}" stroke-width="3"/>`
-             :`<circle cx="${q[0]}" cy="${q[1]}" r="8" fill="${P.bg}" stroke="${P.dim}" stroke-width="3"/>`;
+    o+=m.f>f?`<circle cx="${q[0]}" cy="${q[1]}" r="0.022" fill="${P.rest}" stroke="${P.bg}" stroke-width="0.0066"/>`
+             :`<circle cx="${q[0]}" cy="${q[1]}" r="0.0176" fill="${P.bg}" stroke="${P.dim}" stroke-width="0.0066"/>`;
   });
   const c=pt(f);
-  if(P.glow)o+=`<circle cx="${c[0]}" cy="${c[1]}" r="20" fill="${P.fg}" opacity=".22"/>`;
-  o+=`<circle cx="${c[0]}" cy="${c[1]}" r="10" fill="${P.fg}" stroke="${P.bg}" stroke-width="3"/>`;
-  o+=T(227,118,clk(START+D.elapsed),52,P.mid,{w:700});
-  o+=T(227,222,String(Math.round(D.climbed)),96,P.fg,{w:700});
-  o+=chev(146,254,9,r.down,P.mid)+T(227+6,265,`of ${r.total} m`,26,P.mid);
-  o+=leftLine(D,P,318,38);
-  o+=markerPair(D,P,376,160,294,24,396);
+  if(P.glow)o+=`<circle cx="${c[0]}" cy="${c[1]}" r="0.0441" fill="${P.fg}" opacity=".22"/>`;
+  o+=`<circle cx="${c[0]}" cy="${c[1]}" r="0.022" fill="${P.fg}" stroke="${P.bg}" stroke-width="0.0066"/>`;
+  o+=T(0.5,0.2599,clk(START+D.elapsed),0.1145,P.mid,{w:700});
+  o+=T(0.5,0.489,String(Math.round(D.climbed)),0.2115,P.fg,{w:700});
+  o+=chev(0.3216,0.5595,0.0198,r.down,P.mid)+T(0.5+0.0132,0.5837,`of ${r.total} m`,0.0573,P.mid);
+  o+=leftLine(D,P,0.7004,0.0837);
+  o+=markerPair(D,P,0.8282,0.3524,0.6476,0.0529,0.8722);
   return o;
 }
 /* ---------- app screens ---------- */
-function hdr(title,P){return T(227,52,title.toUpperCase(),15,P.mid,{sans:1,w:500,ls:2});}
+function hdr(title,P){return T(0.5,0.1145,title.toUpperCase(),0.033,P.mid,{sans:1,w:500,ls:0.0044});}
 function pager(P){
   const i=APP.indexOf(st.screen);let o='';
-  APP.forEach((_,k)=>{o+=`<circle cx="${227+(k-2.5)*16}" cy="430" r="3.5" fill="${k===i?P.fg:P.dim}"/>`;});
+  APP.forEach((_,k)=>{o+=`<circle cx="${0.5+(k-2.5)*0.0352}" cy="0.9471" r="0.0077" fill="${k===i?P.fg:P.dim}"/>`;});
   return o;
 }
 function screenRoutes(D,P){
   let o=hdr('Choose a route',P);
   ROUTES.forEach((r,i)=>{
-    const y=84+i*66,sel=i===st.route;
+    const y=0.185+i*0.1454,sel=i===st.route;
     o+=`<g data-act="route" data-i="${i}" tabindex="0" role="button" aria-label="${r.name}">`+
-      `<rect x="62" y="${y}" width="330" height="58" rx="14" fill="${sel?P.panel:'none'}" stroke="${sel?P.done:P.line}" stroke-width="${sel?3:2}"/>`+
-      T(80,y+26,trunc(r.name,20),23,P.fg,{a:'start',sans:1,w:700})+
-      T(80,y+47,`${r.grade} · ${r.total} m ${r.down?'down':'up'} · ${hm(r.minutes)}`,15,P.mid,{a:'start'})+`</g>`;
+      `<rect x="0.1366" y="${y}" width="0.7269" height="0.1278" rx="0.0308" fill="${sel?P.panel:'none'}" stroke="${sel?P.done:P.line}" stroke-width="${sel?0.0066:0.0044}"/>`+
+      T(0.1762,y+0.0573,trunc(r.name,20),0.0507,P.fg,{a:'start',sans:1,w:700})+
+      T(0.1762,y+0.1035,`${r.grade} · ${r.total} m ${r.down?'down':'up'} · ${hm(r.minutes)}`,0.033,P.mid,{a:'start'})+`</g>`;
   });
-  o+=T(227,372,'Tap a route to open it',15,P.mid,{sans:1});
+  o+=T(0.5,0.8194,'Tap a route to open it',0.033,P.mid,{sans:1});
   return o+pager(P);
 }
 function screenOverview(D,P){
-  const r=D.r,m=mapper(r,{x:150,y:112,w:154,h:150});
-  let o=T(227,78,trunc(r.name,18),32,P.fg,{sans:1,w:700})+T(227,100,r.place,15,P.mid,{sans:1});
-  o+=drawPath(r,(s,x,h)=>m(x,h),0,P,{w:6,dot:7,cur:6});
-  o+=T(227,296,`${r.total} m ${r.down?'down':'up'}  ·  ${hm(r.minutes)}  ·  ${r.grade}`,19,P.fg);
-  o+=`<circle cx="165" cy="322" r="7" fill="${P.rest}"/>`+T(177,328,`${r.rests.length} rest`,17,P.fg,{a:'start'});
-  o+=`<circle cx="249" cy="322" r="7" fill="${P.hard}"/>`+T(261,328,`${r.hard.length} hard`,17,P.fg,{a:'start'});
-  o+=T(227,354,r.noExit?'No emergency exit':'Exit points not mapped',15,r.noExit?P.hard:P.mid,{sans:1});
-  o+=`<g data-act="start" tabindex="0" role="button" aria-label="Start"><rect x="157" y="372" width="140" height="42" rx="21" fill="${P.done}"/>`+T(227,401,'START',20,P.bg,{sans:1,w:700,ls:1.5})+`</g>`;
+  const r=D.r,m=mapper(r,{x:0.3304,y:0.2467,w:0.3392,h:0.3304});
+  let o=T(0.5,0.1718,trunc(r.name,18),0.0705,P.fg,{sans:1,w:700})+T(0.5,0.2203,r.place,0.033,P.mid,{sans:1});
+  o+=drawPath(r,(s,x,h)=>m(x,h),0,P,{w:0.0132,dot:0.0154,cur:0.0132});
+  o+=T(0.5,0.652,`${r.total} m ${r.down?'down':'up'}  ·  ${hm(r.minutes)}  ·  ${r.grade}`,0.0419,P.fg);
+  o+=`<circle cx="0.3634" cy="0.7093" r="0.0154" fill="${P.rest}"/>`+T(0.3899,0.7225,`${r.rests.length} rest`,0.0374,P.fg,{a:'start'});
+  o+=`<circle cx="0.5485" cy="0.7093" r="0.0154" fill="${P.hard}"/>`+T(0.5749,0.7225,`${r.hard.length} hard`,0.0374,P.fg,{a:'start'});
+  o+=T(0.5,0.7797,r.noExit?'No emergency exit':'Exit points not mapped',0.033,r.noExit?P.hard:P.mid,{sans:1});
+  o+=`<g data-act="start" tabindex="0" role="button" aria-label="Start"><rect x="0.3458" y="0.8194" width="0.3084" height="0.0925" rx="0.0463" fill="${P.done}"/>`+T(0.5,0.8833,'START',0.0441,P.bg,{sans:1,w:700,ls:0.0033})+`</g>`;
   return o;
 }
 function screenPath(D,P){
-  const r=D.r,m=mapper(r,{x:120,y:84,w:214,h:250});
+  const r=D.r,m=mapper(r,{x:0.2643,y:0.185,w:0.4714,h:0.5507});
   const nh=D.nextHard,hint=nh?(nh.inside?'In: '+nh.label:'Next: '+nh.label):'No more difficulties';
-  let o=T(227,58,trunc(hint,28),15,nh?P.hard:P.mid,{sans:1,w:500});
-  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:8,dot:9,cur:8});
-  o+=T(227,372,`<tspan font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan font-size="22" fill="${P.mid}"> /${r.total} m</tspan>`,38,P.fg);
-  o+=dotText(160,412,P.rest,D.nextRest?mins(D.nextRest.min):'–',P,22,!!D.nextRest&&st.layers.rest);
-  o+=dotText(300,412,P.hard,nh?(nh.inside?'now':mins(nh.min)):'–',P,22,!!nh&&st.layers.hard);
+  let o=T(0.5,0.1278,trunc(hint,28),0.033,nh?P.hard:P.mid,{sans:1,w:500});
+  o+=drawPath(r,(s,x,h)=>m(x,h),D.f,P,{w:0.0176,dot:0.0198,cur:0.0176});
+  o+=T(0.5,0.8194,`<tspan font-weight="700" fill="${P.fg}">${Math.round(D.climbed)}</tspan><tspan font-size="0.0485" fill="${P.mid}"> /${r.total} m</tspan>`,0.0837,P.fg);
+  o+=dotText(0.3524,0.9075,P.rest,D.nextRest?mins(D.nextRest.min):'–',P,0.0485,!!D.nextRest&&st.layers.rest);
+  o+=dotText(0.6608,0.9075,P.hard,nh?(nh.inside?'now':mins(nh.min)):'–',P,0.0485,!!nh&&st.layers.hard);
   return o;
 }
 function screenProfile(D,P){
-  const r=D.r,box={x:62,y:96,w:330,h:170};
+  const r=D.r,box={x:0.1366,y:0.2115,w:0.7269,h:0.3744};
   let hmin=1e9,hmax=-1e9;r.P.forEach(p=>{hmin=Math.min(hmin,p.h);hmax=Math.max(hmax,p.h);});
   const map=(s,x,h)=>[box.x+s*box.w,box.y+box.h-(h-hmin)/(hmax-hmin)*box.h];
-  let o=T(227,66,'ELEVATION',13,P.mid,{sans:1,ls:2,w:500});
-  o+=`<line x1="${box.x}" y1="${box.y+box.h+10}" x2="${box.x+box.w}" y2="${box.y+box.h+10}" stroke="${P.line}" stroke-width="2"/>`;
-  o+=drawPath(r,map,D.f,P,{w:5,dot:7,cur:6});
-  let y=312;
-  if(!D.ahead.length)o+=T(227,350,D.f>=1?'Top reached':'No more markers ahead',22,D.f>=1?P.done:P.mid,{sans:1,w:700});
+  let o=T(0.5,0.1454,'ELEVATION',0.0286,P.mid,{sans:1,ls:0.0044,w:500});
+  o+=`<line x1="${box.x}" y1="${box.y+box.h+0.022}" x2="${box.x+box.w}" y2="${box.y+box.h+0.022}" stroke="${P.line}" stroke-width="0.0044"/>`;
+  o+=drawPath(r,map,D.f,P,{w:0.011,dot:0.0154,cur:0.0132});
+  let y=0.6872;
+  if(!D.ahead.length)o+=T(0.5,0.7709,D.f>=1?'Top reached':'No more markers ahead',0.0485,D.f>=1?P.done:P.mid,{sans:1,w:700});
   D.ahead.slice(0,3).forEach(a=>{
     const col=a.kind==='rest'?P.rest:P.hard;
-    o+=`<circle cx="84" cy="${y-6}" r="7" fill="${col}"/>`+T(98,y,trunc(a.label,17),17,P.fg,{a:'start',sans:1});
-    o+=T(376,y,a.inside?`now · ${mins(a.minEnd)} min`:`${mins(a.min)} min · ${Math.round(a.vert)} m`,14,P.mid,{a:'end'});
-    y+=32;
+    o+=`<circle cx="0.185" cy="${y-0.0132}" r="0.0154" fill="${col}"/>`+T(0.2159,y,trunc(a.label,17),0.0374,P.fg,{a:'start',sans:1});
+    o+=T(0.8282,y,a.inside?`now · ${mins(a.minEnd)} min`:`${mins(a.min)} min · ${Math.round(a.vert)} m`,0.0308,P.mid,{a:'end'});
+    y+=0.0705;
   });
   return o+pager(P);
 }
 function screenStats(D,P){
   const r=D.r,pc=Math.round((st.pace-1)*100);
-  const cell=(x,y,v,c)=>T(x,y,v,40,P.fg,{w:700})+T(x,y+22,c,13,P.mid,{sans:1});
+  const cell=(x,y,v,c)=>T(x,y,v,0.0881,P.fg,{w:700})+T(x,y+0.0485,c,0.0286,P.mid,{sans:1});
   let o=hdr('Live stats',P);
-  o+=cell(150,112,String(Math.round(D.climbed)),r.down?'meters descended':'meters climbed');
-  o+=cell(304,112,String(Math.round(D.remaining)),'meters to go');
-  o+=cell(150,200,hm(D.elapsed),'elapsed');
-  o+=cell(304,200,hm(D.left),'time left');
-  o+=cell(150,288,(pc>=0?'+':'')+pc+' %','vs guidebook');
-  o+=cell(304,288,clk(D.finish),'finish');
-  o+=T(227,362,'Guidebook '+hm(r.minutes)+'  ·  your pace '+hm(r.minutes*st.pace),15,P.mid);
+  o+=cell(0.3304,0.2467,String(Math.round(D.climbed)),r.down?'meters descended':'meters climbed');
+  o+=cell(0.6696,0.2467,String(Math.round(D.remaining)),'meters to go');
+  o+=cell(0.3304,0.4405,hm(D.elapsed),'elapsed');
+  o+=cell(0.6696,0.4405,hm(D.left),'time left');
+  o+=cell(0.3304,0.6344,(pc>=0?'+':'')+pc+' %','vs guidebook');
+  o+=cell(0.6696,0.6344,clk(D.finish),'finish');
+  o+=T(0.5,0.7974,'Guidebook '+hm(r.minutes)+'  ·  your pace '+hm(r.minutes*st.pace),0.033,P.mid);
   return o+pager(P);
 }
 function screenSummary(D,P){
   const r=D.r,f=D.f,done=f>=1;
   const rp=r.rests.filter(m=>m.f<=f).length,hp=r.hard.filter(m=>m.b<=f).length;
   let o=hdr(done?'Finished':'So far',P);
-  o+=T(227,150,hm(D.elapsed),84,P.fg,{w:700})+T(227,176,'total time',15,P.mid,{sans:1});
-  o+=T(227,238,`${Math.round(D.climbed)} m`,44,done?P.done:P.fg,{w:700})+T(227,262,r.down?'descended':'climbed',15,P.mid,{sans:1});
-  o+=`<circle cx="160" cy="312" r="7" fill="${P.rest}"/>`+T(172,318,`${rp} of ${r.rests.length} rests`,17,P.fg,{a:'start'});
-  o+=`<circle cx="160" cy="344" r="7" fill="${P.hard}"/>`+T(172,350,`${hp} of ${r.hard.length} hard`,17,P.fg,{a:'start'});
-  o+=T(227,386,'Pace '+(Math.round((st.pace-1)*100)>=0?'+':'')+Math.round((st.pace-1)*100)+' % vs guidebook',15,P.mid,{sans:1});
+  o+=T(0.5,0.3304,hm(D.elapsed),0.185,P.fg,{w:700})+T(0.5,0.3877,'total time',0.033,P.mid,{sans:1});
+  o+=T(0.5,0.5242,`${Math.round(D.climbed)} m`,0.0969,done?P.done:P.fg,{w:700})+T(0.5,0.5771,r.down?'descended':'climbed',0.033,P.mid,{sans:1});
+  o+=`<circle cx="0.3524" cy="0.6872" r="0.0154" fill="${P.rest}"/>`+T(0.3789,0.7004,`${rp} of ${r.rests.length} rests`,0.0374,P.fg,{a:'start'});
+  o+=`<circle cx="0.3524" cy="0.7577" r="0.0154" fill="${P.hard}"/>`+T(0.3789,0.7709,`${hp} of ${r.hard.length} hard`,0.0374,P.fg,{a:'start'});
+  o+=T(0.5,0.8502,'Pace '+(Math.round((st.pace-1)*100)>=0?'+':'')+Math.round((st.pace-1)*100)+' % vs guidebook',0.033,P.mid,{sans:1});
   return o+pager(P);
 }
 
@@ -481,7 +481,7 @@ function render(){
   }
   svg.setAttribute('shape-rendering',P.crisp?'crispEdges':'geometricPrecision');
   svg.style.background=P.bg;
-  svg.innerHTML=`<rect width="454" height="454" fill="${P.bg}"/>`+body;
+  svg.innerHTML=`<rect width="1" height="1" fill="${P.bg}"/>`+body;
   $('#readout').textContent=`${Math.round(D.climbed)} / ${D.r.total} m ${D.r.down?'descended':'climbed'}  ·  ${clk(START+D.elapsed)}  ·  ${hm(D.left)} left`;
   $('#pos').value=Math.round(st.f*1000);
   $('#play').textContent=st.playing?'Pause':(st.f>=1?'Replay':'Play');

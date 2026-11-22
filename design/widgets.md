@@ -3,7 +3,7 @@
 Status: settled with the owner on 2026-11-20 (#16)  
 Reference mock: `design/demo/page-1.html`
 
-The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Coordinates are in the design's 416 px screen. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
+The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Sizes and positions are fractions of the screen's width (the screen is round, so of its height too), to four decimals here: the mocks' px ÷ 416. The code carries them to six, so that on the 416 px epix they land on the mocks' pixels. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
 
 The options below are the mocks'. The app draws each page with the settings it was settled with, so it does not yet carry every option: page 1, for example, has one switch for the difficulty widget's points and always shows danger points.
 
@@ -52,7 +52,7 @@ Options: the end dots on or off.
 
 What the climber is on, and what the uncertainty reaches.
 
-- Three slots sharing a bottom edge: a larger middle box, and two smaller satellites (0.72 of its size) a narrow gap (5 px) from its edges. The middle box stays put; the satellites follow its width.
+- Three slots sharing a bottom edge: a larger middle box, and two smaller satellites (0.72 of its size) a narrow gap (0.0120 of the screen) from its edges. The middle box stays put; the satellites follow its width.
 - Middle: the section the climber is estimated to be in.
 - Satellites: when the uncertainty stretch reaches past that section, the nearest thing behind goes left and the nearest ahead goes right. A thing is the neighbouring section, or an exit or danger point inside the stretch; a point wins a tie with a section boundary. Empty slots stay empty.
 - Grades `W` (walk) and `K1` to `K5`: filled boxes in the profile's colour map, black letters.
@@ -84,7 +84,7 @@ Options: dangers follow the profile's danger setting.
 The difficulty widget turned upright: the sections around the climber.
 
 - Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
-- All boxes the same size (64 by 40 px), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
+- All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
 - Letters `W` and `K1` to `K5`. A rest shows as `W`; the mock can show it as `R`.
 
@@ -94,8 +94,8 @@ Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app sho
 
 The difficulty column to scale: the sections as boxes in a window that moves with the climber. Two variants:
 
-- **ascent stack:** each box as tall as the metres its section climbs (3 px per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour.
-- **path stack:** each box as tall as its section's length along the route (1 px per metre on page 5). Flat sections are boxes; walls are short.
+- **ascent stack:** each box as tall as the metres its section climbs (0.0072 of the screen per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour.
+- **path stack:** each box as tall as its section's length along the route (0.0024 of the screen per metre on page 5). Flat sections are boxes; walls are short.
 
 In the app, ascent or path is a setting.
 
@@ -128,7 +128,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 - Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
-- The climber as a thicker orange line (6 px, round ends) on the gauge's inner side, 3 px clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
+- The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
 - By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart.
 
 ## flat ascent
@@ -152,8 +152,8 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size, so at page 8's 150 % the symbol stands taller than the digits.
 
-- The current difficulty in a filled box (88 by 62 px at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 88 by 62 px times the scale, and the symbol moves left only if the altitude would touch it. Symbols, after safety signs and media controls, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
+- The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), a rest as `W`.
+- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 0.2115 by 0.1490 of the screen times the scale, and the symbol moves left only if the altitude would touch it. Symbols, after safety signs and media controls, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
 - Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
 
 ## Groups
@@ -164,7 +164,7 @@ Widgets that are placed together, as one reusable unit.
 
 - The **difficulty column**, with the altitudes where the difficulty changes to its right.
 - Each altitude is level with a border between two boxes, and is the altitude where the route passes from the lower box's section to the upper one's; optionally also at the column's outer edges.
-- Rounded like the altitude widget (10 m or 50 ft), right-aligned in a box as wide as the widest the route can show, 10 px right of the column, the unit after each.
+- Rounded like the altitude widget (10 m or 50 ft), right-aligned in a box as wide as the widest the route can show, 0.0240 of the screen right of the column, the unit after each.
 - Placed by its left edge and vertical centre; page 2 centres column and altitudes on the screen as one group, page 3 places it by the side of the ascent.
 
 Options: the altitudes at the outer edges; metres or feet; the unit after every altitude or only the last (the mock's switch; the app shows it after each).
@@ -182,7 +182,7 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## selection gauge (page 9)
 
-Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as rings just inside the gauge, 4 px clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol (*section points*), dimmed elsewhere.
+Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as rings just inside the gauge, 0.0096 of the screen clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol (*section points*), dimmed elsewhere.
 
 ## chevron (page 9)
 

@@ -24,15 +24,17 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // A tap beside page 9's difficulty box, level with it, steps the section that way.
+    // A tap beside page 9's difficulty box, level with it, steps the section that way. The zone's edges
+    // are shares of the screen's width, in whole pixels as the page draws them (a share is a decimal a
+    // hair off its pixel).
     function onTap(evt as WatchUi.ClickEvent) as Boolean {
         if (view.page != Pages.SECTION_PAGE) { return false; }
-        var xy = evt.getCoordinates(), k = 416.0 / System.getDeviceSettings().screenWidth;
-        var x = xy[0] * k, y = xy[1] * k;
-        var half = Pages.SECTION_BW / 2 + 10;
-        if ((y - Pages.SECTION_BY).abs() > 45) { return false; }
-        if (x < 208 - half) { view.stepSection(-1); return true; }
-        if (x > 208 + half) { view.stepSection(1); return true; }
+        var xy = evt.getCoordinates(), w = System.getDeviceSettings().screenWidth;
+        var x = xy[0], y = xy[1];
+        var mid = Math.round(0.5 * w), half = Math.round((Pages.SECTION_BW / 2 + 0.024038) * w);
+        if ((y - Math.round(Pages.SECTION_BY * w)).abs() > Math.round(0.108173 * w)) { return false; }
+        if (x < mid - half) { view.stepSection(-1); return true; }
+        if (x > mid + half) { view.stepSection(1); return true; }
         return false;
     }
 
