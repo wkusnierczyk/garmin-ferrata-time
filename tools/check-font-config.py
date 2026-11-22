@@ -18,7 +18,9 @@ import json
 import math
 import os
 import re
+import struct
 import sys
+import zlib
 
 WRITE = '--write' in sys.argv[1:]
 HASHES = 'fonts.sha256'
@@ -94,6 +96,57 @@ def fnt(path):
     base = int(re.search(r'\bbase=(\d+)', text).group(1))
     adv = {chr(int(i)): int(a) for i, a in re.findall(r'^char id=(\d+)\s.*?xadvance=(-?\d+)', text, re.M)}
     return line, base, adv
+
+
+def png_alpha(path):
+    """Rows of alpha values from an 8-bit RGBA PNG, the format ttf2bmp writes."""
+    data = open(path, 'rb').read()
+    if data[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError(f"{path}: not a PNG (a Git LFS pointer not checked out?)")
+    pos, idat, width = 8, b'', 0
+    while pos < len(data):
+        n, kind = struct.unpack('>I4s', data[pos:pos + 8])
+        body = data[pos + 8:pos + 8 + n]
+        if kind == b'IHDR':
+            width, _, depth, colour = struct.unpack('>IIBB', body[:10])
+            if (depth, colour) != (8, 6):
+                raise ValueError(f"{path}: not 8-bit RGBA")
+        elif kind == b'IDAT':
+            idat += body
+        pos += 12 + n
+    raw, stride, rows, prev, at = zlib.decompress(idat), width * 4, [], bytearray(width * 4), 0
+    while at < len(raw):
+        kind, line = raw[at], bytearray(raw[at + 1:at + 1 + stride])
+        at += 1 + stride
+        for x in range(stride):
+            a = line[x - 4] if x >= 4 else 0
+            b, c = prev[x], (prev[x - 4] if x >= 4 else 0)
+            if kind == 1:
+                line[x] = (line[x] + a) & 255
+            elif kind == 2:
+                line[x] = (line[x] + b) & 255
+            elif kind == 3:
+                line[x] = (line[x] + (a + b) // 2) & 255
+            elif kind == 4:
+                pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+                line[x] = (line[x] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        rows.append([line[x] for x in range(3, stride, 4)])
+        prev = line
+    return rows
+
+
+def spills(path, gap=3):
+    """The glyphs with ink in the gap columns after their cell: ttf2bmp cuts a glyph whose ink starts
+    left of its origin (Barlow's j) at its cell and spills the rest into the gap before it, and the
+    watch draws a cell's next column too, a faint mark after the glyph before (an i)."""
+    text = read(path)
+    alpha = png_alpha(os.path.join(os.path.dirname(path), re.search(r'file="([^"]+)"', text).group(1)))
+    width, out = len(alpha[0]), []
+    for m in re.finditer(r'^char id=(\d+)\s+x=(\d+)\s+y=(\d+)\s+width=(\d+)\s+height=(\d+)', text, re.M):
+        cid, x0, y0, w, h = map(int, m.groups())
+        if any(x0 + w + dx < width and alpha[y0 + y][x0 + w + dx] for dx in range(gap) for y in range(h)):
+            out.append(chr(cid))
+    return out
 
 
 # ---------------------------------------------------------------- sources of truth
@@ -223,6 +276,12 @@ for d in dirs:
             bad += 1
 if not bad:
     ok(True, "every bitmap holds its charset, its digits one tabular advance, and its line 1.2 em and base 1 em")
+spilt = [f"{d}/fonts/{refsize[fid][0]}-{size_at(fid, *map(int, d.rsplit('-', 1)[1].split('x')))}.fnt"
+         for d in dirs for fid in refsize]
+spilt = {p.rsplit('/', 1)[1]: spills(p) for p in spilt if os.path.exists(p)}
+spilt = {p: c for p, c in spilt.items() if c}
+ok(not spilt, "no glyph's next three columns in the atlas hold ink (the Makefile's FONT_PADDING)"
+   + (f" (in {spilt})" if spilt else ""))
 
 # Every literal the code measures must be in a text font: a missing glyph is measured at a fallback
 # width without a word (playbook, fonts.md).

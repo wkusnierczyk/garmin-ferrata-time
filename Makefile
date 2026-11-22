@@ -180,11 +180,15 @@ install-garmin-font-scaler:
 # directory of its own, so they are copied from the reference resolution's; the reference is
 # read from resolutions.json. README.md's size table is copied from fonts.md, and the
 # typeface's and the bitmaps' SHA-256 recorded in fonts.sha256; then all of it is checked.
+# Six pixels between glyphs in the atlas, not ttf2bmp's two: a glyph whose ink starts left of
+# its origin (Barlow's j) spills a column into the gap, cut off, and with two the watch drew
+# that column as a faint mark after an i. Six keeps a two-column spill clear of the column after.
+FONT_PADDING := 6
 ## Regenerate the bitmap fonts, fonts.md, fonts.sha256 and README.md's size table (needs ttf2bmp and garmin-font-scaler)
 fonts:
 	$(require_ttf2bmp)
 	$(require_font_scaler)
-	@garmin-font-scaler --table fonts.md
+	@garmin-font-scaler --padding $(FONT_PADDING) --table fonts.md
 	@ref=$$(python3 -c 'import json; r = json.load(open("resources/fonts/resolutions.json"))["reference"]; print("resources-%s-%dx%d" % (r["shape"], *r["resolution"]))') && \
 	  for f in $$(sed -nE 's/.*filename="([^"]+)\.fnt".*/\1/p' resources/fonts/fonts.xml); do \
 	    cp "$$ref/fonts/$$f.fnt" "$$ref/fonts/$$f.png" resources/fonts/ || exit 1; done
