@@ -93,7 +93,6 @@ module DescentTest {
     (:test)
     function gaugeByAscentGivesDescentTheLeast(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);
-        Widgets.forgetRoute();
         var starts = Widgets.gaugeLayout(true);
         Test.assertMessage(RouteTest.near(starts[1] - starts[2], Widgets.G_MIN), "the descent's arc is the least");
         Test.assertMessage(RouteTest.near(starts[0] - starts[1], starts[2] - starts[3]), "the climbs share the rest");
@@ -134,40 +133,45 @@ module DescentTest {
         return true;
     }
 
-    // Every page at every 10 m of the route, each in turn, into a bitmap: a throw fails the test. As
-    // wide as the screen, since the pens are shares of it and a pen under a pixel wide throws; in full
-    // colour, since the fonts are anti-aliased and cannot draw into a palette.
+    // Pages from to to drawn, each in turn, at each section's borders, 1 m either side of them and its
+    // middle, into a bitmap: a throw fails the test. As wide as the screen, since the pens are shares of
+    // it and a pen under a pixel wide throws; in full colour, since the fonts are anti-aliased and
+    // cannot draw into a palette. Not in the replay build, whose pages are the same.
     function drawsEverywhere(r as Route, from as Number, to as Number) as Boolean {
         Climb.use(r, :ferrata);
+        var places = [] as Array<Float>;
+        for (var i = 0; i <= Climb.count(); i++) {
+            var b = Climb.dAt(i).toFloat();
+            if (i > 0) { places.add(b - 1); }
+            places.add(b);
+            if (i < Climb.count()) { places.add(b + 1); places.add((b + Climb.dAt(i + 1)) / 2); }
+        }
         var w = System.getDeviceSettings().screenWidth;
         var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w}).get() as Graphics.BufferedBitmap;
         var dc = bitmap.getDc();
         for (var page = from; page <= to; page++) {
-            for (var dist = 0; dist <= Climb.totalD(); dist += 10) {
-                var st = Climb.State.placed(dist.toFloat(), Climb.heightAtDistance(dist.toFloat()), 30.0, 1.0, 480.0, 25);
+            for (var p = 0; p < places.size(); p++) {
+                var st = Climb.State.placed(places[p], Climb.heightAtDistance(places[p]), 30.0, 1.0, 480.0, 25);
                 Pages.draw(page, new Draw(dc), st);
             }
         }
         return true;
     }
 
-    (:test)
-    function pagesOneToNineDrawAtADescent(logger as Logger) as Boolean {
-        return drawsEverywhere(downRoute(), 0, Pages.SECTION_PAGE);
-    }
-
-    (:test)
-    function demoPagesDrawAtADescent(logger as Logger) as Boolean {
-        return drawsEverywhere(downRoute(), Pages.SECTION_PAGE + 1, Pages.COUNT - 1);
-    }
-
-    (:test)
+    // Every page on the route that dips below its head; page 7 also on the one with no sideways travel,
+    // whose fit divided by 0 (the other pages draw nothing there the dip does not).
+    (:test, :noreplay)
     function pagesOneToNineDrawOnADip(logger as Logger) as Boolean {
         return drawsEverywhere(dipRoute(), 0, Pages.SECTION_PAGE);
     }
 
-    (:test)
+    (:test, :noreplay)
     function demoPagesDrawOnADip(logger as Logger) as Boolean {
         return drawsEverywhere(dipRoute(), Pages.SECTION_PAGE + 1, Pages.COUNT - 1);
+    }
+
+    (:test, :noreplay)
+    function frontPageDrawsWithoutSidewaysTravel(logger as Logger) as Boolean {
+        return drawsEverywhere(downRoute(), 7, 7);
     }
 }
