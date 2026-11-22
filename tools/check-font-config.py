@@ -34,11 +34,14 @@ FACES = {'SemiBold': 'BarlowCondensedTabular-SemiBold', 'Bold': 'BarlowCondensed
 IDS = {'SemiBold': ['SemiBold18', 'SemiBold22', 'SemiBold30', 'SemiBold36', 'SemiBold46', 'SemiBold58', 'SemiBold84'],
        'Bold': ['Bold18', 'Bold26', 'Bold36', 'Bold52', 'Bold70']}
 
-# The glyphs each font draws. Text: words, units, route names (any ASCII), the ellipsis a cut name
-# ends in, the dot between words and the degree sign. Numbers: what the large figures show, counts
+# The glyphs each font draws (owner, 2026-11-22: only what the app needs). Text: letters, digits,
+# the space, and the punctuation the code and the mock pages draw: ' ( ) + , - . / : > ~ ° · …
+# (the parentheses, the comma and the period from route names in the mocks, "Grosser Spalt (var.
+# E)", "Bridge, summit wall"). Route names are folded to these by the route tool (#84). Numbers: what the large figures show, counts
 # and h:mm. Grades: the letters and digits of the difficulty boxes (A to F with half steps such as
 # C/D, K1 to K6 and K3/4, R, W and E).
-TEXT = ''.join(chr(c) for c in range(32, 127)) + '…·°'
+LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+TEXT = LETTERS + " '()+,-./:>~°·…"
 NUMBERS = ' -:0123456789'
 GRADES = '/0123456789ABCDEFGKRW'
 CHARSETS = {'SemiBold18': TEXT, 'SemiBold22': TEXT, 'SemiBold30': TEXT, 'SemiBold36': TEXT,
@@ -315,10 +318,20 @@ ok(not spilt, "no glyph's next three columns in the atlas hold ink (the Makefile
 # Every literal the code measures must be in a text font: a missing glyph is measured at a fallback
 # width without a word (playbook, fonts.md).
 source = ''.join(read(f'source/{f}') for f in sorted(os.listdir('source')) if f.endswith('.mc'))
-measured = set(''.join(''.join(re.findall(r'"([^"]*)"', line.split('d.width(', 1)[1]))
+def literals(text):
+    """The string literals in Monkey C text, without comments and format patterns."""
+    text = re.sub(r'//[^\n]*', '', text)
+    text = re.sub(r'\.format\("[^"]*"\)', '', text)
+    return re.findall(r'"([^"]*)"', text)
+
+
+measured = set(''.join(''.join(literals(line.split('d.width(', 1)[1]))
                        for line in source.splitlines() if 'd.width(' in line))
 measured |= set(''.join(re.findall(r'"([^"]*)"', re.search(r'function fitIn.*?\n    }', source, re.S).group(0))))
 ok(measured <= set(TEXT), f"every literal the pages measure is a text glyph ({''.join(sorted(measured))!r})")
+drawn = set(''.join(literals(source)))
+ok(drawn <= set(TEXT), "every string literal in source/ is in the text fonts"
+   + (f" (not {''.join(sorted(drawn - set(TEXT)))!r})" if drawn - set(TEXT) else ""))
 
 # ---------------------------------------------------------------------- Draw.mc
 print("\nDRAW")
@@ -383,8 +396,7 @@ for line in source.splitlines():
     weight = 'SemiBold' if m.group(1) == 'semi' else 'Bold'
     fid = IDS[weight][nearest(v * rw, [refsize[i][1] for i in IDS[weight]])]
     if fid in restricted:
-        drawn = re.sub(r'\.format\("[^"]*"\)', '', line[m.end():])
-        bad += [(fid, t) for t in re.findall(r'"([^"]*)"', drawn) if not set(t) <= set(CHARSETS[fid])]
+        bad += [(fid, t) for t in literals(line[m.end():]) if not set(t) <= set(CHARSETS[fid])]
 box = re.search(r'const BOX_NAME = \[([^\]]*)\]', source)
 box_glyphs = set(''.join(re.findall(r'"([^"]*)"', box.group(1)))) if box else set()
 ok(bool(box) and box_glyphs <= set(GRADES), f"BOX_NAME, which the grade fonts draw, is grade glyphs ({''.join(sorted(box_glyphs))})")
