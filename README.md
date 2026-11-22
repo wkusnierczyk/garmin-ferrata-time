@@ -14,7 +14,7 @@ Tracked in this repository, and in the family's umbrella as
 
 CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key. Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
 
-## Prototype 0.0.1
+## Prototype 0.1.0
 
 A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded and no sensor is read; the route, the times and the position are invented. One product: the epix Pro (Gen 2) 47 mm.
 
