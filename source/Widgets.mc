@@ -542,11 +542,13 @@ module Widgets {
         return fitIn(d, d.semi(NAME_SIZE), name, w);
     }
 
-    // The same in a given font.
+    // The same in a given font. Compared in whole pixels, as text is measured: a name exactly as wide as
+    // the room fits.
     function fitIn(d as Draw, font as Graphics.FontType, name as String, w as Float) as String {
-        if (d.width(font, name) <= w) { return name; }
+        var room = d.s(w);
+        if (d.dc.getTextWidthInPixels(name, font) <= room) { return name; }
         var n = name.length();
-        while (n > 1 && d.width(font, name.substring(0, n) + "…") > w) { n--; }
+        while (n > 1 && d.dc.getTextWidthInPixels(name.substring(0, n) + "…", font) > room) { n--; }
         return name.substring(0, n) + "…";
     }
 
