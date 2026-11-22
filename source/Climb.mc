@@ -162,8 +162,8 @@ module Climb {
 
     function totalD() as Number { return dAt(count()); }
     // At least 1: an approach that gains no height (flat, or going down) would leave the pages that
-    // draw the climb by height dividing by 0. A crash guard only: how the pages show such an
-    // approach is the owner's to decide (review of #89).
+    // draw the climb by height dividing by 0. Pages on the approach hide height figures (owner,
+    // 2026-11-22); until then, a guard against dividing by 0.
     function totalU() as Number { var u = uAt(count()); return u > 0 ? u : 1; }
     function totalM() as Number { return mAt(count()); }
 
