@@ -211,12 +211,19 @@ BARLOW_SHA256 := \
   7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9:BarlowCondensed-SemiBold.ttf \
   e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65:BarlowCondensed-Bold.ttf \
   186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f:OFL.txt
+# The committed TTFs were made with fontTools 4.60.2, and 4.68.0 gives the same bytes; older ones
+# are refused. Build its environment on Apple's /usr/bin/python3, as for the scaler (Homebrew's
+# Python cannot bootstrap pip on the owner's Mac): /usr/bin/python3 -m venv <dir> &&
+# <dir>/bin/pip install fonttools==4.60.2, then FONTTOOLS_PYTHON=<dir>/bin/python.
+FONTTOOLS_VERSION := 4.60.2
 ## The Python with fontTools that font-sources runs tools/tabular-figures.py with
 FONTTOOLS_PYTHON ?= python3
 ## Fetch Barlow Condensed from google/fonts and give it tabular figures (needs fontTools) [FONTTOOLS_PYTHON]
 font-sources:
-	@"$(FONTTOOLS_PYTHON)" -c 'import fontTools' 2>/dev/null || { \
-	  echo "make $@ needs fontTools in $(FONTTOOLS_PYTHON): pip install fonttools, or FONTTOOLS_PYTHON=/path/to/python"; exit 1; }
+	@have=$$("$(FONTTOOLS_PYTHON)" -c 'import fontTools; print(fontTools.version)' 2>/dev/null); \
+	  $(call version_at_least,$$have,$(FONTTOOLS_VERSION)) || { \
+	  echo "make $@ needs fontTools $(FONTTOOLS_VERSION) or newer in $(FONTTOOLS_PYTHON) (found $${have:-none})."; \
+	  echo "See the Makefile's FONTTOOLS_VERSION for an environment; pass FONTTOOLS_PYTHON=/path/to/python."; exit 1; }
 	@tmp=$$(mktemp -d) || exit 1; trap 'rm -rf "$$tmp"' EXIT; \
 	for pair in $(BARLOW_SHA256); do \
 	  sum=$${pair%%:*}; f=$${pair#*:}; \
