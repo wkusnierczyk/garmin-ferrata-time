@@ -145,9 +145,16 @@ jobs:
       # The whole of make test runs under xvfb-run, since it starts the simulator (make sim) and the
       # simulator must see the same display. make test gates on the anchored "PASSED (" line, not on
       # monkeydo's exit status, which is 1 either way. HOME and DEVICE as in the build job.
-      - name: Run the unit tests
+      #
+      # Then again in the replay build (#57), on the build job's stand-in recording, so the code only
+      # that build holds (loading the recording, its nulls) runs, not only compiles. Both under one
+      # xvfb-run, so the second reuses the simulator the first started on the same display.
+      - name: Run the unit tests, and again in the replay build
         timeout-minutes: 10
         env:
           HOME: /root
         run: |
-          xvfb-run -a make test DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
+          printf '[\n[30000,1000,null,null],\n[30010,1001,46.0,7.0]\n]\n' > resources-replay/replay.json
+          xvfb-run -a sh -c '
+            make test DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key &&
+            make test REPLAY=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key'

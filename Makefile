@@ -258,7 +258,8 @@ font-sources:
 	done; \
 	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowCondensed.txt
 
-## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test)
+## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
+## runs them in the replay build, on resources-replay/replay.json
 # monkeydo exits 1 whether the suite passes or not, so the anchored summary line is the gate, as in
 # Matrix Time (playbook, reference/testing.md). A run that cannot reach the simulator prints no
 # summary and fails the same way. Only one monkeydo session at a time: a second one hangs.
@@ -267,9 +268,10 @@ TEST_OUTPUT := test_build.prg
 # The key is checked before the simulator is started, so a missing key does not leave one running.
 test:
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make test DEV_KEY=/path/to/developer_key"; exit 1; }
+	@test "$(REPLAY)" != 1 || test -f $(REPLAY_JSON) || { echo "No recording at $(REPLAY_JSON). Make one: make replay FIT=/path/to/track.fit"; exit 1; }
 	@$(MAKE) --no-print-directory sim
-	@echo "Building the unit tests for $(DEVICE)..."
-	@$(MONKEYC) -f monkey.jungle -d $(DEVICE) -y "$(KEY)" -w --unit-test -o $(TEST_OUTPUT)
+	@echo "Building the unit tests for $(DEVICE)$(if $(filter 1,$(REPLAY)), (replay))..."
+	@$(MONKEYC) -f "$(JUNGLE)" -d $(DEVICE) -y "$(KEY)" -w --unit-test -o $(TEST_OUTPUT)
 	@echo "Running the unit tests in the simulator..."
 	@output=$$($(MONKEYDO) $(TEST_OUTPUT) $(DEVICE) -t 2>&1); \
 	  echo "$$output"; \

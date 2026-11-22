@@ -36,10 +36,10 @@ module ReplayTest {
         return out;
     }
 
-    // A replay made from the demo's readings drives a tracker to the demo's own places (the plan's
-    // bar: 15 m, on every climbing section, as the demo through the tracker), and to the top. Read as
-    // the view reads the sensors, once a second, at the replay's speed: a minute of the climb a
-    // reading.
+    // A replay made from the demo's readings drives a tracker to within 15 m of the demo's own place
+    // (the plan's bar, as for the demo through the tracker) at every reading that falls on a climbing
+    // section, and to the top at the end. Read as the view reads the sensors, once a second, at the
+    // replay's speed: a minute of the climb a reading, so places between readings are not checked.
     (:test)
     function replayMatchesDemo(logger as Logger) as Boolean {
         var r = RouteTest.demo();
@@ -48,10 +48,13 @@ module ReplayTest {
         var t = new Tracker(r);
         t.start(:head, input.read(0));
         Test.assertMessage(near(t.offset as Float, 12.0, 0.01), "synced at the head, offset " + t.offset);
-        var last = samples[samples.size() - 1][0] as Number;
-        var worst = 0.0, checked = 0;
-        for (var ms = 1000; ; ms += 1000) {
+        var first = samples[0][0] as Number, last = samples[samples.size() - 1][0] as Number;
+        // A second past the reading that reaches the last entry.
+        var endMs = ((last - first) / ReplayInput.SPEED + 2) * 1000;
+        var worst = 0.0, checked = 0, lastT = first;
+        for (var ms = 1000; ms <= endMs && lastT < last; ms += 1000) {
             var rd = input.read(ms);
+            lastT = rd.t;
             t.update(rd);
             var st = new Climb.State((rd.t / 60.0 - Climb.START_CLOCK) / Climb.PACE);
             if (Climb.UP[st.cur] > 0) {
@@ -60,8 +63,8 @@ module ReplayTest {
                 checked++;
                 Test.assertMessage(e <= 15.0, "t " + rd.t + ": tracker " + t.d + ", demo " + st.d);
             }
-            if (rd.t >= last) { break; }
         }
+        Test.assertEqualMessage(lastT, last, "the replay reached its last entry");
         logger.debug(samples.size() + " entries; checked " + checked + ", worst " + worst + " m");
         Test.assertMessage(checked > 50, "climbing readings checked: " + checked);
         Test.assertMessage(near(t.d, Climb.totalD().toFloat(), 0.01), "at the top, d " + t.d);
@@ -113,6 +116,34 @@ module ReplayTest {
         Test.assertEqualMessage(rd.t, 30060, "a minute on");
         Test.assertMessage(near(rd.alt as Float, 1010.0, 1e-3), "alt " + rd.alt);
         Test.assertEqualMessage(input.read(61000).t, 33600, "an hour in a minute");
+        return true;
+    }
+
+    // The replay build only (make test REPLAY=1; in CI on a stand-in recording): the feed loads the
+    // recording, resources-replay/replay.json, in the sensors' place, never records, and plays it from
+    // its first entry, nulls as nulls, to its last.
+    (:test, :replay)
+    function replayBuildPlaysTheRecording(logger as Logger) as Boolean {
+        var f = new Feed(RouteTest.demo());
+        Test.assertMessage(f.input instanceof ReplayInput, "the replay in the sensors' place");
+        Test.assertMessage(!f.demo && !f.records(), "not the demo, and never recorded");
+        var input = f.input as ReplayInput;
+        var n = input.samples.size();
+        Test.assertMessage(n > 0, "entries: " + n);
+        var first = input.samples[0] as Array, last = input.samples[n - 1] as Array;
+        var t0 = first[0] as Number, t1 = last[0] as Number;
+        var alt0 = first[1] as Numeric?, alt1 = last[1] as Numeric?;
+        var noPos0 = (first[2] as Numeric?) == null || (first[3] as Numeric?) == null;
+        var start = input.startMs as Number;
+        var rd = input.read(start);
+        Test.assertEqualMessage(rd.t, t0, "t at the first entry");
+        Test.assertMessage((rd.alt == null) == (alt0 == null), "alt " + rd.alt + ", entry " + alt0);
+        Test.assertMessage((rd.lat == null) == noPos0, "lat " + rd.lat);
+        var span = t1 - t0;
+        rd = input.read(start + (span / ReplayInput.SPEED + 1) * 1000);
+        Test.assertEqualMessage(rd.t, t1, "t at the last entry");
+        Test.assertMessage((rd.alt == null) == (alt1 == null), "alt " + rd.alt + ", entry " + alt1);
+        logger.debug(n + " entries, " + span + " s");
         return true;
     }
 
