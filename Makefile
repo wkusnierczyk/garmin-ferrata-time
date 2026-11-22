@@ -17,7 +17,7 @@ MONKEYC   = "$(SDK_BIN)/monkeyc"
 MONKEYDO  = "$(SDK_BIN)/monkeydo"
 CONNECTIQ = "$(SDK_BIN)/connectiq"
 
-.PHONY: all build sim run sideload clean
+.PHONY: all build sim run sideload clean routes
 
 all: build
 
@@ -45,6 +45,13 @@ sideload:
 	echo "Watch detected: $$watch"; \
 	grep -q '<iq:product id="'"$$watch"'"/>' manifest.xml || { echo "manifest.xml does not list $$watch."; exit 1; }; \
 	$(MAKE) --no-print-directory build DEVICE=$$watch && tools/sideload.sh install $(OUTPUT)
+
+## Rebuild every route file, resources/routes/<id>.json, from its source, routes/<id>.src.json
+routes:
+	@for src in routes/*.src.json; do \
+	  out=resources/routes/$$(basename "$$src" .src.json).json; \
+	  python3 tools/route.py build "$$src" -o "$$out" || exit 1; echo "$$out"; \
+	done
 
 ## Remove build output
 clean:

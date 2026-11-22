@@ -12,7 +12,7 @@ then `git lfs install`) before cloning.
 Tracked in this repository, and in the family's umbrella as
 [`wkusnierczyk/garmin-watch-faces#42`](https://github.com/wkusnierczyk/garmin-watch-faces/issues/42).
 
-CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key. Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
+CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key, and runs the route tool's tests (below). Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
 
 ## Prototype 0.1.0
 
@@ -37,6 +37,24 @@ make sideload    # build for the watch on USB and copy it over (brew install lib
 ```
 
 `tools/launcher_icon.py` renders the launcher icon, an orange climber clipped to the cable on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
+
+## Routes
+
+A route is one JSON file, the format of `design/real-functionality.md` (section 4): the approach and the ferrata as sections (`len`, `up`, `grade`, `min`, `name`, `side`) and the points along them (`kind`, `at`, `alt`, `lat`, `lon`, `name`). The app does not read it yet; it still plays the climb in `source/Climb.mc`. Route files are generated, never edited by hand: each is written from a hand-made source of the same shape, `routes/<id>.src.json`, by `tools/route.py` (Python 3, nothing to install).
+
+```sh
+make routes      # every routes/<id>.src.json to resources/routes/<id>.json
+python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json --gpx track.gpx
+```
+
+`--gpx` fills each point's missing `lat` and `lon` from a track that starts at the approach's start (or at the head, without an approach): the point `at` metres from the head is `at` plus the approach's length along the track. In the source:
+
+- `at` is metres from the head, negative on the approach. `head` (at 0) and `top` (at the ferrata's length) are required; an `approach` point, at minus the approach's length, only with an `approach` list. Exits and landmarks sit on section boundaries. Other kinds are kept as they are and not checked.
+- `grade` is in half steps, as the topo writes it: 1 A, 2 A/B, 3 B … 11 F, 12 F/G; 0 walking, -1 rest.
+- `up` may be negative. Between points with an `alt`, the sections' `up` must add up to the altitude difference within 15 m.
+- `min`, the guidebook's minutes for a section, may be left out; `len` and `min` are above 0, `side` from -1.0 to 1.0, `short` (the activity's name) at most 15 characters.
+
+The tool lists every problem it finds and writes nothing. Its tests: `python3 -m pytest tools/tests` (needs `pytest`); CI runs them and checks that `make routes` leaves the route files unchanged.
 
 ## What it is
 
