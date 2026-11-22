@@ -20,7 +20,7 @@ Shared colours:
 
 ## profile
 
-The route seen from the side, from its start at the lower left to its top at the upper right.
+The route seen from the side, from its start at the left to its end at the right.
 
 - The route's real height, down as well as up (#56): a section that loses height goes down. The drawing spans the route's lowest point to its highest; without descents those are the start and the top.
 - The sections in their difficulty colours, drawn as thick lines with round ends. Climbed parts are dimmed.
