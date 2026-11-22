@@ -11,21 +11,33 @@ KEY      := $(patsubst ~/%,$(HOME)/%,$(DEV_KEY))
 DEVICE   ?= epix2pro47mm
 SIM_PORT ?= 1234
 APP      := FerrataTime
+# REPLAY=1: the replay build (#57, replay.jungle): the recording resources-replay/replay.json, made by
+# make replay, played in the sensors' place in the simulator. Its own .prg, so it is never mistaken
+# for the app; make sideload refuses it.
+ifeq ($(REPLAY),1)
+JUNGLE   := monkey.jungle;replay.jungle
+OUTPUT   := $(APP)-replay.prg
+else
+JUNGLE   := monkey.jungle
 OUTPUT   := $(APP).prg
+endif
+REPLAY_JSON := resources-replay/replay.json
+PYTHON   ?= python3
 
 MONKEYC   = "$(SDK_BIN)/monkeyc"
 MONKEYDO  = "$(SDK_BIN)/monkeydo"
 CONNECTIQ = "$(SDK_BIN)/connectiq"
 
-.PHONY: all build sim run sideload clean routes
+.PHONY: all build sim run sideload clean routes replay
 
 all: build
 
 ## Build the .prg for DEVICE
 build:
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make $(or $(MAKECMDGOALS),build) DEV_KEY=/path/to/developer_key"; exit 1; }
-	@echo "Building for $(DEVICE)..."
-	@$(MONKEYC) -f monkey.jungle -d $(DEVICE) -y "$(KEY)" -w -o $(OUTPUT)
+	@test "$(REPLAY)" != 1 || test -f $(REPLAY_JSON) || { echo "No recording at $(REPLAY_JSON). Make one: make replay FIT=/path/to/track.fit"; exit 1; }
+	@echo "Building for $(DEVICE)$(if $(filter 1,$(REPLAY)), (replay))..."
+	@$(MONKEYC) -f "$(JUNGLE)" -d $(DEVICE) -y "$(KEY)" -w -o $(OUTPUT)
 	@echo "Build complete: $(OUTPUT)"
 
 ## Start the simulator unless it is running
@@ -41,6 +53,7 @@ run: build sim
 
 ## Build for the connected watch and copy it over USB (MTP; brew install libmtp)
 sideload:
+	@test "$(REPLAY)" != 1 || { echo "The replay build is for the simulator only."; exit 1; }
 	@watch=$$(CIQ_HOME="$(CIQ_HOME)" tools/sideload.sh detect) || exit 1; \
 	echo "Watch detected: $$watch"; \
 	grep -q '<iq:product id="'"$$watch"'"/>' manifest.xml || { echo "manifest.xml does not list $$watch."; exit 1; }; \
@@ -77,6 +90,13 @@ routes:
 	  python3 tools/route.py build "$$src" -o "$$out" $$gpx || exit 1; echo "$$out"; \
 	done
 
+## Turn a recorded climb into the replay build's recording: make replay FIT=/path/to/track.fit, then
+## make run REPLAY=1. Needs the FIT SDK (pip install -r tools/requirements.txt; PYTHON= names the
+## interpreter that has it). The recording stays out of git.
+replay:
+	@test -n "$(FIT)" || { echo "Name the recording: make replay FIT=/path/to/track.fit"; exit 1; }
+	@$(PYTHON) tools/fit2replay.py "$(FIT)" -o $(REPLAY_JSON) && echo "$(REPLAY_JSON)"
+
 ## Remove build output
 clean:
-	rm -f $(OUTPUT) $(OUTPUT).debug.xml $(TEST_OUTPUT) $(TEST_OUTPUT).debug.xml
+	rm -f $(APP).prg $(APP).prg.debug.xml $(APP)-replay.prg $(APP)-replay.prg.debug.xml $(TEST_OUTPUT) $(TEST_OUTPUT).debug.xml

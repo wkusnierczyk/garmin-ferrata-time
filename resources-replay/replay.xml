@@ -1,0 +1,5 @@
+<!-- The replay build's recording (replay.jungle): written by make replay FIT=<track.fit>
+     (tools/fit2replay.py), ignored by git. Not on the resource path of any other build. -->
+<resources>
+    <jsonData id="replay" filename="replay.json"/>
+</resources>

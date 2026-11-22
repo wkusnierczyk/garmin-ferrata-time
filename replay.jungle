@@ -1,0 +1,14 @@
+# The replay build (#57): a recorded climb played through the tracker in the simulator, in the
+# sensors' place (source/ReplayInput.mc). Simulator only, never recorded, never released. Layered
+# over monkey.jungle, as Matrix Time layers its build variants:
+#
+#   monkeyc -f "monkey.jungle;replay.jungle" ...     (make build REPLAY=1, make run REPLAY=1)
+#
+# monkeyc -f takes a semicolon-separated list and later files override earlier ones, so this
+# replaces monkey.jungle's exclusion of (:replay) with one of (:noreplay): Feed's sensors() loads the
+# recording instead of starting the GPS.
+base.excludeAnnotations = noreplay
+
+# The recording, resources-replay/replay.json, written by make replay FIT=<track.fit>
+# (tools/fit2replay.py) and never committed: it is the climber's own track.
+base.resourcePath = resources;resources-replay

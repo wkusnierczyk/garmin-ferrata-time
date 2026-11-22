@@ -6,3 +6,7 @@ project.typecheck = 3
 
 # Name the source directory: the default globs .dev/ too.
 base.sourcePath = source
+
+# The replay (#57) is left out: its recording and the code that loads it are only in the replay build,
+# replay.jungle layered over this file (make run REPLAY=1), which swaps this exclusion for its opposite.
+base.excludeAnnotations = replay
