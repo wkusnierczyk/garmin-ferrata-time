@@ -1,10 +1,13 @@
 using Toybox.Math;
+using Toybox.Position;
+using Toybox.System;
+using Toybox.Time;
 
 import Toybox.Lang;
 import Toybox.Test;
 
 // The inputs (#50): the demo input plays 0.1.0's climb as readings, the sensor input reads the watch,
-// and the demo setting chooses between them.
+// and the setting's choice is in FeedTest.
 module InputsTest {
 
     function near(a as Float, b as Float, e as Float) as Boolean {
@@ -86,33 +89,44 @@ module InputsTest {
         return true;
     }
 
-    // The sensor input's time is seconds since local midnight, moving with the caller's clock.
+    // The sensor input's time is seconds since local midnight (the watch's clock, not UTC), moving with
+    // the caller's clock.
     (:test)
     function sensorInputCountsFromMidnight(logger as Logger) as Boolean {
         var input = new SensorInput();
+        var before = clockSeconds();
         var a = input.read(5000);
+        var after = clockSeconds();
         var b = input.read(65000);
         input.stop();
-        Test.assertMessage(a.t >= 0 && a.t < 86400, "t " + a.t);
+        // Across midnight the two clock readings straddle it: then either side will do.
+        var ok = before <= after ? a.t >= before && a.t <= after : a.t >= before || a.t <= after;
+        Test.assertMessage(ok, "t " + a.t + ", local clock " + before + " to " + after);
         Test.assertEqualMessage(b.t - a.t, 60, "a minute on");
         return true;
     }
 
-    // The setting is declared, a boolean, and is what chooses the input.
+    function clockSeconds() as Number {
+        var c = System.getClockTime();
+        return c.hour * 3600 + c.min * 60 + c.sec;
+    }
+
+    // A GPS fix is a position only while it is recent: 30 s at most (from the review of #91).
     (:test)
-    function demoSettingChoosesInput(logger as Logger) as Boolean {
-        var was = Settings.demo();
-        Settings.setDemo(false);
-        Test.assertMessage(!Settings.demo(), "off");
-        var input = Settings.input(RouteTest.demo());
+    function staleFixIsNoPosition(logger as Logger) as Boolean {
+        var input = new SensorInput();
         input.stop();
-        Test.assertMessage(input instanceof SensorInput, "sensor when off");
-        Settings.setDemo(true);
-        Test.assertMessage(Settings.demo(), "on");
-        input = Settings.input(RouteTest.demo());
-        input.stop();
-        Test.assertMessage(input instanceof DemoInput, "demo when on");
-        Settings.setDemo(was);
+        var fix = new Position.Info();
+        fix.position = new Position.Location({:latitude => 46.0, :longitude => 7.0, :format => :degrees});
+        fix.accuracy = Position.QUALITY_GOOD;
+        fix.when = new Time.Moment(1000000);
+        var p = input.positionOf(fix, 1000010);
+        Test.assertMessage(p != null && near(p[0], 46.0, 1e-4) && near(p[1], 7.0, 1e-4), "10 s old: " + p);
+        Test.assertMessage(input.positionOf(fix, 1000030) != null, "30 s old");
+        Test.assertMessage(input.positionOf(fix, 1000031) == null, "31 s old");
+        fix.accuracy = Position.QUALITY_NOT_AVAILABLE;
+        Test.assertMessage(input.positionOf(fix, 1000010) == null, "no quality");
+        Test.assertMessage(input.positionOf(null, 1000010) == null, "no fix");
         return true;
     }
 }

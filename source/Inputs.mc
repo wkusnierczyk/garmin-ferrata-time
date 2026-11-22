@@ -2,6 +2,7 @@ using Toybox.Activity;
 using Toybox.Math;
 using Toybox.Position;
 using Toybox.System;
+using Toybox.Time;
 
 import Toybox.Lang;
 
@@ -23,8 +24,12 @@ class Input {
 }
 
 // The watch: the altitude the activity info gives (null in the first seconds, or with no barometer
-// reading) and the last GPS fix. The clock is the watch's at the first reading, moved on by the caller's.
+// reading) and the last GPS fix, while it is recent. The clock is the watch's at the first reading,
+// moved on by the caller's.
 class SensorInput extends Input {
+
+    // A fix older than this, in seconds, is no position: the climber has moved on since.
+    static const FIX_MAX_AGE = 30;
 
     var fix as Position.Info? = null;
     // The caller's clock and the time of day, in seconds, at the first reading.
@@ -51,14 +56,19 @@ class SensorInput extends Input {
         var alt = null;
         var info = Activity.getActivityInfo();
         if (info != null) { alt = info.altitude; }
-        var lat = null, lon = null;
-        var f = fix;
-        if (f != null && f.position != null && f.accuracy >= Position.QUALITY_POOR) {
-            var deg = (f.position as Position.Location).toDegrees();
-            lat = deg[0].toFloat();
-            lon = deg[1].toFloat();
-        }
-        return new Reading(alt, lat, lon, startT + (now - s) / 1000);
+        var t = startT + (now - s) / 1000;
+        var p = positionOf(fix, Time.now().value());
+        return p != null ? new Reading(alt, p[0], p[1], t) : new Reading(alt, null, null, t);
+    }
+
+    // The position of fix f at nowSec (seconds since the epoch, as Time.now()): null without one, of
+    // too poor a quality, or older than FIX_MAX_AGE.
+    function positionOf(f as Position.Info?, nowSec as Number) as [Float, Float]? {
+        if (f == null || f.position == null || f.accuracy < Position.QUALITY_POOR) { return null; }
+        var when = f.when;
+        if (when == null || nowSec - when.value() > FIX_MAX_AGE) { return null; }
+        var deg = (f.position as Position.Location).toDegrees();
+        return [deg[0].toFloat(), deg[1].toFloat()];
     }
 
     function stop() as Void {

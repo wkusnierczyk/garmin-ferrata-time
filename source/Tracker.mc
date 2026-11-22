@@ -38,6 +38,9 @@ class Tracker {
     var u as Float = 0.0;
     // Own pace against the guidebook: minutes taken per guidebook minute.
     var pace as Float = 1.0;
+    // The pace assumed until enough is done to trust the climber's own: 1, or the demo's (#50), so the
+    // demo's time left reads as 0.1.0's from the first minute.
+    var basePace as Float = 1.0;
 
     // When the part started, the last sync, the last reading, and up to when the place has been moved
     // by time (active time only: a pause never moves it), in reading seconds; the watch's last
@@ -51,7 +54,7 @@ class Tracker {
     // A known altitude confirmed while the watch had none: synced at the first reading that has one.
     var pending as Float? = null;
 
-    // Guidebook minutes done before the pace is trusted; until then it is 1 (my call, the plan).
+    // Guidebook minutes done before the pace is trusted; until then it is basePace (my call, the plan).
     const PACE_AFTER = 10;
     // The band: 10 m at a sync, 5 m more every 30 minutes since, at most 50 (my call, the plan; to be
     // set by the ground-truth data).
@@ -173,7 +176,7 @@ class Tracker {
     // enough is done to trust it.
     function repace(elapsed as Float) as Void {
         var m = Climb.minuteAtDistance(d);
-        pace = m >= PACE_AFTER && elapsed > 0 ? elapsed / m : 1.0;
+        pace = m >= PACE_AFTER && elapsed > 0 ? elapsed / m : basePace;
     }
 
     // What the pages draw: the place, the height gained there, the time and the band.
@@ -203,7 +206,7 @@ class Tracker {
         phase = ferrata ? ASCENT : APPROACH;
         d = 0.0;
         u = 0.0;
-        pace = 1.0;
+        pace = basePace;
         partT = rd.t;
         syncT = rd.t;
         lastT = rd.t;

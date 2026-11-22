@@ -21,11 +21,6 @@ module Settings {
     function setDemo(on as Boolean) as Void {
         Properties.setValue("demo", on);
     }
-
-    // The input the setting chooses, for route r.
-    function input(r as Route) as Input {
-        return demo() ? new DemoInput(r) as Input : new SensorInput() as Input;
-    }
 }
 
 // The settings on the watch, reached from the Ask list: one item per setting, as on the phone.
