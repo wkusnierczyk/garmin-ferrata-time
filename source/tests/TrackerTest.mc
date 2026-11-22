@@ -275,6 +275,21 @@ module TrackerTest {
     }
 
     (:test)
+    function resumeWithoutPausedReadingHolds(logger as Logger) as Boolean {
+        // No reading between the pause and the resume (Codex on #89).
+        var t = new Tracker(RouteTest.made([[200, 0], [100, 100]]));
+        t.start(:head, at(0, 1000.0));
+        t.update(at(2, 1000.0));
+        var d = t.d;
+        t.pause(at(2, 1000.0));
+        t.resume(at(32, 1000.0));
+        Test.assertMessage(near(t.d, d), "the pause moved the place: " + t.d + ", was " + d);
+        t.update(at(33, 1000.0));
+        Test.assertMessage(near(t.d, d + 20.0), "a minute on: d " + t.d);
+        return true;
+    }
+
+    (:test)
     function unsyncedPauseHolds(logger as Logger) as Boolean {
         var t = new Tracker(RouteTest.demo());
         t.start(:elsewhere, at(0, 1250.0));

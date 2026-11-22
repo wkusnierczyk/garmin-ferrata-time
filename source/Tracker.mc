@@ -95,11 +95,13 @@ class Tracker {
         phase = PAUSED;
     }
 
+    // The resume reading is taken while still paused, so the pause up to it is never counted as
+    // moving, whether or not a paused reading came just before (Codex on #89).
     function resume(rd as Reading) as Void {
         if (phase != PAUSED) { return; }
+        update(rd);
         phase = pausedFrom as Phase;
         pausedFrom = null;
-        update(rd);
     }
 
     // Sync at a known point (an index into the route's points) the climber confirms. A landmark in the
