@@ -6,14 +6,16 @@ python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json 
 The source has the output's shape. The output lists its keys in a fixed order, one section or point
 per line, so a rebuild of an unchanged source changes nothing. On any error it prints every problem
 found, one per line, writes nothing and exits 1; it warns, without failing, when the track's
-length is far from the route's and for each point past the track's end. Python 3, standard library
-only.
+length is far from the route's and for each point past the track's end. Names are folded to the
+fonts' text charset: accents dropped, special letters spelled out. Python 3, standard library only.
 """
 import argparse
+import copy
 import json
 import math
 import os
 import sys
+import unicodedata
 import xml.etree.ElementTree as ET
 
 FORMAT = 1
@@ -24,6 +26,22 @@ KINDS = {"approach", "head", "landmark", "danger", "exit", "top"}
 SHORT_MAX = 15  # the SDK's suggested maximum for a session name
 ALT_TOLERANCE = 15  # metres between the sections' height and the known altitudes
 EARTH_RADIUS = 6371000.0
+# What a name may hold after folding: the text fonts' charset, which carries only the characters the
+# app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
+# until then a test compares the two whenever the file is there.
+TEXT_CHARSET = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…")
+# What NFKD leaves: letters it does not take apart, spelled out; typographic marks, written plainly
+# (the charset has no double quote, so every quote becomes '); invisible marks, dropped.
+FOLD = {
+    "ß": "ss", "ẞ": "SS", "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ø": "o", "Ø": "O",
+    "ł": "l", "Ł": "L", "đ": "d", "Đ": "D", "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th",
+    "ħ": "h", "Ħ": "H", "ı": "i", "ŧ": "t", "Ŧ": "T", "ŋ": "ng", "Ŋ": "Ng", "μ": "u",
+    "‘": "'", "’": "'", "‛": "'", "“": "'", "”": "'", "„": "'", "«": "'", "»": "'", "ʼ": "'",
+    '"': "'", "`": "'", "′": "'", "‚": ",",
+    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-", "⁄": "/",
+    "\u00ad": "", "\u200b": "", "\u200c": "", "\u200d": "",
+    **{chr(c): "" for c in range(0xFE00, 0xFE10)},  # variation selectors
+}
 
 
 class RouteError(Exception):
@@ -230,6 +248,54 @@ def check_rules(r):
     return out
 
 
+def fold(text):
+    """text with accents dropped (NFKD, combining marks removed) and what remains looked up in
+    FOLD, so a letter with an accent on a special letter (ǿ, ǣ) folds too. What it returns may still
+    hold characters outside TEXT_CHARSET."""
+    out = []
+    for c in text:
+        if c in TEXT_CHARSET:  # kept as it is, even where NFKD would take it apart (… to ...)
+            out.append(c)
+            continue
+        for d in unicodedata.normalize("NFKD", c):
+            if not unicodedata.combining(d):
+                out.append(d if d in TEXT_CHARSET else FOLD.get(d, d))
+    return "".join(out)
+
+
+def fold_names(r):
+    """A copy of route r with every name, short and place folded, points of unknown kinds included,
+    and a problem for each character left outside TEXT_CHARSET. Fields of the wrong type stay as
+    they are, for check_shape to report."""
+    if not isinstance(r, dict):
+        return r, []
+    r = copy.deepcopy(r)
+    out = []
+
+    def one(obj, key, label):
+        if not isinstance(obj.get(key), str):
+            return
+        obj[key] = fold(obj[key])
+        for c in dict.fromkeys(obj[key]):
+            if c not in TEXT_CHARSET:
+                out.append(f"{label}{key}: {c!r} (U+{ord(c):04X}) is not in the fonts' charset")
+
+    for k in ("name", "short", "place"):
+        one(r, k, "")
+    for part, key in (("approach", "approach"), ("section", "sections")):
+        if isinstance(r.get(key), list):
+            for i, s in enumerate(r[key], 1):
+                if isinstance(s, dict):
+                    one(s, "name", f"{section_label(part, i, s)}: ")
+    if isinstance(r.get("points"), list):
+        for i, p in enumerate(r["points"], 1):
+            if isinstance(p, dict):
+                kind, name = p.get("kind"), p.get("name")
+                one(p, "name", f"{kind if isinstance(kind, str) else 'point'} {i}"
+                    + (f" '{name}'" if isinstance(name, str) else "") + ": ")
+    return r, out
+
+
 def check(r, stem=None):
     """Every problem with route r, as messages; empty when it is valid. stem: the source's file
     name without .src.json, which the id must equal."""
@@ -248,7 +314,8 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def read_gpx(path):
-    """The track points of a GPX file, as (lat, lon), whatever its namespace."""
+    """The track points of a GPX file, as (lat, lon, ele), whatever its namespace; ele is None
+    where the point has no elevation."""
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as e:
@@ -267,7 +334,16 @@ def read_gpx(path):
         if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
             problems.append(f"{path}: track point {n}: lat {lat}, lon {lon} out of range")
             continue
-        track.append((lat, lon))
+        ele = next((c for c in el if c.tag.rsplit("}", 1)[-1] == "ele"), None)
+        if ele is not None:  # present, so a number: an empty <ele></ele> is as wrong as <ele>abc</ele>
+            try:
+                ele = float(ele.text or "")
+            except ValueError:
+                ele = math.nan
+            if not math.isfinite(ele):
+                problems.append(f"{path}: track point {n}: ele is a number")
+                continue
+        track.append((lat, lon, ele))
     if not problems and len(track) < 2:
         problems.append(f"{path}: a track has at least two points")
     if problems:
@@ -275,22 +351,59 @@ def read_gpx(path):
     return track
 
 
+def fill_elevations(track):
+    """The track with each missing elevation filled in, and how many were: between points with one,
+    interpolated by horizontal distance; before the first and after the last, the nearest. A track
+    with no elevation at all comes back as it is."""
+    known = [i for i, p in enumerate(track) if p[2] is not None]
+    if not known or len(known) == len(track):
+        return track, 0
+    along = [0.0]
+    for a, b in zip(track, track[1:]):
+        along.append(along[-1] + haversine(a[0], a[1], b[0], b[1]))
+    out = list(track)
+    for i, (lat, lon, ele) in enumerate(track):
+        if ele is not None:
+            continue
+        before = max((k for k in known if k < i), default=None)
+        after = min((k for k in known if k > i), default=None)
+        if before is None or after is None:
+            ele = track[after if before is None else before][2]
+        else:
+            span = along[after] - along[before]
+            f = (along[i] - along[before]) / span if span > 0 else 0.0
+            ele = track[before][2] + f * (track[after][2] - track[before][2])
+        out[i] = (lat, lon, ele)
+    return out, len(track) - len(known)
+
+
+def step_length(a, b):
+    """From track point a to b, in metres: along the slope from the horizontal distance and the
+    height change, which comes close to the length along the cable; on the map alone where either
+    point has no elevation (only in a track with none: fill_elevations fills the others)."""
+    h = haversine(a[0], a[1], b[0], b[1])
+    if a[2] is None or b[2] is None:
+        return h
+    return math.hypot(h, b[2] - a[2])
+
+
 def track_length(track):
-    return sum(haversine(*a, *b) for a, b in zip(track, track[1:]))
+    return sum(step_length(a, b) for a, b in zip(track, track[1:]))
 
 
 def position(track, dist):
-    """The track's position `dist` metres along it, interpolated; its end beyond its length."""
+    """The track's (lat, lon) `dist` metres along it (step_length), interpolated; its end beyond
+    its length."""
     if dist <= 0:
-        return track[0]
+        return track[0][:2]
     done = 0.0
-    for (la0, lo0), (la1, lo1) in zip(track, track[1:]):
-        step = haversine(la0, lo0, la1, lo1)
+    for a, b in zip(track, track[1:]):
+        step = step_length(a, b)
         if step > 0 and done + step >= dist:
             f = (dist - done) / step
-            return la0 + f * (la1 - la0), lo0 + f * (lo1 - lo0)
+            return a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1])
         done += step
-    return track[-1]
+    return track[-1][:2]
 
 
 def ordered(obj, keys):
@@ -301,15 +414,20 @@ TRACK_TOLERANCE = 0.20  # the share by which the track's length may differ from 
 
 
 def build(r, track=None, stem=None, warnings=None):
-    """Route r checked and in canonical form; lat and lon filled from track where missing.
+    """Route r folded, checked and in canonical form; lat and lon filled from track where missing.
     Warnings about the track go into the list `warnings`, when given."""
-    problems = check(r, stem)
+    r, problems = fold_names(r)
+    problems = check(r, stem) + problems
     if problems:
         raise RouteError(problems)
     warnings = [] if warnings is None else warnings
     approach_len = sum(s["len"] for s in r.get("approach", []))
     route_len = approach_len + sum(s["len"] for s in r["sections"])
     if track is not None:
+        track, filled = fill_elevations(track)
+        if filled:
+            warnings.append(f"{filled} of {len(track)} track points have no elevation: interpolated "
+                            "from their neighbours")
         tlen = track_length(track)
         if abs(tlen - route_len) > TRACK_TOLERANCE * route_len:
             warnings.append(f"the track is {tlen:.0f} m long, the route {route_len} m "
@@ -368,7 +486,8 @@ def main(argv=None):
     b = sub.add_parser("build", help="check a route source and write the route file")
     b.add_argument("source", help="the hand-written source, routes/<id>.src.json")
     b.add_argument("-o", "--output", required=True, help="the route file to write")
-    b.add_argument("--gpx", help="a track from the approach's start (or the head) to the top")
+    b.add_argument("--gpx", help="a track from the approach's start (or the head) to the top; points "
+                   "are placed by distance along it, including height")
     args = ap.parse_args(argv)
 
     name = os.path.basename(args.source)

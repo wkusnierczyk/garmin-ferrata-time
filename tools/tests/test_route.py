@@ -1,6 +1,7 @@
 """Tests for tools/route.py: the demo route builds, and each validation rule rejects its case."""
 import copy
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -466,3 +467,192 @@ def test_make_routes_rejects_orphan(tmp_path):
     res = make_routes(root)
     assert res.returncode != 0
     assert "resources/routes/gone.json has no source, routes/gone.src.json" in res.stderr
+
+
+# Names folded to the fonts' text charset (#84).
+
+@pytest.mark.parametrize("text,folded", [
+    ("Klettersteig Brünnstein", "Klettersteig Brunnstein"),
+    ("Cascade de l'Été", "Cascade de l'Ete"),
+    ("Garçon", "Garcon"),
+    ("Große Zinne", "Grosse Zinne"),
+    ("Bjørnø Ærø", "Bjorno AEro"),
+    ("Œuvre", "OEuvre"),
+    ("Łódź", "Lodz"),
+    ("Đakovo", "Dakovo"),
+    ("Þingvellir", "Thingvellir"),
+    ("Via dell’Amicizia – Nord", "Via dell'Amicizia - Nord"),
+    ("Plain (A-Z), 0-9 / ok.", "Plain (A-Z), 0-9 / ok."),
+    ("Kept: + > ~ ° · …", "Kept: + > ~ ° · …"),
+])
+def test_fold(text, folded):
+    assert route.fold(text) == folded
+
+
+def test_names_folded(tmp_path):
+    def change(r):
+        r.update(name="Große Wand", short="Große", place="Zürich")
+        r["approach"][0]["name"] = "Zustieg über Wiese"
+        r["sections"][0]["name"] = "Été"
+        point(r, "top")["name"] = "Gipfel Ærø"
+    code, out = build(tmp_path, fixture(change))
+    assert code == 0
+    assert (out["name"], out["short"], out["place"]) == ("Grosse Wand", "Grosse", "Zurich")
+    assert out["approach"][0]["name"] == "Zustieg uber Wiese"
+    assert out["sections"][0]["name"] == "Ete"
+    assert point(out, "top")["name"] == "Gipfel AEro"
+
+
+def test_unknown_kind_folded(tmp_path, capsys):
+    # Points of unknown kinds pass through unchecked, but their names are folded and checked too.
+    odd = {"kind": "spring", "at": 999, "flow": "good", "name": "Quelle Größe"}
+    code, out = build(tmp_path, fixture(lambda r: r["points"].append(dict(odd))))
+    assert code == 0
+    assert dict(odd, name="Quelle Grosse") in out["points"]
+    rejects(tmp_path, capsys, fixture(lambda r: r["points"].append(dict(odd, name="Quelle!"))),
+            "spring 7 'Quelle!': name: '!' (U+0021) is not in the fonts' charset")
+
+
+@pytest.mark.parametrize("text,folded", [
+    # NFKD first, then the table: accents on special letters.
+    ("Ǿ ǿ ǣ Ǽ", "O o ae AE"),
+    # Quotes, of any kind, to the apostrophe; the charset has no double quote.
+    ("“A” „B“ «C» ‛D’ ʼE `F′", "'A' 'B' 'C' 'D' 'E 'F'"),
+    # The plain double quote too (Codex on #86).
+    ('Ferrata "Nord"', "Ferrata 'Nord'"),
+    # Minus and fraction slash.
+    ("−5 1⁄2", "-5 1/2"),
+    # Micro sign and Greek mu.
+    ("µm μm", "um um"),
+    # Invisible marks dropped: soft hyphen, zero-width space, non-joiner, joiner, variation selector.
+    ("Klet\u00adter\u200bsteig\u200c\u200d\ufe0f", "Klettersteig"),
+])
+def test_fold_more(text, folded):
+    assert route.fold(text) == folded
+
+
+@pytest.mark.parametrize("change,message", [
+    (lambda r: r.update(name="Ferrata → Top"),
+     "name: '→' (U+2192) is not in the fonts' charset"),
+    (lambda r: r["sections"][1].update(name="Ridge 漢"),
+     "section 2 'Ridge 漢': name: '漢' (U+6F22) is not in the fonts' charset"),
+    (lambda r: point(r, "danger").update(name="Loose!"),
+     "danger 5 'Loose!': name: '!' (U+0021) is not in the fonts' charset"),
+])
+def test_fold_rejects_what_the_fonts_lack(tmp_path, capsys, change, message):
+    rejects(tmp_path, capsys, fixture(change), message)
+
+
+def test_short_length_counts_folded(tmp_path, capsys):
+    # ß becomes ss: 15 characters as written, 16 folded.
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(short="Große Wand abcd")),
+            "short is at most 15 characters (16)")
+
+
+CHARSETS = REPO / "resources" / "fonts" / "charsets.json"
+
+
+@pytest.mark.skipif(not CHARSETS.exists(), reason="the fonts' charsets land with #62 (PR #77)")
+def test_text_charset_is_the_fonts():
+    # Every font that draws letters is a text font, and they share one charset: the tool's.
+    fonts = json.loads(CHARSETS.read_text(encoding="utf-8"))
+    text = [set(f["fontCharset"]) for f in fonts if "a" in f["fontCharset"]]
+    assert text and all(c == route.TEXT_CHARSET for c in text)
+
+
+# GPX points placed by distance along the track including height (#85).
+
+def gpx3d(points):
+    """A track of (lat, lon, ele) points; ele None leaves the point without an elevation."""
+    pts = "".join(f'<trkpt lat="{lat}" lon="{lon}">' + ("" if ele is None else f"<ele>{ele}</ele>")
+                  + "</trkpt>" for lat, lon, ele in points)
+    return ('<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">'
+            f"<trk><trkseg>{pts}</trkseg></trk></gpx>")
+
+
+def one_section(length, up, mid_at):
+    """A route with no approach: one section, a danger point at mid_at, the top at its length."""
+    def change(r):
+        del r["approach"]
+        r["sections"] = [{"len": length, "up": up, "grade": 5, "name": "Wall", "side": 0.0}]
+        r["points"] = [
+            {"kind": "head", "at": 0, "alt": 1000, "name": "Head"},
+            {"kind": "danger", "at": mid_at, "name": "Middle"},
+            {"kind": "top", "at": length, "alt": 1000 + up, "name": "Top"},
+        ]
+    return fixture(change)
+
+
+def test_gpx_steep_midpoint(tmp_path, capsys):
+    # A flat step, then a steep one: about 56 m across, then 56 m across and 300 m up. Along the
+    # track in 3D it is about 361 m, the route's length, so it builds without a warning; the point
+    # halfway up the steep step is at the middle of that step on the map, not past the track's end
+    # as the horizontal distance would place it.
+    flat = route.haversine(46.0, 8.0, 46.0005, 8.0)
+    steep = math.hypot(flat, 300)
+    length = int(flat + steep)  # within the track, or the top would lie past its end
+    track = [(46.0, 8.0, 1000), (46.0005, 8.0, 1000), (46.001, 8.0, 1300)]
+    code, out = build(tmp_path, one_section(length, 300, round(flat + steep / 2)), gpx=gpx3d(track))
+    assert code == 0
+    assert "warning" not in capsys.readouterr().err
+    mid = point(out, "danger")
+    assert mid["lat"] == pytest.approx(46.00075, abs=1e-5)
+    assert point(out, "top")["lat"] == pytest.approx(46.001, abs=1e-5)
+
+
+def test_gpx_length_is_3d():
+    flat = route.haversine(46.0, 8.0, 46.001, 8.0)
+    assert route.track_length([(46.0, 8.0, 0.0), (46.001, 8.0, 300.0)]) == pytest.approx(math.hypot(flat, 300))
+
+
+def test_gpx_flat_track_as_before():
+    # Equal elevations, or none, measure the horizontal distance.
+    track = [(46.0, 8.0), (46.0005, 8.0), (46.001, 8.0)]
+    flat = route.haversine(46.0, 8.0, 46.001, 8.0)
+    for ele in (500.0, None):
+        t = [(la, lo, ele) for la, lo in track]
+        assert route.track_length(t) == pytest.approx(flat)
+        assert route.position(t, flat / 4) == pytest.approx((46.00025, 8.0), abs=1e-7)
+
+
+def test_gpx_missing_elevation_interpolated():
+    # Between points with an elevation, by horizontal distance; before the first and after the last,
+    # the nearest one.
+    track = [(46.0, 8.0, None), (46.0, 8.0, 0.0), (46.00025, 8.0, None), (46.001, 8.0, None),
+             (46.001, 8.0, 300.0), (46.0015, 8.0, None)]
+    filled, n = route.fill_elevations(track)
+    assert n == 4
+    assert [e for _, _, e in filled] == pytest.approx([0.0, 0.0, 75.0, 300.0, 300.0, 300.0])
+
+
+def test_gpx_no_elevation_at_all_as_before():
+    track = [(46.0, 8.0, None), (46.001, 8.0, None)]
+    assert route.fill_elevations(track) == (track, 0)
+
+
+def test_gpx_missing_elevation_warns(tmp_path, capsys):
+    track = [(46.0, 8.0, 1000), (46.0005, 8.0, None), (46.0009, 8.0, 1000)]
+    code, _ = build(tmp_path, fixture(), gpx=gpx3d(track))
+    assert code == 0
+    assert ("t.gpx: warning: 1 of 3 track points have no elevation: interpolated from their "
+            "neighbours") in capsys.readouterr().err
+
+
+def test_gpx_no_elevation_is_quiet(tmp_path, capsys):
+    code, _ = build(tmp_path, fixture(), gpx=gpx3d([(46.0, 8.0, None), (46.0009, 8.0, None)]))
+    assert code == 0
+    assert "warning" not in capsys.readouterr().err
+
+
+def test_gpx_reads_elevation(tmp_path):
+    g = tmp_path / "t.gpx"
+    g.write_text(gpx3d([(46.0, 8.0, 1000.5), (46.001, 8.0, None)]))
+    assert route.read_gpx(str(g)) == [(46.0, 8.0, 1000.5), (46.001, 8.0, None)]
+
+
+@pytest.mark.parametrize("ele", ["high", ""])
+def test_gpx_bad_elevation(tmp_path, capsys, ele):
+    bad = gpx3d([(46.0, 8.0, 1000), (46.001, 8.0, ele)])
+    code, out = build(tmp_path, fixture(), gpx=bad)
+    assert code == 1 and out is None
+    assert "t.gpx: track point 2: ele is a number" in capsys.readouterr().err
