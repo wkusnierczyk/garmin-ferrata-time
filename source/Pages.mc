@@ -122,6 +122,11 @@ module Pages {
 
     // ---------------------------------------------------------------- A. side profile
 
+    // The pages from here on are the 0.0.1 demo's, laid out for the system fonts. Each text is in the
+    // SemiBold size, as a share of the screen's width, whose capitals stand as tall as the system
+    // font's did (#62): 0.0529 (22 px at 416) for the smallest, 0.0865 (36) for the next two, 0.1106
+    // (46) for medium and large, 0.2019 (84) for the large numbers.
+
     function profile(d as Draw, st as Climb.State) as Void {
         route(d, st, 62.0, 292.0, 262.0, 150.0, 8, 284.0);
         var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
@@ -129,17 +134,17 @@ module Pages {
             if (Climb.GRADE[i] >= 3 && Climb.UP[i] >= 60) {
                 var mx = 62 + (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0 / td * 292;
                 var my = 262 - (Climb.uAt(i) + Climb.uAt(i + 1)) / 2.0 / tu * 150;
-                d.textRight(mx - 12, my, Graphics.FONT_XTINY, angle(i), 0xbbbbbb);
+                d.textRight(mx - 12, my, d.semi(0.0529), angle(i), 0xbbbbbb);
             }
         }
-        d.text(208, 48, Graphics.FONT_SMALL, Climb.clockText(st.clock()), WHITE);
-        d.text(208, 76, Graphics.FONT_XTINY, st.altitude().format("%d") + " m", d.MUTED);
+        d.text(208, 48, d.semi(0.0865), Climb.clockText(st.clock()), WHITE);
+        d.text(208, 76, d.semi(0.0529), st.altitude().format("%d") + " m", d.MUTED);
         d.upMark(104, 324, 7, WHITE);
-        d.textLeft(116, 322, Graphics.FONT_MEDIUM, st.climbed().format("%d"), WHITE);
-        d.text(136, 352, Graphics.FONT_XTINY, "of " + Climb.totalU().format("%d") + " m", d.MUTED);
-        d.text(284, 322, Graphics.FONT_MEDIUM, Climb.durationText(st.left()), WHITE);
-        d.text(284, 352, Graphics.FONT_XTINY, "top " + Climb.clockText(st.finish()), d.MUTED);
-        d.text(208, 380, Graphics.FONT_XTINY, "~" + ((st.d / 10).toNumber() * 10).format("%d") + "/" +
+        d.textLeft(116, 322, d.semi(0.1106), st.climbed().format("%d"), WHITE);
+        d.text(136, 352, d.semi(0.0529), "of " + Climb.totalU().format("%d") + " m", d.MUTED);
+        d.text(284, 322, d.semi(0.1106), Climb.durationText(st.left()), WHITE);
+        d.text(284, 352, d.semi(0.0529), "top " + Climb.clockText(st.finish()), d.MUTED);
+        d.text(208, 380, d.semi(0.0529), "~" + ((st.d / 10).toNumber() * 10).format("%d") + "/" +
             Climb.totalD().format("%d") + " m along", d.MUTED);
     }
 
@@ -205,14 +210,14 @@ module Pages {
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = 132.0, bh = 92.0, by = 186.0;
         Widgets.gauge(d, st, byUp);
-        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh, 64);
-        var font = Graphics.FONT_TINY, base = 100 + d.capHeight(font);
-        Widgets.poi(d, st, 200.0, base - d.capHeight(Graphics.FONT_XTINY));
+        Widgets.bigDifficulty(d, st, 208.0, by, bw, bh, 0.1683);
+        // The altitude and its unit, as shares of the screen's width: 30 and 18 px at 416.
+        var font = d.semi(0.0721), small = d.semi(0.0433), base = 100 + d.capHeight(font);
+        Widgets.poi(d, st, 200.0, base - d.capHeight(Widgets.poiFont(d)));
         var ft = Widgets.feet(), ax = 208 + bw / 2;
         d.textCapTop(ax, base - d.capHeight(font), font, Widgets.altitudeValue(st.u, ft).format("%d"), WHITE,
             Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textTop(ax + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, ft ? "ft" : "m", d.MUTED,
-            Graphics.TEXT_JUSTIFY_LEFT);
+        d.textTop(ax + 3, base - d.ascent(small), small, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         Widgets.nextUp(d, st, 208.0, 262.0);
         Widgets.ascentFlat(d, st, 124.0, 292.0, 314.0, true);
     }
@@ -226,11 +231,12 @@ module Pages {
         var i = selected >= 0 ? selected : st.cur, n = Climb.count();
         var bw = SECTION_BW, bh = SECTION_BH, by = SECTION_BY;
         Widgets.selectionGauge(d, i);
-        Widgets.bigDifficultyOf(d, Widgets.section(i, false), 208.0, by, bw, bh, 64);
+        Widgets.bigDifficultyOf(d, Widgets.section(i, false), 208.0, by, bw, bh, 0.1683);
         Widgets.chevron(d, 208 - bw / 2 - 40, by, -1, i > 0);
         Widgets.chevron(d, 208 + bw / 2 + 40, by, 1, i < n - 1);
         // Above: "1380 to 1490 m", "to" and the unit grey, centred.
-        var ft = Widgets.feet(), k = ft ? 3.28084 : 1.0, font = Graphics.FONT_TINY, small = Graphics.FONT_XTINY;
+        // The altitudes, their unit and the name, as shares of the screen's width: 30, 18 and 26 px at 416.
+        var ft = Widgets.feet(), k = ft ? 3.28084 : 1.0, font = d.semi(0.0721), small = d.semi(0.0433), bold = d.bold(0.0625);
         var a0 = Math.round((Climb.START_ALT + Climb.uAt(i)) * k).toNumber().format("%d");
         var a1 = Math.round((Climb.START_ALT + Climb.uAt(i + 1)) * k).toNumber().format("%d");
         var to = " to ", unit = ft ? "ft" : "m";
@@ -244,9 +250,9 @@ module Pages {
         // Below: the name and the symbols of its points, standing on the name's baseline, centred.
         var kinds = Widgets.sectionPoints(i), ss = 20.0, sg = 8.0;
         // Cut with an ellipsis to leave room for the symbols, as the mock does.
-        var name = Widgets.fitIn(d, font, Climb.NAME[i], 240 - kinds.size() * (ss + sg)), nw = d.width(font, name);
-        var nx = 208 - (nw + kinds.size() * (ss + sg)) / 2, nb = 262 + d.capHeight(font) / 2;
-        d.textCapTop(nx, nb - d.capHeight(font), font, name, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        var name = Widgets.fitIn(d, bold, Climb.NAME[i], 240 - kinds.size() * (ss + sg)), nw = d.width(bold, name);
+        var nx = 208 - (nw + kinds.size() * (ss + sg)) / 2, nb = 262 + d.capHeight(bold) / 2;
+        d.textCapTop(nx, nb - d.capHeight(bold), bold, name, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
         for (var p = 0; p < kinds.size(); p++) {
             Widgets.poiSymbol(d, kinds[p], nx + nw + sg + p * (ss + sg), nb, ss);
         }
@@ -280,14 +286,14 @@ module Pages {
         var yp = 300 - st.u / tu * 190;
         d.dashed(102, yp, 132 + st.d / td * 226 - 10, yp, 0x555555, 1);
         d.pointer(74, yp, 7, WHITE);
-        d.text(208, 44, Graphics.FONT_XTINY, Climb.clockText(st.clock()), d.MUTED);
+        d.text(208, 44, d.semi(0.0529), Climb.clockText(st.clock()), d.MUTED);
         var head = st.climbed().format("%d") + " / " + Climb.totalU().format("%d") + " m";
-        d.upMark(214 - d.width(Graphics.FONT_MEDIUM, head) / 2 - 14, 82, 7, WHITE);
-        d.text(214, 80, Graphics.FONT_MEDIUM, head, WHITE);
-        d.text(146, 350, Graphics.FONT_SMALL, st.altitude().format("%d") + " m", WHITE);
-        d.text(146, 376, Graphics.FONT_XTINY, "altitude", d.MUTED);
-        d.text(272, 350, Graphics.FONT_SMALL, Climb.durationText(st.left()), WHITE);
-        d.text(272, 376, Graphics.FONT_XTINY, "to top", d.MUTED);
+        d.upMark(214 - d.width(d.semi(0.1106), head) / 2 - 14, 82, 7, WHITE);
+        d.text(214, 80, d.semi(0.1106), head, WHITE);
+        d.text(146, 350, d.semi(0.0865), st.altitude().format("%d") + " m", WHITE);
+        d.text(146, 376, d.semi(0.0529), "altitude", d.MUTED);
+        d.text(272, 350, d.semi(0.0865), Climb.durationText(st.left()), WHITE);
+        d.text(272, 376, d.semi(0.0529), "to top", d.MUTED);
     }
 
     // ---------------------------------------------------------------- B. vertical ladder
@@ -310,74 +316,74 @@ module Pages {
         var yt = y0 - (st.u + Climb.UNCERTAINTY) / tu * h, yb = y0 - (st.u - Climb.UNCERTAINTY) / tu * h;
         d.frame(x0 - 6, yt, 38, yb - yt, 0x888888, 2);
         d.pointer(x0 - 12, y0 - st.u / tu * h, 8, WHITE);
-        d.textLeft(170, 62, Graphics.FONT_SMALL, Climb.clockText(st.clock()), d.MUTED);
-        d.textLeft(170, 112, Graphics.FONT_NUMBER_MEDIUM, st.climbed().format("%d"), WHITE);
-        d.textLeft(170, 152, Graphics.FONT_XTINY, "of " + Climb.totalU().format("%d") + ", " +
+        d.textLeft(170, 62, d.semi(0.0865), Climb.clockText(st.clock()), d.MUTED);
+        d.textLeft(170, 112, d.semi(0.2019), st.climbed().format("%d"), WHITE);
+        d.textLeft(170, 152, d.semi(0.0529), "of " + Climb.totalU().format("%d") + ", " +
             (Climb.totalU() - st.climbed()).format("%d") + " to go", d.MUTED);
-        d.textLeft(170, 200, Graphics.FONT_MEDIUM, st.altitude().format("%d") + " m", WHITE);
-        d.textLeft(170, 226, Graphics.FONT_XTINY, "altitude", d.MUTED);
-        d.textLeft(170, 270, Graphics.FONT_MEDIUM, Climb.durationText(st.left()), WHITE);
-        d.textLeft(170, 296, Graphics.FONT_XTINY, "top at " + Climb.clockText(st.finish()), d.MUTED);
+        d.textLeft(170, 200, d.semi(0.1106), st.altitude().format("%d") + " m", WHITE);
+        d.textLeft(170, 226, d.semi(0.0529), "altitude", d.MUTED);
+        d.textLeft(170, 270, d.semi(0.1106), Climb.durationText(st.left()), WHITE);
+        d.textLeft(170, 296, d.semi(0.0529), "top at " + Climb.clockText(st.finish()), d.MUTED);
         var nh = st.nextHard();
         if (nh >= 0) {
             d.rect(170, 318, 14, 14, d.grade(Climb.GRADE[nh], false));
-            d.textLeft(190, 325, Graphics.FONT_XTINY, Climb.NAME[nh] + " " + minutesText(st.untilStart(nh)) + "'", WHITE);
+            d.textLeft(190, 325, d.semi(0.0529), Climb.NAME[nh] + " " + minutesText(st.untilStart(nh)) + "'", WHITE);
         }
     }
 
     // ---------------------------------------------------------------- C. where am I
 
     function whereAmI(d as Draw, st as Climb.State) as Void {
-        d.text(208, 56, Graphics.FONT_XTINY, "WHERE AM I", d.MUTED);
-        d.text(208, 94, Graphics.FONT_LARGE, st.altitude().format("%d") + " m", WHITE);
+        d.text(208, 56, d.semi(0.0529), "WHERE AM I", d.MUTED);
+        d.text(208, 94, d.semi(0.1106), st.altitude().format("%d") + " m", WHITE);
         var tu = Climb.totalU(), td = Climb.totalD();
         d.upMark(104, 132, 6, WHITE);
-        d.textLeft(116, 132, Graphics.FONT_XTINY, st.climbed().format("%d") + " m", WHITE);
-        d.textRight(320, 132, Graphics.FONT_XTINY, (tu - st.climbed()).format("%d") + " to go", d.MUTED);
+        d.textLeft(116, 132, d.semi(0.0529), st.climbed().format("%d") + " m", WHITE);
+        d.textRight(320, 132, d.semi(0.0529), (tu - st.climbed()).format("%d") + " to go", d.MUTED);
         d.roundRect(96, 146, 224, 8, 4, 0x222222);
         d.bar(96, 146, 224 * st.u / tu, 8, WHITE);
         var da = (st.d / 10).toNumber() * 10;
-        d.textLeft(96, 178, Graphics.FONT_XTINY, "~" + da.format("%d") + " m along", WHITE);
-        d.textRight(320, 178, Graphics.FONT_XTINY, "~" + (td - da).format("%d") + " to go", d.MUTED);
+        d.textLeft(96, 178, d.semi(0.0529), "~" + da.format("%d") + " m along", WHITE);
+        d.textRight(320, 178, d.semi(0.0529), "~" + (td - da).format("%d") + " to go", d.MUTED);
         d.roundRect(96, 192, 224, 8, 4, 0x222222);
         d.bar(96, 192, 224 * st.d / td, 8, d.DIM_GREY);
-        d.text(208, 232, Graphics.FONT_TINY, Climb.durationText(st.left()) + " to top, " + Climb.clockText(st.finish()), WHITE);
+        d.text(208, 232, d.semi(0.0865), Climb.durationText(st.left()) + " to top, " + Climb.clockText(st.finish()), WHITE);
         var e = st.nextExit();
         var exitLine = "no exits left";
         if (e >= 0) {
             exitLine = (st.exitsLeft() == 1 ? "Last exit " : "Exit ") + minutesText(st.untilStart(Climb.EXIT_AT[e])) + " min";
         }
         d.exitMark(124, 264);
-        d.textLeft(138, 264, Graphics.FONT_XTINY, exitLine, d.EXIT);
-        d.text(150, 304, Graphics.FONT_XTINY, "so far", d.MUTED);
-        d.text(266, 304, Graphics.FONT_XTINY, "ahead", d.MUTED);
+        d.textLeft(138, 264, d.semi(0.0529), exitLine, d.EXIT);
+        d.text(150, 304, d.semi(0.0529), "so far", d.MUTED);
+        d.text(266, 304, d.semi(0.0529), "ahead", d.MUTED);
         var done = st.hardestDone(), ahead = st.hardestAhead();
         if (done >= 0) {
             d.roundRect(122, 320, 56, 30, 6, d.grade(done, false));
-            d.text(150, 335, Graphics.FONT_SMALL, Climb.GRADE_NAME[done], BLACK);
+            d.text(150, 335, d.semi(0.0865), Climb.GRADE_NAME[done], BLACK);
         } else {
-            d.text(150, 335, Graphics.FONT_SMALL, "-", d.MUTED);
+            d.text(150, 335, d.semi(0.0865), "-", d.MUTED);
         }
         if (ahead >= 0) {
             d.roundRect(238, 320, 56, 30, 6, d.grade(ahead, false));
-            d.text(266, 335, Graphics.FONT_SMALL, Climb.GRADE_NAME[ahead], BLACK);
+            d.text(266, 335, d.semi(0.0865), Climb.GRADE_NAME[ahead], BLACK);
         }
-        d.text(208, 335, Graphics.FONT_SMALL, ">", d.MUTED);
+        d.text(208, 335, d.semi(0.0865), ">", d.MUTED);
         if (ahead > done) {
-            d.text(208, 374, Graphics.FONT_XTINY, "harder ahead", d.MUTED);
+            d.text(208, 374, d.semi(0.0529), "harder ahead", d.MUTED);
         } else {
-            d.text(208, 374, Graphics.FONT_XTINY, "nothing harder", d.MUTED);
+            d.text(208, 374, d.semi(0.0529), "nothing harder", d.MUTED);
         }
     }
 
     // ---------------------------------------------------------------- G. what's next, the top at the top
 
     function whatsNext(d as Draw, st as Climb.State) as Void {
-        d.text(208, 52, Graphics.FONT_XTINY, "NEXT", d.MUTED);
+        d.text(208, 52, d.semi(0.0529), "NEXT", d.MUTED);
         var y = 80.0;
         d.top(111, y + 8);
-        d.textLeft(130, y + 8, Graphics.FONT_TINY, "Top", WHITE);
-        d.textRight(334, y + 8, Graphics.FONT_TINY, Climb.clockText(st.finish()), WHITE);
+        d.textLeft(130, y + 8, d.semi(0.0865), "Top", WHITE);
+        d.textRight(334, y + 8, d.semi(0.0865), Climb.clockText(st.finish()), WHITE);
         y += 30;
         // The climber's section comes first; above it, as many of the next ones as fit.
         var last = st.cur, used = 0.0;
@@ -388,7 +394,7 @@ module Pages {
             last = i;
         }
         if (last < Climb.count() - 1) {
-            d.text(111, y + 2, Graphics.FONT_XTINY, ":", d.MUTED);
+            d.text(111, y + 2, d.semi(0.0529), ":", d.MUTED);
             y += 18;
         }
         for (var i = last; i >= st.cur; i--) {
@@ -404,8 +410,8 @@ module Pages {
                 if (Climb.EXIT_AT[e] == i) { d.exitMark(92, y + h + 2); }
             }
             var label = (g < 0 ? "rest" : Climb.GRADE_NAME[g]) + " " + Climb.NAME[i];
-            d.textLeft(130, y + h / 2, Graphics.FONT_XTINY, label, now ? d.MUTED : WHITE);
-            d.textRight(334, y + h / 2, Graphics.FONT_XTINY, now ? "now" : "+" + minutesText(st.untilStart(i)) + "'", d.MUTED);
+            d.textLeft(130, y + h / 2, d.semi(0.0529), label, now ? d.MUTED : WHITE);
+            d.textRight(334, y + h / 2, d.semi(0.0529), now ? "now" : "+" + minutesText(st.untilStart(i)) + "'", d.MUTED);
             if (now) { d.pointer(98, y + h / 2, 7, WHITE); }
             y += h + 4;
         }
@@ -422,10 +428,10 @@ module Pages {
 
     function timeStrip(d as Draw, st as Climb.State) as Void {
         var tm = Climb.totalM().toFloat(), tu = Climb.totalU().toFloat();
-        d.text(208, 56, Graphics.FONT_XTINY, "TIMELINE", d.MUTED);
-        d.text(208, 92, Graphics.FONT_MEDIUM, Climb.durationText(st.elapsed()) + " / ~" +
+        d.text(208, 56, d.semi(0.0529), "TIMELINE", d.MUTED);
+        d.text(208, 92, d.semi(0.1106), Climb.durationText(st.elapsed()) + " / ~" +
             Climb.durationText(st.elapsed() + st.left()), WHITE);
-        d.text(208, 120, Graphics.FONT_XTINY, "done / expected", d.MUTED);
+        d.text(208, 120, d.semi(0.0529), "done / expected", d.MUTED);
         var x0 = 58.0, w = 300.0;
         var xn = x0 + st.m / tm * w;
         for (var i = 0; i < Climb.count(); i++) {
@@ -460,20 +466,20 @@ module Pages {
         d.line(xn, 140, xn, 296, WHITE, 2);
         var nh = st.nextHard();
         if (nh >= 0) {
-            d.text(208, 340, Graphics.FONT_XTINY, Climb.GRADE_NAME[Climb.GRADE[nh]] + " " + Climb.NAME[nh] +
+            d.text(208, 340, d.semi(0.0529), Climb.GRADE_NAME[Climb.GRADE[nh]] + " " + Climb.NAME[nh] +
                 " " + minutesText(st.untilStart(nh)) + " min", WHITE);
         }
         var nr = st.nextRest();
-        d.text(208, 364, Graphics.FONT_XTINY, nr < 0 ? "no rest left" :
+        d.text(208, 364, d.semi(0.0529), nr < 0 ? "no rest left" :
             "rest in " + minutesText(st.untilStart(nr)) + " min", d.MUTED);
     }
 
     // ---------------------------------------------------------------- large type
 
     function bigHeight(d as Draw, st as Climb.State) as Void {
-        d.text(208, 110, Graphics.FONT_SMALL, "CLIMBED", d.MUTED);
-        d.text(208, 214, Graphics.FONT_NUMBER_THAI_HOT, st.climbed().format("%d"), WHITE);
-        d.text(208, 306, Graphics.FONT_MEDIUM, "m of " + Climb.totalU().format("%d"), d.MUTED);
+        d.text(208, 110, d.semi(0.0865), "CLIMBED", d.MUTED);
+        d.text(208, 214, d.semi(0.2019), st.climbed().format("%d"), WHITE);
+        d.text(208, 306, d.semi(0.1106), "m of " + Climb.totalU().format("%d"), d.MUTED);
         d.roundRect(98, 340, 220, 12, 6, 0x333333);
         d.bar(98, 340, 220 * st.u / Climb.totalU(), 12, WHITE);
     }
@@ -481,34 +487,34 @@ module Pages {
     function bigNextHard(d as Draw, st as Climb.State) as Void {
         var nh = st.nextHard();
         if (nh < 0) {
-            d.text(208, 190, Graphics.FONT_LARGE, "No more", WHITE);
-            d.text(208, 240, Graphics.FONT_LARGE, "hard parts", WHITE);
+            d.text(208, 190, d.semi(0.1106), "No more", WHITE);
+            d.text(208, 240, d.semi(0.1106), "hard parts", WHITE);
             return;
         }
         d.roundRect(128, 70, 160, 96, 14, d.grade(Climb.GRADE[nh], false));
-        d.text(208, 118, Graphics.FONT_LARGE, Climb.GRADE_NAME[Climb.GRADE[nh]], BLACK);
-        d.textRight(240, 252, Graphics.FONT_NUMBER_HOT, minutesText(st.untilStart(nh)), WHITE);
-        d.textLeft(252, 270, Graphics.FONT_LARGE, "min", WHITE);
-        d.text(208, 340, Graphics.FONT_MEDIUM, Climb.NAME[nh], d.MUTED);
+        d.text(208, 118, d.semi(0.1106), Climb.GRADE_NAME[Climb.GRADE[nh]], BLACK);
+        d.textRight(240, 252, d.semi(0.2019), minutesText(st.untilStart(nh)), WHITE);
+        d.textLeft(252, 270, d.semi(0.1106), "min", WHITE);
+        d.text(208, 340, d.semi(0.1106), Climb.NAME[nh], d.MUTED);
     }
 
     function bigTop(d as Draw, st as Climb.State) as Void {
-        d.text(208, 110, Graphics.FONT_SMALL, "TO THE TOP", d.MUTED);
-        d.text(208, 214, Graphics.FONT_NUMBER_THAI_HOT, Climb.durationText(st.left()), WHITE);
-        d.text(208, 312, Graphics.FONT_LARGE, "at " + Climb.clockText(st.finish()), d.MUTED);
+        d.text(208, 110, d.semi(0.0865), "TO THE TOP", d.MUTED);
+        d.text(208, 214, d.semi(0.2019), Climb.durationText(st.left()), WHITE);
+        d.text(208, 312, d.semi(0.1106), "at " + Climb.clockText(st.finish()), d.MUTED);
     }
 
     function bigExit(d as Draw, st as Climb.State) as Void {
         var e = st.nextExit();
         if (e < 0) {
-            d.text(208, 170, Graphics.FONT_SMALL, "EXITS", d.EXIT);
-            d.text(208, 230, Graphics.FONT_LARGE, "none left", 0xef476f);
+            d.text(208, 170, d.semi(0.0865), "EXITS", d.EXIT);
+            d.text(208, 230, d.semi(0.1106), "none left", 0xef476f);
             return;
         }
         var last = st.exitsLeft() == 1;
-        d.text(208, 110, Graphics.FONT_SMALL, last ? "LAST EXIT" : "NEXT EXIT", d.EXIT);
-        d.textRight(240, 214, Graphics.FONT_NUMBER_HOT, minutesText(st.untilStart(Climb.EXIT_AT[e])), WHITE);
-        d.textLeft(252, 232, Graphics.FONT_LARGE, "min", WHITE);
-        if (last) { d.text(208, 312, Graphics.FONT_LARGE, "then none", 0xef476f); }
+        d.text(208, 110, d.semi(0.0865), last ? "LAST EXIT" : "NEXT EXIT", d.EXIT);
+        d.textRight(240, 214, d.semi(0.2019), minutesText(st.untilStart(Climb.EXIT_AT[e])), WHITE);
+        d.textLeft(252, 232, d.semi(0.1106), "min", WHITE);
+        if (last) { d.text(208, 312, d.semi(0.1106), "then none", 0xef476f); }
     }
 }

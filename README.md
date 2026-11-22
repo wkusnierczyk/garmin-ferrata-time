@@ -26,7 +26,7 @@ A watch app that plays a made-up climb on the pages from the design sketch, to j
 | Back | leave |
 | Tap beside the box (page 9) | step to the section before or after |
 
-The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), a preview of a section the user picks (page 9, version 1, `design/page-9.md`; tap beside its difficulty box to step), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
+The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), a preview of a section the user picks (page 9, version 1, `design/page-9.md`; tap beside its difficulty box to step), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The pages draw in Barlow Condensed, the mocks' typeface (see [Fonts](#fonts)). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
@@ -37,6 +37,62 @@ make sideload    # build for the watch on USB and copy it over (brew install lib
 ```
 
 `tools/launcher_icon.py` renders the launcher icon, an orange climber clipped to the cable on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
+
+## Fonts
+
+The app draws every page in its own bitmap fonts made from [Barlow Condensed](https://github.com/jpt/barlow), the typeface of the mocks, in SemiBold for text and numbers and in Bold for the difficulty boxes and the words beside them, instead of the watch's system fonts (#62). Its figures are tabular, as the mocks set them (`font-variant-numeric: tabular-nums`): every digit has one width, so a number that counts does not shift.
+
+Sizes are shares of the screen's width, as the designs are: a page asks for the share its mock gives (the mock's pixels over 416) and gets the nearest font there is, the larger on a tie (`Fonts` in `source/Draw.mc`). The mocks draw text in 40 sizes (26 SemiBold, 14 Bold), merged into twelve fonts:
+
+<!-- font sizes: start -->
+| Font | Share of the width | At 416 px | The mocks' sizes it draws (px at 416) | Glyphs |
+|:-|-:|-:|:-|:-|
+| `SemiBold18` | 4.33 % | 18 | 15, 16.5, 18, 18.4 | text |
+| `SemiBold22` | 5.29 % | 22 | 20, 20.2, 22, 24, 25 | text |
+| `SemiBold30` | 7.21 % | 30 | 27, 28, 29.9, 30, 32 | text |
+| `SemiBold36` | 8.65 % | 36 | 34, 36, 36.8, 39, 40 | text |
+| `SemiBold46` | 11.06 % | 46 | 44, 46 | text |
+| `SemiBold58` | 13.94 % | 58 | 52, 56, 58, 64 | numbers |
+| `SemiBold84` | 20.19 % | 84 | 84 | numbers |
+| `Bold18` | 4.33 % | 18 | 18.72, 20 | text |
+| `Bold26` | 6.25 % | 26 | 24, 26, 27.6, 28, 28.08, 30 | text |
+| `Bold36` | 8.65 % | 36 | 34, 36, 36.8 | text |
+| `Bold52` | 12.50 % | 52 | 52.9 | grades |
+| `Bold70` | 16.83 % | 70 | 69, 70 | grades |
+<!-- font sizes: end -->
+
+Text fonts hold printable ASCII (words, units, route names), the ellipsis a cut name ends in, `·` and `°`; number fonts the digits, `:`, `-` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`). The older pages (from the side profile on) drew in system fonts; each now draws in the SemiBold size whose capitals stand as tall.
+
+The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
+
+<!-- fonts.md: start -->
+| Resolution | Shape |   Element   |              Font               | Size |
+| ---------: | :---- | :---------- | :------------------------------ | ---: |
+|  416 x 416 | round | Bold18      | BarlowCondensedTabular bold     |   18 |
+|  416 x 416 | round | Bold26      | BarlowCondensedTabular bold     |   26 |
+|  416 x 416 | round | Bold36      | BarlowCondensedTabular bold     |   36 |
+|  416 x 416 | round | Bold52      | BarlowCondensedTabular bold     |   52 |
+|  416 x 416 | round | Bold70      | BarlowCondensedTabular bold     |   70 |
+|  416 x 416 | round | Semi bold18 | BarlowCondensedTabular semibold |   18 |
+|  416 x 416 | round | Semi bold22 | BarlowCondensedTabular semibold |   22 |
+|  416 x 416 | round | Semi bold30 | BarlowCondensedTabular semibold |   30 |
+|  416 x 416 | round | Semi bold36 | BarlowCondensedTabular semibold |   36 |
+|  416 x 416 | round | Semi bold46 | BarlowCondensedTabular semibold |   46 |
+|  416 x 416 | round | Semi bold58 | BarlowCondensedTabular semibold |   58 |
+|  416 x 416 | round | Semi bold84 | BarlowCondensedTabular semibold |   84 |
+<!-- fonts.md: end -->
+
+Regenerating them:
+
+```sh
+make font-sources   # fetch Barlow Condensed from google/fonts and give it tabular figures (needs fontTools)
+make fonts          # the bitmaps, fonts.md, fonts.sha256 and the two tables above (needs ttf2bmp and garmin-font-scaler)
+make check-fonts    # check all of it against the configuration and source/Draw.mc (Python only)
+```
+
+`make font-sources` takes `BarlowCondensed-SemiBold.ttf`, `BarlowCondensed-Bold.ttf` and `OFL.txt` from [`google/fonts`](https://github.com/google/fonts/tree/60824dce48f7dd28fe7d65559f2da1f6e04e585b/ofl/barlowcondensed), `ofl/barlowcondensed/` at commit `60824dce48f7dd28fe7d65559f2da1f6e04e585b`, holds each to its SHA-256 in the `Makefile`, and runs `tools/tabular-figures.py` on the two weights: it points the digits at the font's own tabular figures and renames the family Barlow Condensed Tabular. The results are `resources/fonts/BarlowCondensedTabular-SemiBold.ttf` and `-Bold.ttf`; the same inputs give the same bytes. `tools/tabular-figures.py` needs [fontTools](https://github.com/fonttools/fonttools) (`pip install fonttools`; name the Python with `FONTTOOLS_PYTHON=`). `make check-ttf2bmp` and `make check-garmin-font-scaler` check the two font tools, and `make install-ttf2bmp` and `make install-garmin-font-scaler` install them into `~/.local/bin`, as in Climber Time.
+
+Barlow Condensed is copyright 2017 The Barlow Project Authors and licensed under the [SIL Open Font License 1.1](https://openfontlicense.org), in `resources/fonts/OFL-BarlowCondensed.txt`. Barlow Condensed Tabular is a modified version under the same licence; Barlow declares no Reserved Font Name.
 
 ## What it is
 

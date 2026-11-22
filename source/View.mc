@@ -60,7 +60,7 @@ class View extends WatchUi.View {
         Pages.selected = sel;
         Pages.draw(page, d, new Climb.State(minute()));
         if (dotsTicks > 0) { pageDots(d); }
-        if (paused) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
+        if (paused) { d.text(208, 22, d.semi(0.0529), "PAUSED", 0xffd166); }
     }
 
     // Where this page sits among the others, as dots along the left edge.

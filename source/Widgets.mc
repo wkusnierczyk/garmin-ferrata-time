@@ -21,6 +21,9 @@ module Widgets {
     const RING_R = 9;
     const RING_OUTER = 10.5;
     const NUMBER_SPACE = 5;
+    // The metres climbed and left beside the ascent, flat or as a gauge: their size, as a share of the
+    // screen's width (22 px at 416).
+    const NUMBER_SIZE = 0.0529;
 
     // The difficulty widget's boxes: codes 0 to 5 are walk and K1 to K5, then rest, exit and danger.
     const CODE_EXIT = -2;
@@ -28,6 +31,8 @@ module Widgets {
     const NONE = -99;
     const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"] as Array<String>;
     const BOX_H = 38;
+    // The letters' size (bold) in a box at size 1, as a share of the screen's width (26 px at 416).
+    const BOX_FS = 0.0625;
     const SATELLITE = 0.72;
     const BOX_GAP = 5;
 
@@ -116,8 +121,8 @@ module Widgets {
         if (ya > ty - gap) { ya = ty - gap; }
         if (ya < top) { ya = top; }
         var nx = x - RING_OUTER - NUMBER_SPACE;
-        d.textRight(nx, yb, Graphics.FONT_XTINY, up.format("%d"), WHITE);
-        d.textRight(nx, ya, Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+        d.textRight(nx, yb, d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
+        d.textRight(nx, ya, d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
         if (ends) {
             d.dot(x, y0, 6, GREEN);
             d.dot(x, top, 6, RED);
@@ -136,7 +141,7 @@ module Widgets {
             var from = 1;
             while (from * 10 <= Climb.totalU()) { from *= 10; }
             for (var n = from; n <= Climb.totalU(); n++) {
-                var nw = d.width(Graphics.FONT_XTINY, n.format("%d"));
+                var nw = d.width(d.semi(NUMBER_SIZE), n.format("%d"));
                 if (nw > w) { w = nw; }
             }
             ascentWidest = w;
@@ -172,7 +177,7 @@ module Widgets {
             // The outline is the box in its colour with a black box 3 px inside it.
             d.roundRect(x - w / 2 + 3, top + 3, w - 6, h - 6, 6 * k, BLACK);
         }
-        d.textCapCentre(x, top + h / 2, k < 1 ? Graphics.FONT_XTINY : Graphics.FONT_TINY, text, filled ? BLACK : colour);
+        d.textCapCentre(x, top + h / 2, d.bold(BOX_FS * k), text, filled ? BLACK : colour);
     }
 
     // The section the climber is estimated in, in a larger box centred on x; the nearest thing behind
@@ -220,7 +225,13 @@ module Widgets {
 
     // ---------------------------------------------------------------- altitude, poi
 
-    const ALT_FONT = Graphics.FONT_LARGE;
+    // The altitude's size and its unit's, and the poi word's (bold), as shares of the screen's width
+    // (46, 25 and 24 px at 416).
+    const ALT_SIZE = 0.1106;
+    const ALT_UNIT = 0.0601;
+    const POI_SIZE = 0.0577;
+
+    function poiFont(d as Draw) as Graphics.FontType { return d.bold(POI_SIZE); }
 
     // The widest altitude the route can show in a font, per unit, measured once per font: slot 0 for
     // the altitude widget's, 1 for the column group's.
@@ -255,19 +266,18 @@ module Widgets {
     }
 
     function altitudeBox(d as Draw, ft as Boolean) as Number {
-        return widestAltitude(d, ft, ALT_FONT, 0);
+        return widestAltitude(d, ft, d.semi(ALT_SIZE), 0);
     }
 
     // The approximate altitude, right-aligned in a box as wide as the route's widest, starting at x,
     // its top at yt; the unit follows the box.
     function altitude(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
-        var right = x + altitudeBox(d, ft);
-        d.textCapTop(right, yt, ALT_FONT, altitudeValue(st.u, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        var right = x + altitudeBox(d, ft), font = d.semi(ALT_SIZE), unit = d.semi(ALT_UNIT);
+        d.textCapTop(right, yt, font, altitudeValue(st.u, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         // The unit on the number's baseline.
-        var baseline = yt + d.capHeight(ALT_FONT);
-        d.textTop(right + 4, baseline - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, ft ? "ft" : "m", d.MUTED,
-            Graphics.TEXT_JUSTIFY_LEFT);
+        var baseline = yt + d.capHeight(font);
+        d.textTop(right + 4, baseline - d.ascent(unit), unit, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // One word for the point of interest the uncertainty stretch covers, right-aligned at x, its top
@@ -295,21 +305,21 @@ module Widgets {
             if (p >= lo && p <= hi && dist <= best) { best = dist; rank = 0; word = "DANGER"; colour = WARNING; }
         }
         if (word.length() > 0) {
-            d.textCapTop(x, yt, Graphics.FONT_XTINY, word, colour, Graphics.TEXT_JUSTIFY_RIGHT);
+            d.textCapTop(x, yt, poiFont(d), word, colour, Graphics.TEXT_JUSTIFY_RIGHT);
         }
     }
 
     // The altitude centred on x, its digits' top at yt.
     function altitudeCentred(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
-        var w = altitudeBox(d, ft) + 4 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        var w = altitudeBox(d, ft) + 4 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
         altitude(d, st, x - w / 2, yt);
     }
 
     // The altitude group: the altitude, with the poi word under it, right-aligned with the number.
     function altitudeGroup(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         altitude(d, st, x, yt);
-        poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(ALT_FONT) + 12);
+        poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(d.semi(ALT_SIZE)) + 12);
     }
 
     // ---------------------------------------------------------------- difficulty column
@@ -321,7 +331,11 @@ module Widgets {
     const COL_BIG = 1.08;
     const COL_DIM = 0.55;
     const COL_SPACE = 10;
-    const COL_ALT_FONT = Graphics.FONT_TINY;
+    // The letters' size (bold), and the altitudes' and their unit's, as shares of the screen's width
+    // (26, 30 and 18 px at 416).
+    const COL_FS = 0.0625;
+    const COL_ALT = 0.0721;
+    const COL_UNIT = 0.0433;
 
     // The centre of slot k (0 the climber's, positive above), and the half height of its box.
     function slotY(k as Number, cy as Float) as Float {
@@ -353,19 +367,19 @@ module Widgets {
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
             d.roundRect(cx - w / 2, top, w, h, 8 * f, colour);
             if (!big) { d.roundRect(cx - w / 2 + 3, top + 3, w - 6, h - 6, 6 * f, BLACK); }
-            d.textCapCentre(cx, top + h / 2, big ? Graphics.FONT_SMALL : Graphics.FONT_TINY, BOX_NAME[g], big ? BLACK : colour);
+            d.textCapCentre(cx, top + h / 2, d.bold(COL_FS * f), BOX_NAME[g], big ? BLACK : colour);
         }
     }
 
     // The widest altitude the route can show in the column's font.
     function columnAltitudeBox(d as Draw, ft as Boolean) as Number {
-        return widestAltitude(d, ft, COL_ALT_FONT, 1);
+        return widestAltitude(d, ft, d.semi(COL_ALT), 1);
     }
 
     // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
     function columnGroupWidth(d as Draw) as Float {
         var ft = feet();
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 3 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
     }
 
     // How far the column reaches above and below its centre.
@@ -383,7 +397,7 @@ module Widgets {
     // right-aligned in a box as wide as the route's widest, its unit after it. Its left edge at left,
     // centred vertically on cy.
     function columnGroupAt(d as Draw, st as Climb.State, left as Float, cy as Float, outer as Boolean) as Void {
-        var ft = feet(), unit = ft ? "ft" : "m";
+        var ft = feet(), unit = ft ? "ft" : "m", font = d.semi(COL_ALT), small = d.semi(COL_UNIT);
         var bw = COL_W * COL_BIG, altW = columnAltitudeBox(d, ft);
         var cx = left + bw / 2;
         var ax = cx + bw / 2 + COL_SPACE + altW;
@@ -396,10 +410,10 @@ module Widgets {
                 ? slotY(b - st.cur, cy) + slotHalf(b - st.cur) + COL_GAP / 2.0
                 : slotY(b - 1 - st.cur, cy) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
             var v = altitudeValue(Climb.uAt(b).toFloat(), ft);
-            d.textCapMiddle(ax, y, COL_ALT_FONT, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+            d.textCapMiddle(ax, y, font, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
-            var baseline = y + d.capHeight(COL_ALT_FONT) / 2;
-            d.textTop(ax + 3, baseline - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+            var baseline = y + d.capHeight(font) / 2;
+            d.textTop(ax + 3, baseline - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
 
@@ -420,7 +434,7 @@ module Widgets {
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
         var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
-        return d.width(bigLabelFont(d, 0), top.format("%d")) + 14.0;
+        return d.width(d.semi(TICK_SIZE * BIG_SCALE[0]), top.format("%d")) + 14.0;
     }
 
     // The points of interest on the stack: rings on the column's right edge (x) at their place on it,
@@ -490,7 +504,7 @@ module Widgets {
                 var clear = true;
                 for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 20) { clear = false; } }
                 if (room >= 30 && clear) {
-                    d.textCapMiddle(x + 14, y, Graphics.FONT_XTINY, fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
+                    d.textCapMiddle(x + 14, y, d.semi(NAME_SIZE), fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
                     named.add(y);
                 }
             }
@@ -515,7 +529,7 @@ module Widgets {
 
     // A name cut to fit a width, ending in an ellipsis when cut.
     function fitName(d as Draw, name as String, w as Float) as String {
-        return fitIn(d, Graphics.FONT_XTINY, name, w);
+        return fitIn(d, d.semi(NAME_SIZE), name, w);
     }
 
     // The same in a given font.
@@ -526,31 +540,17 @@ module Widgets {
         return name.substring(0, n) + "…";
     }
 
-    // The larger tick labels by ascent: the next altitude to reach at twice the other labels' height,
-    // the ones just above and below it at one and a half. In a scalable font where the watch has one
-    // (sized once, then corrected by the height it measures), a fixed larger system font otherwise.
+    // The tick labels' size, as a share of the screen's width (18 px at 416); the next altitude to
+    // reach at twice it, the ones just above and below it at one and a half. The names' size beside
+    // the stack: 20 px at 416 in the mocks, between two fonts, so the larger (22).
+    const TICK_SIZE = 0.0433;
     const BIG_SCALE = [2.0, 1.5];
-    var bigFonts as Array<Graphics.FontType?> = [null, null];
-
-    function bigLabelFont(d as Draw, which as Number) as Graphics.FontType {
-        if (bigFonts[which] == null) {
-            var want = d.dc.getFontHeight(Graphics.FONT_XTINY) * BIG_SCALE[which];
-            var size = Math.round(want).toNumber();
-            var vf = (Graphics has :getVectorFont) ? Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => size}) : null;
-            if (vf != null) {
-                var h = d.dc.getFontHeight(vf);
-                if (h > 0) { vf = Graphics.getVectorFont({:face => ["RobotoCondensedBold"], :size => Math.round(size * want / h).toNumber()}); }
-            }
-            bigFonts[which] = vf != null ? vf : (which == 0 ? Graphics.FONT_LARGE : Graphics.FONT_SMALL);
-        }
-        return bigFonts[which] as Graphics.FontType;
-    }
+    const NAME_SIZE = 0.0529;
 
     // Tick label t's font, next being the next altitude's tick (or -1).
     function tickFont(d as Draw, t as Number, next as Number) as Graphics.FontType {
-        if (next < 0) { return Graphics.FONT_XTINY; }
-        var off = (t - next).abs();
-        return off == 0 ? bigLabelFont(d, 0) : off == 1 ? bigLabelFont(d, 1) : Graphics.FONT_XTINY;
+        var off = next < 0 ? 2 : (t - next).abs();
+        return d.semi(off == 0 ? TICK_SIZE * BIG_SCALE[0] : off == 1 ? TICK_SIZE * BIG_SCALE[1] : TICK_SIZE);
     }
 
     // Ticks every stepM metres, or stepFt feet when the watch shows feet. Names stop at radius nameR
@@ -575,7 +575,7 @@ module Widgets {
             }
             // Letters centred on the part in view, left out when it is too short for them.
             var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
-            var font = now ? Graphics.FONT_SMALL : Graphics.FONT_TINY;
+            var font = d.bold(COL_FS * (now ? COL_BIG : 1));
             if (vb - vt >= d.capHeight(font) + 10) {
                 d.textCapCentre(cx, (vt + vb) / 2, font, BOX_NAME[section(i, false)], now ? BLACK : c);
             }
@@ -619,7 +619,7 @@ module Widgets {
                 var half = nameR * nameR - (ny - 208) * (ny - 208);
                 var room = (208 + Math.sqrt(half > 0 ? half : 0) - (right + NAME_GAP)).toFloat();
                 if (room < 30) { continue; }
-                d.textCapMiddle(right + NAME_GAP, ny, Graphics.FONT_XTINY, fitName(d, Climb.NAME[i], room),
+                d.textCapMiddle(right + NAME_GAP, ny, d.semi(NAME_SIZE), fitName(d, Climb.NAME[i], room),
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
         }
@@ -778,38 +778,16 @@ module Widgets {
         d.ring(p[0], p[1], 7, dist <= st.d ? d.darken(c, 0.33) : c, 3);
     }
 
-    // The scalable bold font for big letters, per size in device pixels, loaded once each: the
-    // system's number fonts have no letters. Null where the watch has none.
-    var bigLetterFonts as Dictionary<Number, Graphics.VectorFont> = {};
-
-    function bigLetterFont(px as Number) as Graphics.VectorFont? {
-        var f = bigLetterFonts[px];
-        if (f == null && (Graphics has :getVectorFont)) {
-            f = Graphics.getVectorFont({:face => ["RobotoCondensedBold", "RobotoBold"], :size => px});
-            if (f != null) { bigLetterFonts[px] = f; }
-        }
-        return f;
-    }
-
-    // The current difficulty in a large filled box centred on (x, y), its letters size px tall (the
-    // scalable font's size); a rest shows as W.
-    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
+    // The current difficulty in a large filled box centred on (x, y), its letters bold at size (a share
+    // of the screen's width); a rest shows as W.
+    function bigDifficulty(d as Draw, st as Climb.State, x as Float, y as Float, w as Float, h as Float, size as Float) as Void {
         bigDifficultyOf(d, section(st.cur, false), x, y, w, h, size);
     }
 
-    // The same box for difficulty g.
-    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Number) as Void {
+    // The same box for difficulty g, the letters centred on their capitals.
+    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Float) as Void {
         d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
-        // A scalable bold font where the watch has one, the largest text font otherwise; the letters
-        // centred on their capitals, as textCapMiddle does.
-        var vf = bigLetterFont(d.s(size));
-        if (vf != null) {
-            var asc = Graphics.getFontAscent(vf);
-            d.dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
-            d.dc.drawText(d.s(x), d.s(y) - asc * (1 - d.CAP / 2), vf, BOX_NAME[g], Graphics.TEXT_JUSTIFY_CENTER);
-        } else {
-            d.textCapCentre(x, y, Graphics.FONT_LARGE, BOX_NAME[g], BLACK);
-        }
+        d.textCapCentre(x, y, d.bold(size), BOX_NAME[g], BLACK);
     }
 
     // ---------------------------------------------------------------- selection gauge (page 9)
@@ -885,7 +863,7 @@ module Widgets {
         var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
         var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
         var rest = " in " + m.format("%d") + " m";
-        var font = Graphics.FONT_TINY;
+        var font = d.bold(0.0673);  // 28 px at 416
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
         d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
         d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
@@ -905,8 +883,8 @@ module Widgets {
         var rxn = (rx + x1) / 2;
         if (rxn < rx + gap) { rxn = rx + gap; }
         if (rxn > x1) { rxn = x1; }
-        d.textCapCentre(lx, ny, Graphics.FONT_XTINY, up.format("%d"), WHITE);
-        d.textCapCentre(rxn, ny, Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+        d.textCapCentre(lx, ny, d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
+        d.textCapCentre(rxn, ny, d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
         if (ends) {
             d.dot(x0, y, 6, GREEN);
             d.dot(x1, y, 6, RED);
@@ -938,8 +916,8 @@ module Widgets {
         }
         d.ring(r[0], r[1], RING_R, CLIMBER, 3);
         var n0 = d.onCircle(AG_R, AG_FROM + 11), n1 = d.onCircle(AG_R, AG_FROM - AG_SPAN - 11);
-        d.textCapCentre(n0[0], n0[1], Graphics.FONT_XTINY, up.format("%d"), WHITE);
-        d.textCapCentre(n1[0], n1[1], Graphics.FONT_XTINY, (Climb.totalU() - up).format("%d"), WHITE);
+        d.textCapCentre(n0[0], n0[1], d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
+        d.textCapCentre(n1[0], n1[1], d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
     }
 
     // ---------------------------------------------------------------- front view, page 7
@@ -1164,27 +1142,29 @@ module Widgets {
         var bh = 62 * k, rx = bh / 6.5, size = 18 * k, ft = feet();
         // The box is at least as wide as the line above needs: the corner rounding, the symbol, a gap,
         // the route's widest altitude and its unit, so the symbol always starts at the rounding.
-        var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(Graphics.FONT_XTINY, ft ? "ft" : "m");
+        // Sizes as shares of the screen's width, times k: 26, 16, 46 and (nextShort) 24 px at 416.
+        var font = d.semi(0.0625 * k), small = d.semi(0.0385 * k);
+        var need = rx + size + 6 + columnAltitudeBox(d, ft) + 3 + d.width(small, ft ? "ft" : "m");
         var bw = fit && need > 88 * k ? need : 88 * k;
-        bigDifficulty(d, st, cx, by, bw, bh, (44 * k).toNumber());
+        bigDifficulty(d, st, cx, by, bw, bh, 0.1106 * k);
         var base = by - bh / 2 - 12 * k;
         var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
-        var right = cx + bw / 2 - d.width(Graphics.FONT_XTINY, unit) - 3;
-        d.textCapTop(right, base - d.capHeight(Graphics.FONT_TINY), Graphics.FONT_TINY, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textTop(right + 3, base - d.ascent(Graphics.FONT_XTINY), Graphics.FONT_XTINY, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        var right = cx + bw / 2 - d.width(small, unit) - 3;
+        d.textCapTop(right, base - d.capHeight(font), font, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textTop(right + 3, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         // The symbol starts where the box's corner rounding ends (or, without fit, further left if the
         // altitude would touch it).
         var kind = poiKind(st, true);
         if (kind >= 0) {
             // The danger triangle, the widest symbol, spans 1.1 times its size.
-            var x = cx - bw / 2 + rx, clear = right - d.width(Graphics.FONT_TINY, alt) - 6 - 1.1 * size;
+            var x = cx - bw / 2 + rx, clear = right - d.width(font, alt) - 6 - 1.1 * size;
             poiSymbol(d, kind, fit || x < clear ? x : clear, base, size);
         }
-        nextShort(d, st, cx, by + bh / 2 + 26 * k);
+        nextShort(d, st, cx, by + bh / 2 + 26 * k, k);
     }
 
     // What comes next without "in": "K4 125 m", the grade in its colour, centred on x.
-    function nextShort(d as Draw, st as Climb.State, x as Float, y as Float) as Void {
+    function nextShort(d as Draw, st as Climb.State, x as Float, y as Float, k as Float) as Void {
         var here = section(st.cur, false), i = st.cur + 1;
         while (i < Climb.count() && section(i, false) == here) { i++; }
         var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
@@ -1193,7 +1173,7 @@ module Widgets {
         var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
         var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
         var rest = " " + m.format("%d") + " m";
-        var font = Graphics.FONT_TINY;
+        var font = d.bold(0.0577 * k);
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
         d.textCapMiddle(x - w / 2, y, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
         d.textCapMiddle(x - w / 2 + w1, y, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
