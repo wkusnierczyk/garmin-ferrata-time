@@ -164,7 +164,9 @@ class Tracker {
             }
             if (to > d) { d = to; }
         }
-        repace(elapsed);
+        // A reading without altitude moves nothing, so it leaves the pace as it was: the time it
+        // skipped is caught up at the next reading at that pace (Codex on #89).
+        if (phase == PAUSED || rd.alt != null) { repace(elapsed); }
     }
 
     // The pace from the place and the time taken: elapsed minutes per guidebook minute done, once

@@ -366,6 +366,21 @@ module TrackerTest {
     }
 
     (:test)
+    function altitudeOutageKeepsPace(logger as Logger) as Boolean {
+        // A reading without altitude in the middle must not slow the catch-up (Codex on #89).
+        var a = new Tracker(withLandmark());
+        var b = new Tracker(withLandmark());
+        a.start(:head, at(0, 1000.0));
+        b.start(:head, at(0, 1000.0));
+        for (var k = 1; k <= 10; k++) { a.update(at(k, 1000.0 + 10 * k)); b.update(at(k, 1000.0 + 10 * k)); }
+        a.update(at(20, null));
+        a.update(at(21, 1100.0));
+        b.update(at(21, 1100.0));
+        Test.assertMessage(near(a.d, b.d), "with the outage d " + a.d + ", without " + b.d);
+        return true;
+    }
+
+    (:test)
     function syncWithoutAltitudeKeepsBand(logger as Logger) as Boolean {
         var t = new Tracker(RouteTest.demo());
         t.start(:head, at(0, 1290.0));
