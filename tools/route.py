@@ -6,14 +6,16 @@ python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json 
 The source has the output's shape. The output lists its keys in a fixed order, one section or point
 per line, so a rebuild of an unchanged source changes nothing. On any error it prints every problem
 found, one per line, writes nothing and exits 1; it warns, without failing, when the track's
-length is far from the route's and for each point past the track's end. Python 3, standard library
-only.
+length is far from the route's and for each point past the track's end. Names are folded to the
+fonts' text charset: accents dropped, special letters spelled out. Python 3, standard library only.
 """
 import argparse
+import copy
 import json
 import math
 import os
 import sys
+import unicodedata
 import xml.etree.ElementTree as ET
 
 FORMAT = 1
@@ -24,6 +26,22 @@ KINDS = {"approach", "head", "landmark", "danger", "exit", "top"}
 SHORT_MAX = 15  # the SDK's suggested maximum for a session name
 ALT_TOLERANCE = 15  # metres between the sections' height and the known altitudes
 EARTH_RADIUS = 6371000.0
+# What a name may hold after folding: the text fonts' charset, which carries only the characters the
+# app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
+# until then a test compares the two whenever the file is there.
+TEXT_CHARSET = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…")
+# What NFKD leaves: letters it does not take apart, spelled out; typographic marks, written plainly
+# (the charset has no double quote, so every quote becomes '); invisible marks, dropped.
+FOLD = {
+    "ß": "ss", "ẞ": "SS", "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ø": "o", "Ø": "O",
+    "ł": "l", "Ł": "L", "đ": "d", "Đ": "D", "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th",
+    "ħ": "h", "Ħ": "H", "ı": "i", "ŧ": "t", "Ŧ": "T", "ŋ": "ng", "Ŋ": "Ng", "μ": "u",
+    "‘": "'", "’": "'", "‛": "'", "“": "'", "”": "'", "„": "'", "«": "'", "»": "'", "ʼ": "'",
+    '"': "'", "`": "'", "′": "'", "‚": ",",
+    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-", "⁄": "/",
+    "\u00ad": "", "\u200b": "", "\u200c": "", "\u200d": "",
+    **{chr(c): "" for c in range(0xFE00, 0xFE10)},  # variation selectors
+}
 
 
 class RouteError(Exception):
@@ -230,6 +248,54 @@ def check_rules(r):
     return out
 
 
+def fold(text):
+    """text with accents dropped (NFKD, combining marks removed) and what remains looked up in
+    FOLD, so a letter with an accent on a special letter (ǿ, ǣ) folds too. What it returns may still
+    hold characters outside TEXT_CHARSET."""
+    out = []
+    for c in text:
+        if c in TEXT_CHARSET:  # kept as it is, even where NFKD would take it apart (… to ...)
+            out.append(c)
+            continue
+        for d in unicodedata.normalize("NFKD", c):
+            if not unicodedata.combining(d):
+                out.append(d if d in TEXT_CHARSET else FOLD.get(d, d))
+    return "".join(out)
+
+
+def fold_names(r):
+    """A copy of route r with every name, short and place folded, points of unknown kinds included,
+    and a problem for each character left outside TEXT_CHARSET. Fields of the wrong type stay as
+    they are, for check_shape to report."""
+    if not isinstance(r, dict):
+        return r, []
+    r = copy.deepcopy(r)
+    out = []
+
+    def one(obj, key, label):
+        if not isinstance(obj.get(key), str):
+            return
+        obj[key] = fold(obj[key])
+        for c in dict.fromkeys(obj[key]):
+            if c not in TEXT_CHARSET:
+                out.append(f"{label}{key}: {c!r} (U+{ord(c):04X}) is not in the fonts' charset")
+
+    for k in ("name", "short", "place"):
+        one(r, k, "")
+    for part, key in (("approach", "approach"), ("section", "sections")):
+        if isinstance(r.get(key), list):
+            for i, s in enumerate(r[key], 1):
+                if isinstance(s, dict):
+                    one(s, "name", f"{section_label(part, i, s)}: ")
+    if isinstance(r.get("points"), list):
+        for i, p in enumerate(r["points"], 1):
+            if isinstance(p, dict):
+                kind, name = p.get("kind"), p.get("name")
+                one(p, "name", f"{kind if isinstance(kind, str) else 'point'} {i}"
+                    + (f" '{name}'" if isinstance(name, str) else "") + ": ")
+    return r, out
+
+
 def check(r, stem=None):
     """Every problem with route r, as messages; empty when it is valid. stem: the source's file
     name without .src.json, which the id must equal."""
@@ -301,9 +367,10 @@ TRACK_TOLERANCE = 0.20  # the share by which the track's length may differ from 
 
 
 def build(r, track=None, stem=None, warnings=None):
-    """Route r checked and in canonical form; lat and lon filled from track where missing.
+    """Route r folded, checked and in canonical form; lat and lon filled from track where missing.
     Warnings about the track go into the list `warnings`, when given."""
-    problems = check(r, stem)
+    r, problems = fold_names(r)
+    problems = check(r, stem) + problems
     if problems:
         raise RouteError(problems)
     warnings = [] if warnings is None else warnings
