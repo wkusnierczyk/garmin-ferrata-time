@@ -5,33 +5,32 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Plays the made-up climb: the whole route in about two minutes, then a pause at the top, then again.
+// Draws the climb the tracker follows, fed by the input the demo setting chooses: the demo plays the
+// made-up climb (the whole route in about two minutes, a pause at the top, then again), the sensors
+// read the watch.
 class View extends WatchUi.View {
 
-    const TICK_MS = 250;
-    const LOOP_SECONDS = 120.0;
-    const HOLD_AT_TOP_SECONDS = 4.0;
     // The page dots show for this long after the view appears (the app opening, or coming back from
-    // the Ask list) or the page changes; counted in timer ticks, not by the system clock, which wraps.
+    // the Ask list) or the page changes; counted down by the timer, not by the system clock, which wraps.
     const DOTS_MS = 2000;
 
     var page as Number = 0;
     // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons.
     var sel as Number = -1;
-    var paused as Boolean = false;
-    var seconds as Float = 0.0;
     var timer as Timer.Timer?;
-    var dotsTicks as Number = 0;
+    var dotsMs as Number = 0;
 
-    function initialize() {
+    // The input feeding the tracker; null without a route.
+    var feed as Feed?;
+
+    function initialize(r as Route?) {
         View.initialize();
+        if (r != null) { feed = new Feed(r); }
     }
 
     function onShow() as Void {
-        dotsTicks = DOTS_MS / TICK_MS;
-        var t = new Timer.Timer();
-        t.start(method(:tick), TICK_MS, true);
-        timer = t;
+        dotsMs = DOTS_MS;
+        startTimer();
     }
 
     function onHide() as Void {
@@ -40,27 +39,53 @@ class View extends WatchUi.View {
         timer = null;
     }
 
+    function startTimer() as Void {
+        onHide();
+        var t = new Timer.Timer();
+        t.start(method(:tick), tickMs(), true);
+        timer = t;
+    }
+
+    function tickMs() as Number {
+        var f = feed;
+        return f != null ? f.tickMs() : Feed.SENSOR_TICK_MS;
+    }
+
+    // After a change of setting: the new input, at its own rate; nothing when the input stays.
+    function restart() as Void {
+        var f = feed;
+        if (f == null || !f.restart()) { return; }
+        sel = -1;
+        if (timer != null) { startTimer(); }
+    }
+
+    // Lets go of the input (the GPS).
+    function stop() as Void {
+        var f = feed;
+        if (f != null) { f.stop(); }
+    }
+
     function tick() as Void {
-        if (dotsTicks > 0) { dotsTicks--; }
-        if (!paused) {
-            seconds += TICK_MS / 1000.0;
-            if (seconds > LOOP_SECONDS + HOLD_AT_TOP_SECONDS) { seconds = 0.0; }
-        }
+        if (dotsMs > 0) { dotsMs -= tickMs(); }
+        var f = feed;
+        if (f != null) { f.tick(); }
         WatchUi.requestUpdate();
     }
 
-    function minute() as Float {
-        var f = seconds / LOOP_SECONDS;
-        if (f > 1.0) { f = 1.0; }
-        return Climb.demoMinute(f);
-    }
-
     function onUpdate(dc as Graphics.Dc) as Void {
+        var f = feed;
+        if (f == null) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+            dc.clear();
+            dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, "No route",
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
         var d = new Draw(dc);
         Pages.selected = sel;
-        Pages.draw(page, d, new Climb.State(minute()));
-        if (dotsTicks > 0) { pageDots(d); }
-        if (paused) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
+        Pages.draw(page, d, f.tracker.state());
+        if (dotsMs > 0) { pageDots(d); }
+        if (f.paused()) { d.text(208, 22, Graphics.FONT_XTINY, "PAUSED", 0xffd166); }
     }
 
     // Where this page sits among the others, as dots along the left edge.
@@ -75,22 +100,27 @@ class View extends WatchUi.View {
 
     function nextPage(step as Number) as Void {
         page = (page + step + Pages.COUNT) % Pages.COUNT;
-        dotsTicks = DOTS_MS / TICK_MS;
+        dotsMs = DOTS_MS;
         sel = -1;
         WatchUi.requestUpdate();
     }
 
     // Page 9: step the selected section back or on, from the climber's at first, within the route.
     function stepSection(dir as Number) as Void {
-        var i = (sel >= 0 ? sel : new Climb.State(minute()).cur) + dir;
+        var f = feed;
+        if (f == null) { return; }
+        var i = (sel >= 0 ? sel : f.tracker.state().cur) + dir;
         // Nothing that way: leave the selection as it is (still following the climber if it was).
         if (i < 0 || i > Climb.count() - 1) { return; }
         sel = i;
         WatchUi.requestUpdate();
     }
 
+    // Start pauses or resumes the climb; in the demo, its clock stops with it.
     function togglePause() as Void {
-        paused = !paused;
+        var f = feed;
+        if (f == null) { return; }
+        f.togglePause();
         WatchUi.requestUpdate();
     }
 }

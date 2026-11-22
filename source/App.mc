@@ -11,6 +11,7 @@ class App extends Application.AppBase {
 
     // The route the app climbs, from resources/routes/ (tools/route.py writes and checks it).
     var route as Route?;
+    var view as View?;
 
     // The pages count from the ferrata head: the approach is a part of its own, shown only while on it.
     function onStart(state as Dictionary?) as Void {
@@ -19,12 +20,23 @@ class App extends Application.AppBase {
         if (r != null) { Climb.use(r, :ferrata); }
     }
 
+    // Lets go of the GPS.
     function onStop(state as Dictionary?) as Void {
+        var v = view;
+        if (v != null) { v.stop(); }
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
-        var view = new View();
-        return [view, new Delegate(view)];
+        var v = new View(route);
+        view = v;
+        return [v, new Delegate(v)];
+    }
+
+    // From the phone or the watch's Settings menu: the climb starts again on the input chosen.
+    function onSettingsChanged() as Void {
+        var v = view;
+        if (v != null) { v.restart(); }
+        WatchUi.requestUpdate();
     }
 
 }

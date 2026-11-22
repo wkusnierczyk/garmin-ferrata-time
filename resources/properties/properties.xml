@@ -1,5 +1,7 @@
 <!-- At least one property, always: Properties.getValue on an app with none throws
-     an uncatchable error (playbook, reference/settings.md). Unused by the prototype. -->
+     an uncatchable error (playbook, reference/settings.md). Each is a setting on the phone
+     (resources/settings/settings.xml) and on the watch (SettingsMenu in source/Settings.mc). -->
 <properties>
-    <property id="Placeholder" type="number">0</property>
+    <!-- The demo climb instead of the watch's sensors: on until a real route ships. -->
+    <property id="demo" type="boolean">true</property>
 </properties>
