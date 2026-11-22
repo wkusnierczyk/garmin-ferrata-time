@@ -613,11 +613,33 @@ def test_gpx_flat_track_as_before():
         assert route.position(t, flat / 4) == pytest.approx((46.00025, 8.0), abs=1e-7)
 
 
-def test_gpx_step_without_elevation_is_horizontal():
-    # The second point has no elevation: both steps touching it are measured on the map.
-    flat = route.haversine(46.0, 8.0, 46.0005, 8.0)
-    track = [(46.0, 8.0, 0.0), (46.0005, 8.0, None), (46.001, 8.0, 300.0)]
-    assert route.track_length(track) == pytest.approx(2 * flat)
+def test_gpx_missing_elevation_interpolated():
+    # Between points with an elevation, by horizontal distance; before the first and after the last,
+    # the nearest one.
+    track = [(46.0, 8.0, None), (46.0, 8.0, 0.0), (46.00025, 8.0, None), (46.001, 8.0, None),
+             (46.001, 8.0, 300.0), (46.0015, 8.0, None)]
+    filled, n = route.fill_elevations(track)
+    assert n == 4
+    assert [e for _, _, e in filled] == pytest.approx([0.0, 0.0, 75.0, 300.0, 300.0, 300.0])
+
+
+def test_gpx_no_elevation_at_all_as_before():
+    track = [(46.0, 8.0, None), (46.001, 8.0, None)]
+    assert route.fill_elevations(track) == (track, 0)
+
+
+def test_gpx_missing_elevation_warns(tmp_path, capsys):
+    track = [(46.0, 8.0, 1000), (46.0005, 8.0, None), (46.0009, 8.0, 1000)]
+    code, _ = build(tmp_path, fixture(), gpx=gpx3d(track))
+    assert code == 0
+    assert ("t.gpx: warning: 1 of 3 track points have no elevation: interpolated from their "
+            "neighbours") in capsys.readouterr().err
+
+
+def test_gpx_no_elevation_is_quiet(tmp_path, capsys):
+    code, _ = build(tmp_path, fixture(), gpx=gpx3d([(46.0, 8.0, None), (46.0009, 8.0, None)]))
+    assert code == 0
+    assert "warning" not in capsys.readouterr().err
 
 
 def test_gpx_reads_elevation(tmp_path):
@@ -626,8 +648,9 @@ def test_gpx_reads_elevation(tmp_path):
     assert route.read_gpx(str(g)) == [(46.0, 8.0, 1000.5), (46.001, 8.0, None)]
 
 
-def test_gpx_bad_elevation(tmp_path, capsys):
-    bad = gpx3d([(46.0, 8.0, 1000), (46.001, 8.0, "high")])
+@pytest.mark.parametrize("ele", ["high", ""])
+def test_gpx_bad_elevation(tmp_path, capsys, ele):
+    bad = gpx3d([(46.0, 8.0, 1000), (46.001, 8.0, ele)])
     code, out = build(tmp_path, fixture(), gpx=bad)
     assert code == 1 and out is None
     assert "t.gpx: track point 2: ele is a number" in capsys.readouterr().err
