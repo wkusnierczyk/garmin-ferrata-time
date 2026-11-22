@@ -1019,8 +1019,18 @@ module Widgets {
                 if (pts[j][1] < minY) { minY = pts[j][1]; }
                 if (pts[j][1] > maxY) { maxY = pts[j][1]; }
             }
-            var kx = (x1 - x0) / (maxX - minX), ky = (y1 - y0) / (maxY - minY);
-            var k = kx < ky ? kx : ky;
+            // One scale across and up, the smaller. A route with no sideways travel (every SIDE 0) has
+            // no width and a level one no height: the other way alone sets it, and with neither the
+            // points sit in the box's middle.
+            var spanX = maxX - minX, spanY = maxY - minY, k = 0.0;
+            if (spanX > 0 && spanY > 0) {
+                var kx = (x1 - x0) / spanX, ky = (y1 - y0) / spanY;
+                k = kx < ky ? kx : ky;
+            } else if (spanX > 0) {
+                k = (x1 - x0) / spanX;
+            } else if (spanY > 0) {
+                k = (y1 - y0) / spanY;
+            }
             var ox = (x0 + x1) / 2 - k * (minX + maxX) / 2, oy = (y0 + y1) / 2 + k * (minY + maxY) / 2;
             out = [] as Array<Array<Float>>;
             for (var j = 0; j < pts.size(); j++) {
