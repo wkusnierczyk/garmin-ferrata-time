@@ -3,8 +3,8 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Up and down change page, start pauses the demo, holding Up opens Ask, back leaves. On page 9 a tap
-// on a chevron steps the previewed section.
+// Up and down change page, start pauses the climb, holding Up opens Ask (and Settings), back leaves.
+// On page 9 a tap on a chevron steps the previewed section.
 class Delegate extends WatchUi.BehaviorDelegate {
 
     var view as View;
@@ -36,7 +36,7 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // Start pauses or resumes the demo. A tap on a touchscreen also comes as select, possibly before
+    // Start pauses or resumes the climb. A tap on a touchscreen also comes as select, possibly before
     // onTap sees it, so on page 9 select is left to the tap and the Start key itself pauses (onKey).
     function onSelect() as Boolean {
         if (view.page == Pages.SECTION_PAGE) { return false; }
@@ -56,12 +56,14 @@ class Delegate extends WatchUi.BehaviorDelegate {
         menu.addItem(new WatchUi.MenuItem("So far", "summary", :soFar, null));
         menu.addItem(new WatchUi.MenuItem("Pace", "vs guidebook", :pace, null));
         menu.addItem(new WatchUi.MenuItem("Exits", "ways off", :exits, null));
+        menu.addItem(new WatchUi.MenuItem("Settings", null, :settings, null));
         WatchUi.pushView(menu, new AskDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
 }
 
-// The phone app does not exist yet: choosing a question only closes the list.
+// The phone app does not exist yet: choosing a question only closes the list. Settings opens the
+// watch's settings in its place (until the climb's menus come, #51).
 class AskDelegate extends WatchUi.Menu2InputDelegate {
 
     function initialize() {
@@ -69,6 +71,10 @@ class AskDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
+        if (item.getId() == :settings) {
+            WatchUi.switchToView(new SettingsMenu(), new SettingsMenuDelegate(), WatchUi.SLIDE_LEFT);
+            return;
+        }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 }
