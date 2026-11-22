@@ -187,8 +187,9 @@ module Pages {
     // ---------------------------------------------------------------- pages 4 and 5: the difficulty stack
 
     // Page 4: the stack by ascent, 0.0072 of the width per metre climbed, altitudes every 20 m (100 ft).
+    // A scale per metre carries nine decimals: it multiplies hundreds of metres.
     function stackByAscent(d as Draw, st as Climb.State) as Void {
-        Widgets.stack(d, st, true, 0.394231, 0.153846, 0.846154, 0.007212, true, 20, 100, 0.480769);
+        Widgets.stack(d, st, true, 0.394231, 0.153846, 0.846154, 0.007211538, true, 20, 100, 0.480769);
     }
 
     // Page 5: the stack by path, 0.0024 of the width per metre along the route, centred as a group (its
@@ -198,7 +199,7 @@ module Pages {
         var labels = Widgets.stackLabels(d);
         var left = 0.5 - (labels + Widgets.STACK_W + Widgets.NAME_GAP + Widgets.STACK_NAMES) / 2 + labels;
         Widgets.ascentGauge(d, st, true);
-        Widgets.stack(d, st, false, left, 0.153846, 0.846154, 0.002404, true, 10, 50, Widgets.AG_R - 0.033654);
+        Widgets.stack(d, st, false, left, 0.153846, 0.846154, 0.002403846, true, 10, 50, Widgets.AG_R - 0.033654);
     }
 
     // ---------------------------------------------------------------- pages 6a and 6b, version 1: the gauge
@@ -420,7 +421,7 @@ module Pages {
     // A row's height on the what's next page: its minutes, the climber's own section only what is left.
     function rowHeight(st as Climb.State, i as Number) as Float {
         var mins = i == st.cur ? (Climb.mAt(i + 1) - st.m) : Climb.MIN[i].toFloat();
-        var h = mins * 0.008654;
+        var h = mins * 0.008653846;
         return h < 0.0625 ? 0.0625 : h;
     }
 

@@ -68,7 +68,7 @@ class Draw {
     }
 
     // A share of the screen's width in whole pixels, cut towards zero. The shares are decimals, a hair
-    // either side of the pixel they stand for (to six places, within a five-thousandth of a pixel):
+    // either side of the pixel they stand for (to six places or more, within a five-thousandth of a pixel):
     // adding two thousandths of a pixel keeps them on it.
     const NUDGE = 0.002;
 
@@ -115,8 +115,9 @@ class Draw {
         }
     }
 
-    // A dash's length, and the gap's.
-    const DASH = 0.021635;
+    // A dash's length, and the gap's. It and BRUSH_STEP divide lengths into counts, so they carry nine
+    // decimals.
+    const DASH = 0.021634615;
 
     function dashed(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, c as Number, pen as Numeric) as Void {
         var dx = x2 - x1, dy = y2 - y1;
@@ -269,7 +270,7 @@ class Draw {
     }
 
     // A round brush along a line: filled circles every BRUSH_STEP, so ends and bends come out round.
-    const BRUSH_STEP = 0.004808;
+    const BRUSH_STEP = 0.004807692;
 
     function brush(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, r as Numeric, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
