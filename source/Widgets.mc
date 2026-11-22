@@ -510,9 +510,10 @@ module Widgets {
             if (near[best]) {
                 var half = nameR * nameR - (y - 0.5) * (y - 0.5);
                 var room = (0.5 + Math.sqrt(half > 0 ? half : 0) - (x + 0.033654)).toFloat();
-                // Not within 0.0481 of the width of a name already shown, as in the mock.
+                // Not within 0.0481 of the width of a name already shown, as in the mock. A strict limit is
+                // rounded down, so a distance of exactly that is clear, as it was in whole pixels.
                 var clear = true;
-                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 0.048077) { clear = false; } }
+                for (var q = 0; q < named.size(); q++) { if ((named[q] - y).abs() < 0.048076) { clear = false; } }
                 if (room >= 0.072115 && clear) {
                     d.textCapMiddle(x + 0.033654, y, d.semi(NAME_SIZE), fitName(d, POI_WORDS[rank[best]], room), c, Graphics.TEXT_JUSTIFY_LEFT);
                     named.add(y);
@@ -622,10 +623,10 @@ module Widgets {
                 if (yt > bottom || yb < top) { continue; }
                 var vt = yt > top ? yt : top, vb = yb < bottom ? yb : bottom;
                 var flat = stackSize(i, byUp) == 0;
-                if (!flat && vb - vt < 0.038462) { continue; }
+                if (!flat && vb - vt < 0.038461) { continue; }
                 var ny = flat ? yb : (vt + vb) / 2;
                 var touches = false;
-                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 0.048077) { touches = true; } }
+                for (var p = 0; p < named.size(); p++) { if ((named[p] - ny).abs() < 0.048076) { touches = true; } }
                 if (touches) { continue; }
                 named.add(ny);
                 var half = nameR * nameR - (ny - 0.5) * (ny - 0.5);
