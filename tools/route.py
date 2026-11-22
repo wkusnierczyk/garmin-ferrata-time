@@ -306,7 +306,8 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def read_gpx(path):
-    """The track points of a GPX file, as (lat, lon), whatever its namespace."""
+    """The track points of a GPX file, as (lat, lon, ele), whatever its namespace; ele is None
+    where the point has no elevation."""
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as e:
@@ -325,7 +326,16 @@ def read_gpx(path):
         if not (math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
             problems.append(f"{path}: track point {n}: lat {lat}, lon {lon} out of range")
             continue
-        track.append((lat, lon))
+        ele = next((c.text for c in el if c.tag.rsplit("}", 1)[-1] == "ele"), None)
+        if ele is not None:
+            try:
+                ele = float(ele)
+            except ValueError:
+                ele = math.nan
+            if not math.isfinite(ele):
+                problems.append(f"{path}: track point {n}: ele is a number")
+                continue
+        track.append((lat, lon, ele))
     if not problems and len(track) < 2:
         problems.append(f"{path}: a track has at least two points")
     if problems:
@@ -333,22 +343,33 @@ def read_gpx(path):
     return track
 
 
+def step_length(a, b):
+    """From track point a to b, in metres: along the slope from the horizontal distance and the
+    height change, which comes close to the length along the cable; on the map alone where either
+    point has no elevation."""
+    h = haversine(a[0], a[1], b[0], b[1])
+    if a[2] is None or b[2] is None:
+        return h
+    return math.hypot(h, b[2] - a[2])
+
+
 def track_length(track):
-    return sum(haversine(*a, *b) for a, b in zip(track, track[1:]))
+    return sum(step_length(a, b) for a, b in zip(track, track[1:]))
 
 
 def position(track, dist):
-    """The track's position `dist` metres along it, interpolated; its end beyond its length."""
+    """The track's (lat, lon) `dist` metres along it (step_length), interpolated; its end beyond
+    its length."""
     if dist <= 0:
-        return track[0]
+        return track[0][:2]
     done = 0.0
-    for (la0, lo0), (la1, lo1) in zip(track, track[1:]):
-        step = haversine(la0, lo0, la1, lo1)
+    for a, b in zip(track, track[1:]):
+        step = step_length(a, b)
         if step > 0 and done + step >= dist:
             f = (dist - done) / step
-            return la0 + f * (la1 - la0), lo0 + f * (lo1 - lo0)
+            return a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1])
         done += step
-    return track[-1]
+    return track[-1][:2]
 
 
 def ordered(obj, keys):
@@ -427,7 +448,8 @@ def main(argv=None):
     b = sub.add_parser("build", help="check a route source and write the route file")
     b.add_argument("source", help="the hand-written source, routes/<id>.src.json")
     b.add_argument("-o", "--output", required=True, help="the route file to write")
-    b.add_argument("--gpx", help="a track from the approach's start (or the head) to the top")
+    b.add_argument("--gpx", help="a track from the approach's start (or the head) to the top; points "
+                   "are placed by distance along it, including height")
     args = ap.parse_args(argv)
 
     name = os.path.basename(args.source)

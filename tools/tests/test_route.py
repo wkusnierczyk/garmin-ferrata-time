@@ -1,6 +1,7 @@
 """Tests for tools/route.py: the demo route builds, and each validation rule rejects its case."""
 import copy
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -536,3 +537,78 @@ def test_text_charset_is_the_fonts():
     fonts = json.loads(CHARSETS.read_text(encoding="utf-8"))
     text = [set(f["fontCharset"]) for f in fonts if "a" in f["fontCharset"]]
     assert text and all(c == route.TEXT_CHARSET for c in text)
+
+
+# GPX points placed by distance along the track including height (#85).
+
+def gpx3d(points):
+    """A track of (lat, lon, ele) points; ele None leaves the point without an elevation."""
+    pts = "".join(f'<trkpt lat="{lat}" lon="{lon}">' + ("" if ele is None else f"<ele>{ele}</ele>")
+                  + "</trkpt>" for lat, lon, ele in points)
+    return ('<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">'
+            f"<trk><trkseg>{pts}</trkseg></trk></gpx>")
+
+
+def one_section(length, up, mid_at):
+    """A route with no approach: one section, a danger point at mid_at, the top at its length."""
+    def change(r):
+        del r["approach"]
+        r["sections"] = [{"len": length, "up": up, "grade": 5, "name": "Wall", "side": 0.0}]
+        r["points"] = [
+            {"kind": "head", "at": 0, "alt": 1000, "name": "Head"},
+            {"kind": "danger", "at": mid_at, "name": "Middle"},
+            {"kind": "top", "at": length, "alt": 1000 + up, "name": "Top"},
+        ]
+    return fixture(change)
+
+
+def test_gpx_steep_midpoint(tmp_path, capsys):
+    # A flat step, then a steep one: about 56 m across, then 56 m across and 300 m up. Along the
+    # track in 3D it is about 361 m, the route's length, so it builds without a warning; the point
+    # halfway up the steep step is at the middle of that step on the map, not past the track's end
+    # as the horizontal distance would place it.
+    flat = route.haversine(46.0, 8.0, 46.0005, 8.0)
+    steep = math.hypot(flat, 300)
+    length = int(flat + steep)  # within the track, or the top would lie past its end
+    track = [(46.0, 8.0, 1000), (46.0005, 8.0, 1000), (46.001, 8.0, 1300)]
+    code, out = build(tmp_path, one_section(length, 300, round(flat + steep / 2)), gpx=gpx3d(track))
+    assert code == 0
+    assert "warning" not in capsys.readouterr().err
+    mid = point(out, "danger")
+    assert mid["lat"] == pytest.approx(46.00075, abs=1e-5)
+    assert point(out, "top")["lat"] == pytest.approx(46.001, abs=1e-5)
+
+
+def test_gpx_length_is_3d():
+    flat = route.haversine(46.0, 8.0, 46.001, 8.0)
+    assert route.track_length([(46.0, 8.0, 0.0), (46.001, 8.0, 300.0)]) == pytest.approx(math.hypot(flat, 300))
+
+
+def test_gpx_flat_track_as_before():
+    # Equal elevations, or none, measure the horizontal distance.
+    track = [(46.0, 8.0), (46.0005, 8.0), (46.001, 8.0)]
+    flat = route.haversine(46.0, 8.0, 46.001, 8.0)
+    for ele in (500.0, None):
+        t = [(la, lo, ele) for la, lo in track]
+        assert route.track_length(t) == pytest.approx(flat)
+        assert route.position(t, flat / 4) == pytest.approx((46.00025, 8.0), abs=1e-7)
+
+
+def test_gpx_step_without_elevation_is_horizontal():
+    # The second point has no elevation: both steps touching it are measured on the map.
+    flat = route.haversine(46.0, 8.0, 46.0005, 8.0)
+    track = [(46.0, 8.0, 0.0), (46.0005, 8.0, None), (46.001, 8.0, 300.0)]
+    assert route.track_length(track) == pytest.approx(2 * flat)
+
+
+def test_gpx_reads_elevation(tmp_path):
+    g = tmp_path / "t.gpx"
+    g.write_text(gpx3d([(46.0, 8.0, 1000.5), (46.001, 8.0, None)]))
+    assert route.read_gpx(str(g)) == [(46.0, 8.0, 1000.5), (46.001, 8.0, None)]
+
+
+def test_gpx_bad_elevation(tmp_path, capsys):
+    bad = gpx3d([(46.0, 8.0, 1000), (46.001, 8.0, "high")])
+    code, out = build(tmp_path, fixture(), gpx=bad)
+    assert code == 1 and out is None
+    assert "t.gpx: track point 2: ele is a number" in capsys.readouterr().err
