@@ -216,7 +216,7 @@ module Pages {
         var font = d.semi(0.0721), small = d.semi(0.0433), base = 0.240385 + d.capHeight(font);
         Widgets.poi(d, st, 0.480769, base - d.capHeight(Widgets.poiFont(d)));
         var ft = Widgets.feet(), ax = 0.5 + bw / 2;
-        d.textCapTop(ax, base - d.capHeight(font), font, Widgets.altitudeValue(st.net(), ft).format("%d"), WHITE,
+        d.textCapTop(ax, base - d.capHeight(font), font, Widgets.altitudeNow(st, ft).format("%d"), WHITE,
             Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(ax + 0.007212, base - d.ascent(small), small, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
         Widgets.nextUp(d, st, 0.5, 0.629808);
@@ -237,9 +237,8 @@ module Pages {
         Widgets.chevron(d, 0.5 + bw / 2 + 0.096154, by, 1, i < n - 1);
         // Above: "1380 to 1490 m", "to" and the unit grey, centred.
         // The altitudes, their unit and the name, as shares of the screen's width: 30, 18 and 26 px at 416.
-        var ft = Widgets.feet(), k = ft ? 3.28084 : 1.0, font = d.semi(0.0721), small = d.semi(0.0433), bold = d.bold(0.0625);
-        var a0 = Math.round((Climb.START_ALT + Climb.netAt(i)) * k).toNumber().format("%d");
-        var a1 = Math.round((Climb.START_ALT + Climb.netAt(i + 1)) * k).toNumber().format("%d");
+        var ft = Widgets.feet(), font = d.semi(0.0721), small = d.semi(0.0433), bold = d.bold(0.0625);
+        var alts = Widgets.sectionAltitudes(i, ft), a0 = alts[0].format("%d"), a1 = alts[1].format("%d");
         var to = " to ", unit = ft ? "ft" : "m";
         var w0 = d.width(font, a0), wt = d.width(font, to), w1 = d.width(font, a1);
         var x = 0.5 - (w0 + wt + w1 + 0.007212 + d.width(small, unit)) / 2.0;

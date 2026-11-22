@@ -273,6 +273,17 @@ module Widgets {
         return (Math.round(m / 10) * 10).toNumber();
     }
 
+    // The altitudes the pages show: the climber's, and border b's (between sections b - 1 and b).
+    function altitudeNow(st as Climb.State, ft as Boolean) as Number { return altitudeValue(st.net(), ft); }
+    function borderAltitude(b as Number, ft as Boolean) as Number { return altitudeValue(Climb.netAt(b).toFloat(), ft); }
+
+    // Section i's altitudes at its foot and its top, to the metre or foot (page 9).
+    function sectionAltitudes(i as Number, ft as Boolean) as [Number, Number] {
+        var k = ft ? 3.28084 : 1.0;
+        return [Math.round((Climb.START_ALT + Climb.netAt(i)) * k).toNumber(),
+            Math.round((Climb.START_ALT + Climb.netAt(i + 1)) * k).toNumber()];
+    }
+
     function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Float {
         var w = widest[slot];
         if (w == null || widestFeet[slot] != ft) {
@@ -298,7 +309,7 @@ module Widgets {
     function altitude(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
         var right = x + altitudeBox(d, ft), font = d.semi(ALT_SIZE), unit = d.semi(ALT_UNIT);
-        d.textCapTop(right, yt, font, altitudeValue(st.net(), ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textCapTop(right, yt, font, altitudeNow(st, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         // The unit on the number's baseline.
         var baseline = yt + d.capHeight(font);
         d.textTop(right + 0.009615, baseline - d.ascent(unit), unit, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
@@ -432,7 +443,7 @@ module Widgets {
             var y = above
                 ? slotY(b - st.cur, cy) + slotHalf(b - st.cur) + COL_GAP / 2.0
                 : slotY(b - 1 - st.cur, cy) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
-            var v = altitudeValue(Climb.netAt(b).toFloat(), ft);
+            var v = borderAltitude(b, ft);
             d.textCapMiddle(ax, y, font, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
             var baseline = y + d.capHeight(font) / 2;
@@ -1207,7 +1218,7 @@ module Widgets {
         var bw = fit && need > 0.211538 * k ? need : 0.211538 * k;
         bigDifficulty(d, st, cx, by, bw, bh, 0.1106 * k);
         var base = by - bh / 2 - 0.028846 * k;
-        var alt = altitudeValue(st.net(), ft).format("%d"), unit = ft ? "ft" : "m";
+        var alt = altitudeNow(st, ft).format("%d"), unit = ft ? "ft" : "m";
         var right = cx + bw / 2 - d.width(small, unit) - 0.007212;
         d.textCapTop(right, base - d.capHeight(font), font, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(right + 0.007212, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);

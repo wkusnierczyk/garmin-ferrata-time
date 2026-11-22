@@ -104,11 +104,15 @@ module DescentTest {
     (:test)
     function altitudesAreReal(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);
-        // At the descent's foot: 50 m above the head, though 100 m have been climbed.
+        // At the descent's foot: 50 m above the head, though 100 m have been climbed. What the pages show
+        // (the altitude widget, page 6, the difficulty group; the column's borders; page 9) is the real
+        // altitude, not the head's plus the height gained (1100).
         var st = Climb.State.placed(150.0, Climb.heightAtDistance(150.0), 0.0, 1.0, 0.0, 25);
         Test.assertEqualMessage(st.climbed(), 100, "climbed");
-        Test.assertEqualMessage(st.altitude(), 1050, "altitude");
-        Test.assertEqualMessage(Widgets.altitudeValue(st.net(), false), 1050, "the altitude widget's");
+        Test.assertEqualMessage(Widgets.altitudeNow(st, false), 1050, "the climber's altitude");
+        Test.assertEqualMessage(Widgets.borderAltitude(2, false), 1050, "the descent's foot on the column");
+        Test.assertEqualMessage(Widgets.sectionAltitudes(1, false).toString(), [1100, 1050].toString(), "page 9's foot and top");
+        Test.assertEqualMessage(Widgets.altitudeNow(st, true), 3450, "in feet, to 50");
         return true;
     }
 
