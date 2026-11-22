@@ -28,7 +28,7 @@ One setting, **Demo climb** (on by default), on the watch (hold Up, then Setting
 | Back | leave |
 | Tap beside the box (page 9) | step to the section before or after |
 
-The climb is the bundled route, `resources/routes/demo.json` (below), counted from the ferrata head: the pages show the ferrata, 640 m long and 510 m up, from the head at 1290 m, and leave out the 120 m approach, which they will show as its own stretch only while the climber is on it. The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), a preview of a section the user picks (page 9, version 1, `design/page-9.md`; tap beside its difficulty box to step), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
+The climb is the bundled route, `resources/routes/demo.json` (below), counted from the ferrata head: the pages show the ferrata, 640 m long and 510 m up, from the head at 1290 m, and leave out the 120 m approach, which they will show as its own stretch only while the climber is on it. The climb takes about two minutes and starts again after a short pause at the top. It plays at a vertical pace, as on a real via ferrata: walks pass quickly, walls slowly, and each grade above walking takes 10 % longer per metre than the one below; a rest counts as walking and a flat stretch as 5 m, so both pass in a moment. The pages, in order: the profile alone (page 1, version 1, `design/page-1.md`), the difficulty column (page 2, version 1, `design/page-2.md`), ascent and difficulty column side by side (page 3, version 1, `design/page-3.md`), the difficulty stack by ascent (page 4, version 1, `design/page-4.md`) and by path with the ascent (page 5, version 1, `design/page-5.md`), the gauge by length and by ascent (pages 6a and 6b, version 1, `design/page-6.md`), the route from the front (page 7, version 1, `design/page-7.md`), the current difficulty with the ascent gauge (page 8, version 1, `design/page-8.md`), a preview of a section the user picks (page 9, version 1, `design/page-9.md`; tap beside its difficulty box to step), side profile, ladder and profile, vertical ladder, where am I, what's next, time strip, and four large-type pages (height, next hard part, time to the top, exit). The pages draw in Barlow Condensed, the mocks' typeface (see [Fonts](#fonts)). The dots on the left edge show which page is on screen; they appear when the app opens, when you come back from the Ask list, or when the page changes, and hide after 2 seconds.
 
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
@@ -60,6 +60,101 @@ A route's GPX track, if it has one, is kept beside its source as `routes/<id>.gp
 - Names (`name`, `short`, `place`, and every section's and point's `name`, points of any kind) are folded to the characters the app's fonts carry: letters A to Z and a to z, digits, space and `' ( ) + , - . / : > ~ ° · …`. Accents are dropped (ü to u, é to e, ç to c), special letters spelled out (ß to ss, æ to ae, ø to o, œ to oe, ł to l, þ to th), quotes of every kind written as `'` (the fonts have no double quote), dashes and the minus as `-`, the fraction slash as `/`, the micro sign as `u`, and invisible marks (soft hyphens, zero-width spaces and joiners, variation selectors) dropped; any other character is an error naming the field and the character. `short` is counted after folding.
 
 The tool lists every problem it finds and writes nothing. Its tests: `python3 -m pytest tools/tests` (needs `pytest`); CI runs them and checks that `make routes` leaves the route files unchanged.
+
+## Fonts
+
+The app draws every page in its own bitmap fonts made from [Barlow Condensed](https://github.com/jpt/barlow), the typeface of the mocks, in SemiBold for text and numbers and in Bold for the difficulty boxes and the words beside them, instead of the watch's system fonts (#62). Its figures are tabular, as the mocks set them (`font-variant-numeric: tabular-nums`): every digit has one width, so a number that counts does not shift.
+
+A text the mock draws at `font-size: N` at 416 px draws on the watch at N px too, with the same cap height (0.7 of N) and the same advances to the nearest pixel: `ttf2bmp`'s size is the em, as CSS's `font-size` is, and `make fonts` rounds each glyph's advance to the nearest pixel where `ttf2bmp` rounds it up.
+
+The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its size as a share of the screen's width (the designs are in proportions), its pixels at the 416 px reference, and its glyphs. `tools/font-config.py` writes from it `resources/fonts/fonts.xml`, `resources/fonts/charsets.json` and `source/FontSizes.mc`, which nobody edits by hand. A page asks for a size in the table (`d.semi(share)`, `d.bold(share)`, `Fonts` in `source/Draw.mc`), and `make check-fonts` fails on one that is not; a widget drawn at a factor (page 7's group at 1.15, page 8's at 1.5) gets the nearest size, the larger on a tie. The mocks use only these sizes, rounding a scaled one the same way, so what a mock shows is what the watch draws:
+
+<!-- font sizes: start -->
+| Font | Weight | Share of the width | At 416 px | Glyphs |
+|:-|:-|-:|-:|:-|
+| `SemiBold16` | SemiBold | 0.0385 (3.85 %) | 16 | text |
+| `SemiBold18` | SemiBold | 0.0433 (4.33 %) | 18 | text |
+| `SemiBold20` | SemiBold | 0.0481 (4.81 %) | 20 | text |
+| `SemiBold22` | SemiBold | 0.0529 (5.29 %) | 22 | text |
+| `SemiBold24` | SemiBold | 0.0577 (5.77 %) | 24 | text |
+| `SemiBold28` | SemiBold | 0.0673 (6.73 %) | 28 | text |
+| `SemiBold30` | SemiBold | 0.0721 (7.21 %) | 30 | text |
+| `SemiBold32` | SemiBold | 0.0769 (7.69 %) | 32 | text |
+| `SemiBold36` | SemiBold | 0.0865 (8.65 %) | 36 | text |
+| `SemiBold40` | SemiBold | 0.0962 (9.62 %) | 40 | text |
+| `SemiBold44` | SemiBold | 0.1058 (10.58 %) | 44 | text |
+| `SemiBold46` | SemiBold | 0.1106 (11.06 %) | 46 | text |
+| `SemiBold52` | SemiBold | 0.1250 (12.50 %) | 52 | numbers |
+| `SemiBold58` | SemiBold | 0.1394 (13.94 %) | 58 | numbers |
+| `SemiBold64` | SemiBold | 0.1538 (15.38 %) | 64 | numbers |
+| `SemiBold84` | SemiBold | 0.2019 (20.19 %) | 84 | numbers |
+| `SemiBold104` | SemiBold | 0.2500 (25.00 %) | 104 | numbers |
+| `Bold18` | Bold | 0.0433 (4.33 %) | 18 | text |
+| `Bold20` | Bold | 0.0481 (4.81 %) | 20 | text |
+| `Bold24` | Bold | 0.0577 (5.77 %) | 24 | text |
+| `Bold26` | Bold | 0.0625 (6.25 %) | 26 | text |
+| `Bold28` | Bold | 0.0673 (6.73 %) | 28 | text |
+| `Bold30` | Bold | 0.0721 (7.21 %) | 30 | text |
+| `Bold34` | Bold | 0.0817 (8.17 %) | 34 | text |
+| `Bold36` | Bold | 0.0865 (8.65 %) | 36 | text |
+| `Bold52` | Bold | 0.1250 (12.50 %) | 52 | grades |
+| `Bold70` | Bold | 0.1683 (16.83 %) | 70 | grades |
+<!-- font sizes: end -->
+
+Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z and a to z, the digits, the space and `' ( ) + , - . / : > ~ ° · …`, the punctuation the code and the mock pages use (parentheses, comma and period come from route names such as "Grosser Spalt (var. E)"). Route names cannot be predicted, so the route tool folds accented letters to plain ones and rejects anything else the fonts lack (#84); `make check-fonts` fails on a string literal in `source/` outside this set. Number fonts hold the digits, `:`, `-` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`). The older pages (from the side profile on) drew in system fonts; each now draws in the SemiBold size whose capitals stand as tall.
+
+The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
+
+<!-- fonts.md: start -->
+| Resolution | Shape |   Element    |              Font               | Size |
+| ---------: | :---- | :----------- | :------------------------------ | ---: |
+|  416 x 416 | round | Bold18       | BarlowCondensedTabular bold     |   18 |
+|  416 x 416 | round | Bold20       | BarlowCondensedTabular bold     |   20 |
+|  416 x 416 | round | Bold24       | BarlowCondensedTabular bold     |   24 |
+|  416 x 416 | round | Bold26       | BarlowCondensedTabular bold     |   26 |
+|  416 x 416 | round | Bold28       | BarlowCondensedTabular bold     |   28 |
+|  416 x 416 | round | Bold30       | BarlowCondensedTabular bold     |   30 |
+|  416 x 416 | round | Bold34       | BarlowCondensedTabular bold     |   34 |
+|  416 x 416 | round | Bold36       | BarlowCondensedTabular bold     |   36 |
+|  416 x 416 | round | Bold52       | BarlowCondensedTabular bold     |   52 |
+|  416 x 416 | round | Bold70       | BarlowCondensedTabular bold     |   70 |
+|  416 x 416 | round | Semi bold104 | BarlowCondensedTabular semibold |  104 |
+|  416 x 416 | round | Semi bold16  | BarlowCondensedTabular semibold |   16 |
+|  416 x 416 | round | Semi bold18  | BarlowCondensedTabular semibold |   18 |
+|  416 x 416 | round | Semi bold20  | BarlowCondensedTabular semibold |   20 |
+|  416 x 416 | round | Semi bold22  | BarlowCondensedTabular semibold |   22 |
+|  416 x 416 | round | Semi bold24  | BarlowCondensedTabular semibold |   24 |
+|  416 x 416 | round | Semi bold28  | BarlowCondensedTabular semibold |   28 |
+|  416 x 416 | round | Semi bold30  | BarlowCondensedTabular semibold |   30 |
+|  416 x 416 | round | Semi bold32  | BarlowCondensedTabular semibold |   32 |
+|  416 x 416 | round | Semi bold36  | BarlowCondensedTabular semibold |   36 |
+|  416 x 416 | round | Semi bold40  | BarlowCondensedTabular semibold |   40 |
+|  416 x 416 | round | Semi bold44  | BarlowCondensedTabular semibold |   44 |
+|  416 x 416 | round | Semi bold46  | BarlowCondensedTabular semibold |   46 |
+|  416 x 416 | round | Semi bold52  | BarlowCondensedTabular semibold |   52 |
+|  416 x 416 | round | Semi bold58  | BarlowCondensedTabular semibold |   58 |
+|  416 x 416 | round | Semi bold64  | BarlowCondensedTabular semibold |   64 |
+|  416 x 416 | round | Semi bold84  | BarlowCondensedTabular semibold |   84 |
+<!-- fonts.md: end -->
+
+Regenerating them:
+
+```sh
+make font-sources   # fetch Barlow Condensed from google/fonts and give it tabular figures (needs fontTools)
+make fonts          # the bitmaps, fonts.md, fonts.sha256 and the two tables above (needs ttf2bmp and garmin-font-scaler)
+make check-fonts    # check all of it against the configuration and source/Draw.mc (Python only)
+```
+
+`make font-sources` takes `BarlowCondensed-SemiBold.ttf`, `BarlowCondensed-Bold.ttf` and `OFL.txt` from [`google/fonts`](https://github.com/google/fonts/tree/60824dce48f7dd28fe7d65559f2da1f6e04e585b/ofl/barlowcondensed), `ofl/barlowcondensed/` at commit `60824dce48f7dd28fe7d65559f2da1f6e04e585b`, holds each to its SHA-256 in the `Makefile`, and runs `tools/tabular-figures.py` on the two weights: it points the digits at the font's own tabular figures and renames the family Barlow Condensed Tabular. The results are `resources/fonts/BarlowCondensedTabular-SemiBold.ttf` and `-Bold.ttf`; the same inputs give the same bytes. `tools/tabular-figures.py` needs [fontTools](https://github.com/fonttools/fonttools) 4.60.2 or newer (the committed TTFs were made with 4.60.2; 4.68.0 gives the same bytes), in a virtual environment on Apple's Python, as Homebrew's cannot bootstrap pip on macOS:
+
+```sh
+/usr/bin/python3 -m venv .dev/scratchpad/fonttools
+.dev/scratchpad/fonttools/bin/pip install fonttools==4.60.2
+make font-sources FONTTOOLS_PYTHON=.dev/scratchpad/fonttools/bin/python
+```
+ `make check-ttf2bmp` and `make check-garmin-font-scaler` check the two font tools, and `make install-ttf2bmp` and `make install-garmin-font-scaler` install them into `~/.local/bin`, as in Climber Time.
+
+Barlow Condensed is copyright 2017 The Barlow Project Authors and licensed under the [SIL Open Font License 1.1](https://openfontlicense.org), in `resources/fonts/OFL-BarlowCondensed.txt`. Barlow Condensed Tabular is a modified version under the same licence; Barlow declares no Reserved Font Name.
 
 ## What it is
 
