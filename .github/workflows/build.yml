@@ -1,7 +1,7 @@
 # Build verification (#10), cut down from Climber Time's build.yml
 # (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
 # release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
-# target device (#11), the store bundle (#12), the unit tests (#13) and the checks that need no
+# target device (#11), the store bundle (#12) and the checks that need no
 # SDK (#14) come with the design and functionality.
 #
 # A container, because the device definitions monkeyc compiles against are not in the public SDK
@@ -74,3 +74,47 @@ jobs:
         run: |
           make build DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
           ls -l FerrataTime.prg
+
+  # The unit tests (#46), as Matrix Time runs them: a job of its own, so a red here is not read as a
+  # compile failure. monkeydo pushes the test build into a running simulator, a GUI application;
+  # the image carries the simulator and xvfb, and xvfb-run gives it a display. timeout-minutes,
+  # because a hung monkeydo is this job's characteristic failure.
+  test:
+    name: unit tests
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 15
+    container:
+      # The build job's digest, for its reasons; bump both together.
+      image: ghcr.io/wkusnierczyk/connectiq-tester@sha256:43c0f915cf5dbb721c87dabf36bcb0109ce33d42414e05c9472b53bc0b14914e  # 9.3.0-2026-11-16
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # The build job's three, and: netcat, which make sim probes the simulator's port with; xvfb,
+      # named so the dependency is ours; xauth, which xvfb-run needs and xvfb only recommends.
+      - name: Install make, git, git-lfs, netcat and xvfb
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            make git git-lfs netcat-openbsd xvfb xauth
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          lfs: true
+
+      - name: Generate a throwaway signing key
+        run: |
+          openssl genrsa -out /tmp/ci_key.pem 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER \
+            -in /tmp/ci_key.pem -out /tmp/ci_key -nocrypt
+
+      # The whole of make test runs under xvfb-run, since it starts the simulator (make sim) and the
+      # simulator must see the same display. make test gates on the anchored "PASSED (" line, not on
+      # monkeydo's exit status, which is 1 either way. HOME and DEVICE as in the build job.
+      - name: Run the unit tests
+        timeout-minutes: 10
+        env:
+          HOME: /root
+        run: |
+          xvfb-run -a make test DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key

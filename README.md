@@ -33,6 +33,7 @@ Build and install, with the SDK and the developer key in place. The key is looke
 ```sh
 make build       # FerrataTime.prg for the epix Pro (Gen 2) 47 mm
 make run         # build, start the simulator, load it
+make test        # build the unit tests (source/tests/), run them in the simulator
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
 ```
 
