@@ -27,7 +27,10 @@ class Route {
         points = data["points"] as Array<Dictionary>;
     }
 
-    // The route in data, or null when it is another format (this app reads format 1) or lacks a head, a top or sections.
+    // The route in data, or null when the app cannot read it: another format (this app reads format
+    // 1), a head, a top or sections missing, or any section or known point of the wrong shape. The
+    // checks go down to every field the app reads, so a route from elsewhere than the build (storage,
+    // later) cannot crash it.
     static function fromJson(data as Dictionary) as Route? {
         var f = data["format"];
         if (!(f instanceof Number) || f != 1) { return null; }
@@ -36,9 +39,52 @@ class Route {
         var s = data["sections"], p = data["points"], a = data["approach"];
         if (!(s instanceof Array) || (s as Array).size() == 0 || !(p instanceof Array)) { return null; }
         if (a != null && !(a instanceof Array)) { return null; }
+        if (!sectionsValid(s as Array) || a != null && !sectionsValid(a as Array)) { return null; }
+        var pts = p as Array;
+        for (var i = 0; i < pts.size(); i++) {
+            if (!pointValid(pts[i] as Object?)) { return null; }
+        }
         var r = new Route(data);
         if (r.point("head") < 0 || r.point("top") < 0) { return null; }
         return r;
+    }
+
+    // Each a dictionary with whole-number len, up and grade (min too, when there), a name and a side.
+    static function sectionsValid(list as Array) as Boolean {
+        for (var i = 0; i < list.size(); i++) {
+            var s = list[i];
+            if (!(s instanceof Dictionary)) { return false; }
+            var d = s as Dictionary;
+            if (!(d["len"] instanceof Number) || !(d["up"] instanceof Number)
+                || !(d["grade"] instanceof Number) || !(d["name"] instanceof String)
+                || !isNumeric(d["side"] as Object?)) { return false; }
+            if (d["min"] != null && !(d["min"] instanceof Number)) { return false; }
+        }
+        return true;
+    }
+
+    // A dictionary with a string kind; a point of a known kind also has a whole-number at and a name,
+    // and alt, lat and lon are numbers when there. Unknown kinds are not checked: they are ignored.
+    static function pointValid(p as Object?) as Boolean {
+        if (!(p instanceof Dictionary)) { return false; }
+        var d = p as Dictionary;
+        var kind = d["kind"];
+        if (!(kind instanceof String)) { return false; }
+        if (!isKnownKind(kind as String)) { return true; }
+        if (!(d["at"] instanceof Number) || !(d["name"] instanceof String)) { return false; }
+        if (d["alt"] != null && !(d["alt"] instanceof Number)) { return false; }
+        if (d["lat"] != null && !isNumeric(d["lat"] as Object?)) { return false; }
+        if (d["lon"] != null && !isNumeric(d["lon"] as Object?)) { return false; }
+        return true;
+    }
+
+    static function isNumeric(v as Object?) as Boolean {
+        return v instanceof Number || v instanceof Float || v instanceof Double || v instanceof Long;
+    }
+
+    // The kinds of format 1; later formats may add others, which this app ignores.
+    static function isKnownKind(kind as String) as Boolean {
+        return ["approach", "head", "landmark", "danger", "exit", "top"].indexOf(kind) >= 0;
     }
 
     // Index into points of the first point of this kind, or -1.
@@ -49,11 +95,12 @@ class Route {
         return -1;
     }
 
-    // Indices into points of the known points: those with an altitude, which can sync it.
+    // Indices into points of the known points: those of a known kind with an altitude, which can
+    // sync it.
     function knownPoints() as Array<Number> {
         var out = [] as Array<Number>;
         for (var i = 0; i < points.size(); i++) {
-            if (points[i]["alt"] != null) { out.add(i); }
+            if (isKnownKind(points[i]["kind"] as String) && (points[i]["alt"] as Object?) != null) { out.add(i); }
         }
         return out;
     }

@@ -14,6 +14,11 @@ module Climb {
     var GRADE as Array<Number> = [] as Array<Number>;
     var MIN as Array<Number> = [] as Array<Number>;
     var NAME as Array<String> = [] as Array<String>;
+    // The grades as the route file has them, in half steps (1 A ... 7 D ... 12 F/G; 0 walking, -1
+    // rest): GRADE is what the pages draw, this is what decides.
+    var HALF as Array<Number> = [] as Array<Number>;
+    // Hard is D and above (design, section 5).
+    const HARD = 7;
     const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"] as Array<String>;
 
     // Exits leave at the start of these sections.
@@ -55,12 +60,14 @@ module Climb {
         GRADE = new [n] as Array<Number>;
         MIN = new [n] as Array<Number>;
         NAME = new [n] as Array<String>;
+        HALF = new [n] as Array<Number>;
         SIDE = new [n] as Array<Float>;
         for (var i = 0; i < n; i++) {
             var s = list[i];
             LEN[i] = s["len"] as Number;
             UP[i] = s["up"] as Number;
-            GRADE[i] = kGrade(s["grade"] as Number);
+            HALF[i] = s["grade"] as Number;
+            GRADE[i] = kGrade(HALF[i]);
             MIN[i] = Route.minutes(s);
             NAME[i] = s["name"] as String;
             SIDE[i] = (s["side"] as Numeric).toFloat();
@@ -75,6 +82,7 @@ module Climb {
         DANGER_AT = [] as Array<Number>;
         for (var p = 0; p < r.points.size(); p++) {
             var pt = r.points[p];
+            if (!Route.isKnownKind(pt["kind"] as String)) { continue; }
             var at = pt["at"] as Number;
             if (at < lo || at > hi) { continue; }
             if ("danger".equals(pt["kind"] as Object?)) {
@@ -218,35 +226,55 @@ module Climb {
         return mAt(i) + (d - dAt(i)) / LEN[i].toFloat() * MIN[i];
     }
 
-    // Where the route is at net height u, at or after fromD: from the first distance that reaches u
-    // to the last before the route rises above it, [lo, hi]. When u is at or below the height at
-    // fromD, the climber cannot be behind: [fromD, the last distance at u or lower, at least fromD].
-    // Past the top when the route never reaches u: [total, total].
+    // Where the climber is when the height since the start of the part reads u (net), having been
+    // at fromD: [lo, hi], never behind fromD. The route is followed from fromD only as far as it keeps
+    // going towards u:
+    // - u above the height at fromD: up to the next high point ahead (where the route first turns
+    //   down, or the end). lo is where it first reaches u there; when it does not (a reading above
+    //   that high point: noise, or a sync off), lo is where it first reaches that high point.
+    // - u below: if the route ahead goes down (after any flat), down to the next low point, likewise;
+    //   if it goes up, lo is fromD: a reading falling on a climb does not move the place.
+    // - u equal: lo is fromD.
+    // hi extends lo over a flat stretch at lo's height (a traverse), else it is lo.
+    // (Coordinator's definition, replacing the plan's, after the review of #88: the plan's searched
+    // the whole route ahead, so a reading a few metres off jumped past a dip or to the top.)
     function stretchAhead(fromD as Float, u as Float) as [Float, Float] {
         var total = totalD().toFloat();
         if (fromD >= total) { return [total, total]; }
         if (fromD < 0) { fromD = 0.0; }
-        if (u <= netAtDistance(fromD)) {
-            var last = lastNetDistanceAt(u);
-            return [fromD, last > fromD ? last : fromD];
+        var h = netAtDistance(fromD);
+        var lo = fromD;
+        if (u != h) {
+            // dir: 1 searching up, -1 down, 0 not yet known (u below: the first slope ahead decides).
+            var dir = u > h ? 1 : 0;
+            var turn = fromD;
+            for (var i = sectionAt(fromD); i < count(); i++) {
+                var d0 = fromD > dAt(i) ? fromD : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
+                if (d1 <= d0 || UP[i] == 0) { continue; }
+                var slope = UP[i] > 0 ? 1 : -1;
+                if (dir == 0) {
+                    if (slope > 0) { break; }
+                    dir = -1;
+                }
+                if (slope != dir) { break; }
+                var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
+                if (dir > 0 ? b >= u : b <= u) {
+                    turn = d0 + crossing(dir * a, dir * b, dir * u) * (d1 - d0);
+                    break;
+                }
+                turn = d1;
+            }
+            lo = turn;
         }
-        // The first crossing upwards: each section starts below u, or the search would have stopped.
-        var lo = total;
-        var first = sectionAt(fromD);
-        for (var i = first; i < count(); i++) {
-            var d0 = i == first ? fromD : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
-            var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
-            if (b >= u) { lo = d0 + crossing(a, b, u) * (d1 - d0); break; }
+        // Over the flat stretch lo is on, if any.
+        var hi = lo;
+        for (var i = sectionAt(lo); i < count(); i++) {
+            var d0 = lo > dAt(i) ? lo : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
+            if (d1 <= d0) { continue; }
+            if (UP[i] != 0) { break; }
+            hi = d1;
         }
-        if (lo >= total) { return [total, total]; }
-        // From lo, where the route is at u, to where it first rises above u.
-        var start = sectionAt(lo);
-        for (var i = start; i < count(); i++) {
-            var d0 = i == start ? lo : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
-            var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
-            if (b > u) { return [lo, d0 + crossing(a, b, u) * (d1 - d0)]; }
-        }
-        return [lo, total];
+        return [lo, hi];
     }
 
     // The share of a section rising from a to b at which it reaches u, kept within the section.
@@ -254,16 +282,6 @@ module Climb {
         if (b <= a) { return 0.0; }
         var f = (u - a) / (b - a);
         return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
-    }
-
-    // The last distance at which the route is at net height u or lower; 0 when it starts above.
-    function lastNetDistanceAt(u as Float) as Float {
-        for (var i = count() - 1; i >= 0; i--) {
-            var a = netAt(i).toFloat(), b = netAt(i + 1).toFloat();
-            if (b <= u) { return dAt(i + 1).toFloat(); }
-            if (a <= u) { return dAt(i) + crossing(a, b, u) * LEN[i]; }
-        }
-        return 0.0;
     }
 
     // The first distance at which the route reaches height u.
@@ -334,8 +352,9 @@ module Climb {
         // Minutes until the start of section i, at the climber's pace.
         function untilStart(i as Number) as Float { return (mAt(i) - m) * PACE; }
 
+        // The next section ahead that is D or harder, by its half-step grade; -1 if none.
         function nextHard() as Number {
-            for (var i = cur + 1; i < count(); i++) { if (GRADE[i] >= 4) { return i; } }
+            for (var i = cur + 1; i < count(); i++) { if (HALF[i] >= HARD) { return i; } }
             return -1;
         }
 
