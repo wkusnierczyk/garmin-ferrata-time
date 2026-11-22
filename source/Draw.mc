@@ -1,7 +1,48 @@
 using Toybox.Graphics;
 using Toybox.Math;
+using Toybox.WatchUi;
 
 import Toybox.Lang;
+
+// The app's typeface (#62): Barlow Condensed, the mocks' face, with tabular figures, in SemiBold and
+// Bold, as bitmap fonts. A size is a share of the screen's width, from the size table
+// (resources/fonts/sizes.json, as FontSizes); garmin-font-scaler makes each font at its share of
+// every resolution. Each font is loaded on first use and kept.
+module Fonts {
+
+    var semiLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[FontSizes.SEMI.size()];
+    var boldLoaded as Array<Graphics.FontType?> = new Array<Graphics.FontType?>[FontSizes.BOLD.size()];
+
+    // The size nearest share, the larger on a tie (within the table's rounding). A page asks for a
+    // size in the table, so this finds it; a widget drawn at a factor gets the nearest.
+    function nearest(share as Numeric, sizes as Array<Float>) as Number {
+        var best = 0;
+        for (var i = 1; i < sizes.size(); i++) {
+            if ((sizes[i] - share).abs() <= (sizes[best] - share).abs() + 0.0001) { best = i; }
+        }
+        return best;
+    }
+
+    // SemiBold, the pages' text and numbers, at the size nearest share (of the screen's width).
+    function semi(share as Numeric) as Graphics.FontType {
+        var i = nearest(share, FontSizes.SEMI), f = semiLoaded[i];
+        if (f == null) {
+            f = WatchUi.loadResource(FontSizes.semiId(i)) as Graphics.FontType;
+            semiLoaded[i] = f;
+        }
+        return f;
+    }
+
+    // Bold, the letters in the difficulty boxes and the words beside them, at the size nearest share.
+    function bold(share as Numeric) as Graphics.FontType {
+        var i = nearest(share, FontSizes.BOLD), f = boldLoaded[i];
+        if (f == null) {
+            f = WatchUi.loadResource(FontSizes.boldId(i)) as Graphics.FontType;
+            boldLoaded[i] = f;
+        }
+        return f;
+    }
+}
 
 // Drawing helpers in the design's 416 px coordinates, scaled to the screen.
 class Draw {
@@ -172,9 +213,15 @@ class Draw {
         dc.drawText(s(x), s(y), font, str, justify);
     }
 
-    // Capital letters and digits stand about 0.72 of the font's ascent above the baseline (measured
-    // on the epix Pro's system fonts); the rest of the ascent is space above them.
-    const CAP = 0.72;
+    // Capital letters and digits stand 0.7 of the font's ascent above the baseline: Barlow's cap height
+    // is 0.7 em, and ttf2bmp's ascent (the bitmap's base) is its ascender, 1 em; the rest of the
+    // ascent is space above them.
+    const CAP = 0.7;
+
+    // The app's fonts at a size given as a share of the screen's width (Fonts): SemiBold and Bold.
+    function semi(share as Numeric) as Graphics.FontType { return Fonts.semi(share); }
+
+    function bold(share as Numeric) as Graphics.FontType { return Fonts.bold(share); }
 
     function ascent(font as Graphics.FontType) as Float {
         return Graphics.getFontAscent(font) / k;
