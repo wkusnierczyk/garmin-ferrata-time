@@ -34,6 +34,23 @@ permissions:
   packages: read
 
 jobs:
+  # The route tool's tests, and the route files current with their sources (#47). Its own job on the
+  # runner, not a step in the build's container: the tester image has no Python. pytest from apt,
+  # for the runner's system Python, rather than pip installing into it.
+  routes:
+    name: routes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Test the route tool, and check make routes changes nothing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pytest
+          python3 -m pytest tools/tests -v
+          make routes
+          git diff --exit-code -- resources/routes
+          test -z "$(git status --porcelain -- resources/routes)"
+
   build:
     name: build
     runs-on: ubuntu-latest
