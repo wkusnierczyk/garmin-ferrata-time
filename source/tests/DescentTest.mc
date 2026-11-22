@@ -105,13 +105,12 @@ module DescentTest {
     }
 
     // Every page at every 10 m of the route, each in turn, into a bitmap: a throw fails the test. As
-    // wide as the screen, since the pens are shares of it and a pen under a pixel wide throws; two
-    // colours, so it takes a bit a pixel.
+    // wide as the screen, since the pens are shares of it and a pen under a pixel wide throws; in full
+    // colour, since the fonts are anti-aliased and cannot draw into a palette.
     function drawsEverywhere(r as Route, from as Number, to as Number) as Boolean {
         Climb.use(r, :ferrata);
         var w = System.getDeviceSettings().screenWidth;
-        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w,
-            :palette => [Graphics.COLOR_BLACK, Graphics.COLOR_WHITE] as Array<Graphics.ColorValue>}).get() as Graphics.BufferedBitmap;
+        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w}).get() as Graphics.BufferedBitmap;
         var dc = bitmap.getDc();
         for (var page = from; page <= to; page++) {
             for (var dist = 0; dist <= Climb.totalD(); dist += 10) {
