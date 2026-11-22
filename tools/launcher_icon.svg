@@ -9,8 +9,14 @@
       <rect width="100" height="100" fill="#fff"/>
       <line x1="37" y1="51" x2="60" y2="51" stroke="#000" stroke-width="3.4"/>
     </mask>
+    <!-- The cable stops inside the carabiner, so the ring reads as a ring at 60 px; the mock hides it
+         with a background fill, which a transparent icon cannot. -->
+    <mask id="ring" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <circle cx="79.5" cy="48" r="2.3" fill="#000"/>
+    </mask>
   </defs>
-  <path d="M80 4V96" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M80 4V96" fill="none" mask="url(#ring)" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
   <g fill="currentColor" mask="url(#harness)"><circle cx="48" cy="29" r="9.5"/><circle cx="48" cy="53" r="8"/><polygon points="38.52,29.59 40.02,53.50 55.98,53.50 57.48,29.59"/><circle cx="53" cy="28" r="5.4"/><circle cx="62" cy="19" r="3.7"/><circle cx="71" cy="9" r="2.4"/><polygon points="57.29,31.27 64.94,21.24 59.76,16.06 49.73,23.71"/><polygon points="64.98,21.20 72.93,10.43 69.38,7.23 59.50,16.27"/><circle cx="43" cy="28" r="5.4"/><circle cx="34" cy="19" r="3.7"/><circle cx="25" cy="9" r="2.4"/><polygon points="46.27,23.71 36.24,16.06 31.06,21.24 38.71,31.27"/><polygon points="36.50,16.27 26.62,7.23 23.07,10.43 31.02,21.20"/><circle cx="52" cy="56" r="6.8"/><circle cx="57" cy="74" r="4.6"/><circle cx="61" cy="92" r="2.6"/><polygon points="45.71,58.58 52.74,75.74 61.55,73.30 58.72,54.96"/><polygon points="52.64,75.48 58.54,92.84 63.58,91.71 61.57,73.50"/><circle cx="44" cy="56" r="6.8"/><circle cx="39" cy="74" r="4.6"/><circle cx="35" cy="92" r="2.6"/><polygon points="37.28,54.96 34.45,73.30 43.26,75.74 50.29,58.58"/><polygon points="34.43,73.50 32.42,91.71 37.46,92.84 43.36,75.48"/><circle cx="48" cy="13" r="9"/></g>
   <line x1="56" y1="53" x2="75" y2="49" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
   <circle cx="79.5" cy="48" r="3.6" fill="none" stroke="currentColor" stroke-width="2.6"/>
