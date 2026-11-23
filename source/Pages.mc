@@ -62,26 +62,27 @@ module Pages {
     // the line's end (0.31 of that number's size above the line's end); under the profile the difficulty
     // boxes, 40 % larger than elsewhere, centred on the screen, their tops a box gap below the climber's
     // ring at the start (owner, 2026-11-23). Page 1a: the profile zoomed to 100 m of path around the
-    // climber, kept clear of the altitude group, the difficulty boxes and the ascent.
+    // climber, centred in the rectangle, the altitude group on a half-transparent box over it (#102).
     const BOXES_BIG = 1.4;
+    // The profile's rectangle: its left, width, bottom and height.
+    const PROFILE_X0 = 0.221154;
+    const PROFILE_W = 0.625;
+    const PROFILE_Y0 = 0.764423;
+    const PROFILE_H = 0.543269;
 
     function profilePage(d as Draw, st as Climb.State, zoom as Boolean) as Void {
-        var x0 = 0.221154, w = 0.625, y0 = 0.764423, h = 0.543269;
-        var reach = Widgets.difficultyReach(BOXES_BIG), boxTop = y0 + Widgets.RING_OUTER + Widgets.BOX_GAP;
-        var altTop = y0 - h - 0.31 * Widgets.NUMBER_SIZE;
+        var x0 = PROFILE_X0, w = PROFILE_W, y0 = PROFILE_Y0, h = PROFILE_H;
+        var boxTop = y0 + Widgets.RING_OUTER + Widgets.BOX_GAP;
+        var altTop = y0 - h - 0.31 * Widgets.NUMBER_SIZE, ax = x0 + Widgets.RING_OUTER + 0.019231;
         if (zoom) {
-            var avoid = [
-                x0 + 0.019231, altTop - 0.014423, x0 + 0.336538, altTop + 0.192308,
-                0.5 - reach - 0.009615, boxTop - 0.009615, 0.5 + reach + 0.009615, boxTop + Widgets.BOX_H * BOXES_BIG + 0.009615,
-                x0 - Widgets.RING_OUTER - 0.004808, y0 - h - 0.024038, x0 + Widgets.RING_OUTER + 0.004808, y0 + 0.024038
-            ] as Array<Float>;
-            Widgets.profileZoom(d, st, x0, w, y0, h, avoid);
+            Widgets.profileZoom(d, st, x0, w, y0, h);
         } else {
             Widgets.profile(d, st, x0, w, y0, h);
         }
         Widgets.ascent(d, st, x0, y0, h, true);
         Widgets.difficulty(d, st, 0.5, boxTop, false, BOXES_BIG);
-        Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 0.019231, altTop);
+        if (zoom) { Widgets.altitudeGround(d, st, ax, altTop); }
+        Widgets.altitudeGroup(d, st, ax, altTop);
     }
 
     // ---------------------------------------------------------------- pages 2 and 2a: the difficulty column

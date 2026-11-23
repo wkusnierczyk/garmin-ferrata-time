@@ -157,7 +157,7 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 
 ## profile zoomed
 
-The profile of the zoom window: 100 m of path (each section's length and height combined) around the climber, a fifth of it behind and the rest ahead, slid inside the route near its ends, at one scale across and up, placed as large as it goes while it keeps clear of the widgets around it (page 1a: `design/page-1.md`). A rest is drawn as walking ground there, its ring kept.
+The profile of the zoom window: 100 m of path (each section's length and height combined) around the climber, a fifth of it behind and the rest ahead, slid inside the route near its ends, at one scale across and up, as large as it fits the box, centred in it (page 1a: `design/page-1.md`; the altitude group sits on a half-transparent box there, #102). A rest is drawn as walking ground there, its ring kept.
 
 ## current difficulty group
 

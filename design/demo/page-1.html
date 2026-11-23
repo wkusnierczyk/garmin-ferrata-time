@@ -337,37 +337,15 @@ function profile(st, x0, w, y0, h, opt) {
   const pen = 10;
   let X = d => x0 + d / TD * w, Y = n => y0 - (NET_HI > NET_LO ? (n - NET_LO) / (NET_HI - NET_LO) : 0) * h;
   if (opt.zoom) {
-    // The window at one scale across and up, as large as it goes while the route (with the climber's
-    // outline, 14 px either side) stays clear of the widgets around it (opt.avoid): the largest scale
-    // first, centred, then moved within the box, then a little smaller, until nothing collides.
+    // The window at one scale across and up, as large as it fits the box, centred in it: no search for
+    // a place clear of the widgets (owner, 2026-11-23: too much computation on the watch). Where the
+    // route runs under the altitude, the altitude's half-transparent box dims it (page()).
     const [d0, d1] = zoomWindow(st);
     let u0 = Infinity, u1 = -Infinity;
     for (let j = 0; j <= 50; j++) { const u = netAt(d0 + (d1 - d0) * j / 50); u0 = Math.min(u0, u); u1 = Math.max(u1, u); }
-    const kMax = Math.min(w / Math.max(d1 - d0, 1), h / Math.max(u1 - u0, 1)), m = 16, avoid = opt.avoid || [];
-    // How many points of the visible route fall on a widget: none is the goal; failing that, fewest.
-    const hits = (X, Y, k) => {
-      const lo = Math.max(0, d0 - w / k), hi = Math.min(TD, d1 + w / k), step = 3 / k;
-      let n = 0;
-      for (let d = lo; d <= hi; d += step) {
-        const x = X(d), y = Y(netAt(d));
-        if (x < x0 - m || x > x0 + w + m || y < y0 - h - m || y > y0 + m) continue;
-        if (avoid.some(([ax0, ay0, ax1, ay1]) => x > ax0 - m && x < ax1 + m && y > ay0 - m && y < ay1 + m)) n++;
-      }
-      return n;
-    };
-    let found = null, best = null, bestN = Infinity;
-    search: for (let t = 0; t < 16; t++) {
-      const k = kMax * Math.pow(0.92, t), W = (d1 - d0) * k, H = (u1 - u0) * k;
-      for (const fx of [0.5, 0.25, 0.75, 0, 1]) for (const fy of [0.5, 0.25, 0.75, 0, 1]) {
-        const ox = x0 + (w - W) * fx, oy = y0 - (h - H) * fy;
-        const Xc = d => ox + (d - d0) * k, Yc = u => oy - (u - u0) * k;
-        const n = hits(Xc, Yc, k);
-        if (!n) { found = [Xc, Yc]; break search; }
-        if (n < bestN) { bestN = n; best = [Xc, Yc]; }
-      }
-    }
-    if (!found) found = best;
-    [X, Y] = found;
+    const k = Math.min(w / Math.max(d1 - d0, 1), h / Math.max(u1 - u0, 1)), W = (d1 - d0) * k, H = (u1 - u0) * k;
+    const ox = x0 + (w - W) / 2, oy = y0 - (h - H) / 2;
+    X = d => ox + (d - d0) * k; Y = u => oy - (u - u0) * k;
   }
   let s = "";
   // The climber: an orange outline around the stretch of route they could be on, from how sure the
@@ -538,6 +516,16 @@ function altitudeGroup(st, x, yt, opt) {
   return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 12, opt);
 }
 
+// Page 1a's half-transparent box under the altitude group: its padding, its width (the altitude at its
+// widest with its unit), and its height (the digits, and the poi word under them when there is one).
+const ALT_PAD = 6;
+// The poi word is right-aligned with the digits and may be wider than them (3-digit altitudes, "DANGER"):
+// the box reaches left to cover it too (review of #103). altGroupLeft is how far left of the group it starts.
+const altGroupLeft = (st, opt) => { const m = poi(st, 0, 0, opt).match(/>([A-Z]+)</);
+  return m ? Math.max(0, textWidth(m[1], 24, 700) + m[1].length - altBox(opt.feet)) : 0; };
+const altGroupWidth = opt => altBox(opt.feet) + 4 + textWidth(opt.feet ? "ft" : "m", 24);
+const altGroupHeight = (st, opt) => 0.7 * ALT_SIZE + (poi(st, 0, 0, opt) ? 12 + 0.7 * 24 : 0);
+
 // Page 1's difficulty boxes, larger than the other pages' (owner, 2026-11-23: small and hard to read):
 // 140 %, the middle box's letters Bold 36 (were 26), the satellites' Bold 26 (were 18).
 const DIFFICULTY_BIG = 1.4;
@@ -555,14 +543,13 @@ function page(st, opt) {
   // place (owner, 2026-11-23: it was level with the line's end itself, the top dot's centre, so it sat
   // lower than the number beside it). The number's top is 1 px above the top dot's.
   const altTop = y0 - h - ASC_CAP_ABOVE * ASC_FS;
-  // Page 1a: the zoomed route keeps clear of the altitude group with its point of interest (upper
-  // left), of the difficulty boxes (under the profile, centred) and of the ascent widget on the left
-  // edge: its line and the climber's ring on it.
-  const avoid = [[x0 + 8, altTop - 6, x0 + 140, altTop + 80], [208 - reach - 4, dTop - 4, 208 + reach + 4, dTop + 38 * DIFFICULTY_BIG + 4],
-    [x0 - RING_OUTER - 2, y0 - h - 10, x0 + RING_OUTER + 2, y0 + 10]];
-  return profile(st, x0, w, y0, h, { ...opt, avoid }) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, 208, dTop, opt, DIFFICULTY_BIG) +
+  // Page 1a: the altitude group (with its point of interest) on a half-transparent black box, so the
+  // zoomed route running under it shows through half-dimmed (owner, 2026-11-23), not searched around.
+  const ax = x0 + RING_OUTER + 8, altGround = opt.zoom ?
+    `<rect x="${(ax - altGroupLeft(st, opt) - ALT_PAD).toFixed(1)}" y="${(altTop - ALT_PAD).toFixed(1)}" width="${(altGroupLeft(st, opt) + altGroupWidth(opt) + 2 * ALT_PAD).toFixed(1)}" height="${(altGroupHeight(st, opt) + 2 * ALT_PAD).toFixed(1)}" rx="${ALT_PAD}" fill="#000" fill-opacity="0.5"/>` : "";
+  return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, 208, dTop, opt, DIFFICULTY_BIG) +
     // In the rectangle's upper left, a small space right of the ascent line.
-    altitudeGroup(st, x0 + RING_OUTER + 8, altTop, opt);
+    altGround + altitudeGroup(st, ax, altTop, opt);
 }
 
 const speed = document.getElementById("speed");

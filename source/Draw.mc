@@ -203,6 +203,16 @@ class Draw {
         dc.fillRoundedRectangle(s(x), s(y), s(wd), s(h), s(r));
     }
 
+    // A black rounded rectangle at alpha a (0 to 0xff) over what is drawn, which shows through dimmed
+    // (Graphics.createColor and Dc.setFill, API 4.0; the epix's alphaBlendingSupport). The SDK's docs
+    // say setFill takes precedence over setColor; in the simulator (SDK 9.3, epix2pro47mm) the next
+    // setColor, which every other drawing here starts with, does set an opaque fill again (review of
+    // #103). On the watch: the page dots, drawn after it, should stay solid on page 1a.
+    function shade(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, r as Numeric, a as Number) as Void {
+        dc.setFill(Graphics.createColor(a, 0, 0, 0));
+        dc.fillRoundedRectangle(s(x), s(y), s(wd), s(h), s(r));
+    }
+
     function dot(x as Numeric, y as Numeric, r as Numeric, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(s(x), s(y), s(r));
