@@ -875,8 +875,11 @@ module Widgets {
             var de = Climb.DANGER_AT[e].toFloat();
             at.add(de); lo.add(de); hi.add(de); kind.add(0);
         }
-        var td = Climb.totalD().toFloat();
-        at.add(td); lo.add(td); hi.add(td); kind.add(POI_TOP);
+        // The route's top, on the ferrata.
+        if (Climb.FERRATA) {
+            var td = Climb.totalD().toFloat();
+            at.add(td); lo.add(td); hi.add(td); kind.add(POI_TOP);
+        }
         // Their screen heights, distances from the climber and whether in range; the ones in view,
         // ordered from the top down.
         var n = at.size();
@@ -1099,14 +1102,15 @@ module Widgets {
     // its foot or top; a rest that is the section itself or right before or after it.
     function sectionPoints(i as Number) as Array<Number> {
         var kinds = [] as Array<Number>, n = Climb.count();
-        if (i == 0) { kinds.add(POI_HEAD); }
+        // The head and the top only on the ferrata (the approach ends at the head).
+        if (i == 0 && Climb.FERRATA) { kinds.add(POI_HEAD); }
         var danger = false, exit = false;
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) { if (holds(i, Climb.DANGER_AT[e].toFloat())) { danger = true; } }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { if (holds(i, Climb.dAt(Climb.EXIT_AT[e]).toFloat())) { exit = true; } }
         if (danger) { kinds.add(0); }
         if (exit) { kinds.add(1); }
         if (Climb.GRADE[i] < 0 || i > 0 && Climb.GRADE[i - 1] < 0 || i < n - 1 && Climb.GRADE[i + 1] < 0) { kinds.add(2); }
-        if (i == n - 1) { kinds.add(POI_TOP); }
+        if (i == n - 1 && Climb.FERRATA) { kinds.add(POI_TOP); }
         return kinds;
     }
 
@@ -1443,9 +1447,10 @@ module Widgets {
         var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, kind = -1;
         // From the last kind to the first, so a tie goes to the earlier one.
-        if (ends && lo <= 0.001) { best = st.d; kind = POI_HEAD; }
+        // The head and the top only on the ferrata: the approach starts elsewhere and ends at the head.
+        if (ends && Climb.FERRATA && lo <= 0.001) { best = st.d; kind = POI_HEAD; }
         var top = Climb.totalD().toFloat();
-        if (ends && hi >= top - 0.001 && top - st.d <= best) { best = top - st.d; kind = POI_TOP; }
+        if (ends && Climb.FERRATA && hi >= top - 0.001 && top - st.d <= best) { best = top - st.d; kind = POI_TOP; }
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
                 var dist = 0.0;

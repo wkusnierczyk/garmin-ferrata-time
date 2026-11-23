@@ -1,0 +1,36 @@
+using Toybox.Graphics;
+using Toybox.System;
+
+import Toybox.Lang;
+import Toybox.Test;
+
+// Pages 1 to 9 as the mocks draw them (#95): what the widgets work out, apart from the drawing itself.
+module PagesTest {
+
+    function draw() as Draw {
+        var w = System.getDeviceSettings().screenWidth;
+        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w}).get() as Graphics.BufferedBitmap;
+        return new Draw(bitmap.getDc());
+    }
+
+    function at(d as Float) as Climb.State {
+        return Climb.State.placed(d, Climb.heightAtDistance(d), 30.0, 1.0, 480.0, 25);
+    }
+
+    // Page 9 names the ferrata's head on its first section and the route's top on its last, and
+    // neither on the approach, which starts elsewhere and ends at the head.
+    (:test)
+    function headAndTopOnlyOnTheFerrata(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        var n = Climb.count(), first = Widgets.sectionPoints(0), last = Widgets.sectionPoints(n - 1);
+        Test.assertEqualMessage(first[0], Widgets.POI_HEAD, "HEAD first on the first section");
+        Test.assertEqualMessage(last[last.size() - 1], Widgets.POI_TOP, "TOP last on the last section");
+        Test.assertEqualMessage(Widgets.poiNear(at(0.0), true), Widgets.POI_HEAD, "page 8 at the head");
+        Climb.use(RouteTest.demo(), :approach);
+        var only = Widgets.sectionPoints(0);
+        Test.assertMessage(only.indexOf(Widgets.POI_HEAD) < 0 && only.indexOf(Widgets.POI_TOP) < 0, "none on the approach");
+        Test.assertMessage(Widgets.poiNear(at(0.0), true) != Widgets.POI_HEAD, "no HEAD at the approach's start");
+        Test.assertMessage(Widgets.poiNear(at(Climb.totalD().toFloat()), true) != Widgets.POI_TOP, "no TOP at the head");
+        return true;
+    }
+}

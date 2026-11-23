@@ -201,4 +201,4 @@ A left- or right-pointing chevron, round-ended, white; dimmed when there is noth
 
 ## section points (page 9)
 
-The points a section includes or is next to, as words under its foot's altitude: the ferrata's head for the first section, a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `HEAD` (green), `DANGER` (yellow), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.
+The points a section includes or is next to, as words under its foot's altitude: the ferrata's head for the first section (on the ferrata only; the approach starts elsewhere and ends at the head, so it shows neither HEAD nor TOP), a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `HEAD` (green), `DANGER` (yellow), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.

@@ -31,6 +31,10 @@ module Climb {
     // Danger points, in metres along the part.
     var DANGER_AT as Array<Number> = [] as Array<Number>;
 
+    // Whether the part is the ferrata (else the approach): only the ferrata starts at its head and ends
+    // at the route's top.
+    var FERRATA as Boolean = true;
+
     // Altitude at the start of the part.
     var START_ALT as Number = 0;
     // Own pace against the guidebook: 8 percent slower.
@@ -55,6 +59,7 @@ module Climb {
     // Fill the route's variables from one part of r: :approach or :ferrata.
     function use(r as Route, part as Symbol) as Void {
         var ferrata = part == :ferrata;
+        FERRATA = ferrata;
         var list = ferrata ? r.sections : r.approach;
         var n = list.size();
         LEN = new [n] as Array<Number>;
