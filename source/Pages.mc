@@ -15,7 +15,6 @@ module Pages {
     const SECTION_BW = 0.317308;
     const SECTION_BH = 0.221154;
     var selected as Number = -1;
-    const WHITE = Graphics.COLOR_WHITE;
     const DIM = 0x7f8a8a;
 
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
