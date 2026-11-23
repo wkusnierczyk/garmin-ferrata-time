@@ -15,26 +15,36 @@ module InputsTest {
         return x <= e && x >= -e;
     }
 
-    // The demo through the tracker keeps to the demo's own place on every climbing section (the
-    // plan's bar: 15 m), and ends at the top. Driven as the view drives it, a reading every tick.
+    // The demo through the tracker keeps to the demo's own place on every climbing and descending
+    // section (the plan's bar: 15 m; within a metre on the steep descent), and ends at the top. Driven
+    // as the view drives it, a reading every tick.
     (:test)
     function demoThroughTrackerFollowsDemoClock(logger as Logger) as Boolean {
         var r = RouteTest.demo();
         var input = new DemoInput(r);
         var t = new Tracker(r);
         t.start(:head, input.read(0));
-        var worst = 0.0, checked = 0;
+        var worst = 0.0, checked = 0, worstDown = 0.0, down = 0;
         for (var ms = 250; ms <= DemoInput.LOOP_MS + DemoInput.HOLD_MS; ms += 250) {
             t.update(input.read(ms));
             var st = new Climb.State(input.minute);
-            if (Climb.UP[st.cur] <= 0) { continue; }
+            if (Climb.UP[st.cur] == 0) { continue; }
             var e = (t.d - st.d).abs();
-            if (e > worst) { worst = e; }
-            checked++;
+            if (Climb.UP[st.cur] > 0) {
+                if (e > worst) { worst = e; }
+                checked++;
+            } else {
+                if (e > worstDown) { worstDown = e; }
+                down++;
+            }
             Test.assertMessage(e <= 15.0, "minute " + input.minute + ": tracker " + t.d + ", demo " + st.d);
         }
-        logger.debug("checked " + checked + ", worst " + worst + " m");
+        logger.debug("checked " + checked + ", worst " + worst + " m; descending " + down + ", worst " + worstDown + " m");
         Test.assertMessage(checked > 100, "climbing readings checked: " + checked);
+        Test.assertMessage(down > 50, "descending readings checked: " + down);
+        // The Dihedral falls 4.4 m a metre along, so the height alone places the climber to a fraction of
+        // a metre there: a metre is room enough, and lag on the descent shows (the review of #101).
+        Test.assertMessage(worstDown <= 1.0, "on the descent, worst " + worstDown + " m");
         Test.assertMessage(near(t.d, Climb.totalD().toFloat(), 0.01), "at the top, d " + t.d);
         return true;
     }
