@@ -115,6 +115,93 @@ module DescentTest {
         return true;
     }
 
+    // #100: a section descends when it loses height (UP < 0); its grade box is then a trapezium.
+    (:test)
+    function descendsWhenItLosesHeight(logger as Logger) as Boolean {
+        Climb.use(downRoute(), :ferrata);
+        Test.assertMessage(!Climb.descends(0) && Climb.descends(1) && !Climb.descends(2), "only the middle section");
+        Climb.use(RouteTest.made([[100, 0]] as Array<Array<Number> >), :ferrata);
+        Test.assertMessage(!Climb.descends(0), "a flat section does not");
+        return true;
+    }
+
+    // The trapezium: the rectangle's top, its foot TRAP_FOOT of the top's width, the corners' centres
+    // inset by the corner radius.
+    (:test)
+    function trapeziumNarrowerAtItsFoot(logger as Logger) as Boolean {
+        var c = Widgets.trapeziumCorners(0.5, 0.2, 0.2, 0.1, 0.02);
+        Test.assertMessage(RouteTest.near(c[0], 0.42) && RouteTest.near(c[1], 0.22), "top left");
+        Test.assertMessage(RouteTest.near(c[2], 0.58) && RouteTest.near(c[3], 0.22), "top right");
+        Test.assertMessage(RouteTest.near(c[4], 0.56) && RouteTest.near(c[5], 0.28), "foot right, 0.8 of the top");
+        Test.assertMessage(RouteTest.near(c[6], 0.44) && RouteTest.near(c[7], 0.28), "foot left");
+        return true;
+    }
+
+    // #100: the ascent widgets show a position, the real (net) height, not an amount: the ring pulls back
+    // down on a descent, its numbers the net height above the head and the top's net height less that.
+    (:test)
+    function ascentFollowsNetHeight(logger as Logger) as Boolean {
+        Climb.use(downRoute(), :ferrata);
+        // The top is 150 m above the head; at the descent's foot the climber is 50 m above it, though
+        // 100 m have been climbed.
+        var places = [0.0, 100.0, 150.0, 250.0] as Array<Float>;
+        var shares = [0.0, 100.0 / 150, 50.0 / 150, 1.0] as Array<Float>;
+        var numbers = [[0, 150], [100, 50], [50, 100], [150, 0]] as Array<Array<Number> >;
+        for (var p = 0; p < places.size(); p++) {
+            var st = PagesTest.at(places[p]);
+            Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), shares[p]), "at " + places[p] + ": share " + Widgets.ascentShare(st));
+            Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), numbers[p].toString(), "at " + places[p]);
+        }
+        Test.assertEqualMessage(PagesTest.at(150.0).climbed(), 100, "climbed stays gained height");
+        return true;
+    }
+
+    // A route that dips below its head and climbs above its top before coming down to it: the ring stays
+    // on the line, at its ends, while the numbers say how far past them.
+    (:test)
+    function ascentRingStaysOnTheLine(logger as Logger) as Boolean {
+        Climb.use(dipRoute(), :ferrata);
+        // Net -20 at 50 m, 80 at 150 m; the top 70.
+        var st = PagesTest.at(50.0);
+        Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 0.0), "the dip at the start");
+        Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [-20, 90].toString(), "below the head");
+        st = PagesTest.at(150.0);
+        Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 1.0), "the high point at the top");
+        Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [80, -10].toString(), "above the top");
+        return true;
+    }
+
+    // A part whose top is at or below its start (an approach going down, or ending where it started):
+    // no way up, so the ring stays at the start and the numbers are 0 (the review of #101: the ring
+    // climbed as the climber went down, both numbers negative).
+    (:test)
+    function ascentWithNoWayUp(logger as Logger) as Boolean {
+        var routes = [[[100, -20]], [[50, 10], [50, -10]], [[50, 10], [50, -30]]] as Array<Array<Array<Number> > >;
+        for (var r = 0; r < routes.size(); r++) {
+            Climb.use(RouteTest.made(routes[r]), :ferrata);
+            var places = [0.0, 50.0, 75.0, 100.0] as Array<Float>;
+            for (var p = 0; p < places.size(); p++) {
+                var st = PagesTest.at(places[p]);
+                Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 0.0),
+                    "route " + r + " at " + places[p] + ": share " + Widgets.ascentShare(st));
+                Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [0, 0].toString(),
+                    "route " + r + " at " + places[p]);
+            }
+        }
+        return true;
+    }
+
+    // Page 9 (#100): a descent's start, the higher altitude, above its box and its end below; a climb's
+    // end above and its start below, as before.
+    (:test)
+    function pageNineHigherAltitudeAbove(logger as Logger) as Boolean {
+        Climb.use(downRoute(), :ferrata);
+        Test.assertEqualMessage(Pages.sectionLines(0, false).toString(), [1100, 1000].toString(), "a climb");
+        Test.assertEqualMessage(Pages.sectionLines(1, false).toString(), [1100, 1050].toString(), "the descent");
+        Test.assertEqualMessage(Pages.sectionLines(2, false).toString(), [1150, 1050].toString(), "the climb after it");
+        return true;
+    }
+
     (:test)
     function stackTicksOnlyWhereTheRouteRises(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);

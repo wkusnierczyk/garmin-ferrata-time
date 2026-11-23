@@ -2,7 +2,8 @@ import Toybox.Lang;
 import Toybox.Test;
 
 // The tracker (#49): syncs, drift, the place estimate and pace, on the demo route (head 1290 m, the
-// Bench landmark at 390 m along and 1530 m, the top at 640 m and 1800 m) and on made-up routes.
+// Bench landmark at 390 m along and 1310 m, the top at 640 m and 1580 m: the Dihedral goes down 110 m,
+// #100) and on made-up routes.
 module TrackerTest {
 
     // A reading at minute min of the climb, the watch reading alt.
@@ -71,11 +72,11 @@ module TrackerTest {
     function landmarkSyncSetsPlace(logger as Logger) as Boolean {
         var t = new Tracker(RouteTest.demo());
         t.start(:head, at(0, 1290.0));
-        t.update(at(150, 1540.0));
+        t.update(at(150, 1320.0));
         // The estimate past the Bench, at 420 m.
         t.d = 420.0;
         Test.assertMessage(t.state().band > 10, "the band has grown, " + t.state().band);
-        t.syncAt(BENCH, at(151, 1520.0));
+        t.syncAt(BENCH, at(151, 1300.0));
         Test.assertMessage(near(t.d, 390.0), "at the Bench, d " + t.d);
         Test.assertEqualMessage(t.state().band, 10, "band back to 10");
         Test.assertMessage(near(t.offset as Float, 10.0), "offset " + t.offset);
@@ -219,7 +220,7 @@ module TrackerTest {
     function endAtTopRecordsDrift(logger as Logger) as Boolean {
         var t = climbing(90);
         var d = t.d, u = t.u;
-        t.end(TOP, at(20, 1790.0));
+        t.end(TOP, at(20, 1570.0));
         Test.assertEqualMessage(t.phase, Tracker.ENDED, "ended");
         Test.assertMessage(near(t.drifts[0], 10.0), "drift " + t.drifts);
         Test.assertMessage(near(t.offset as Float, 0.0), "the offset is not changed");

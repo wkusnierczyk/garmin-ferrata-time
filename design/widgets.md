@@ -44,10 +44,10 @@ The route's height as a vertical line, with the climber on it.
 - A thin grey line from the start (bottom) to the top.
 - Sizes (owner, 2026-11-22: slightly larger): the ring 0.0264 of the screen in radius with a 0.0072 pen, the end dots 0.0180, the numbers SemiBold 0.0673.
 - The start and the top as a green and a red dot at the line's ends. On by default; an option turns them off.
-- The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot. The height is height gained, as Garmin counts ascent: a descent does not lower it (#56).
+- The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot. The line runs from the head to the top's real (net) height, and the ring is a position on it, the real height (#100; owner, 2026-11-23): on a descent it pulls back down. Where the route dips below the head, or climbs above its top before coming down to it, the ring stays at the line's end and the numbers say how far past it.
 - Stacking, back to front: the line; the ring's black inside, hiding the line; the end dots; the ring's orange outline.
 - Two numbers left of the line, right-aligned a small space before the ring:
-  - below the ring, the metres climbed; above it, the metres left;
+  - below the ring, the real height above the head now; above it, the top's real height less that (#100: on a descent the lower number falls and the upper grows). Amounts climbed stay height gained: the stacks, the gauge by ascent's arcs and the climbed totals;
   - each centred on its stretch of the line, but kept clear of the ring as it nears either end;
   - and never past the line's end: once a number is level with the end it stays there.
 
@@ -61,6 +61,7 @@ What the climber is on, and what the uncertainty reaches.
 - Middle: the section the climber is estimated to be in.
 - Satellites: when the uncertainty stretch reaches past that section, the nearest thing behind goes left and the nearest ahead goes right. A thing is the neighbouring section, or an exit or danger point inside the stretch; a point wins a tie with a section boundary. Empty slots stay empty.
 - Grades `W` (walk) and `A` to `F/G` in half steps: filled boxes in the profile's colour map, black letters; a box as wide as its letters, 0.1106 of the screen for one, 0.1394 for more.
+- A section that loses height has its box as a **trapezium**, narrower at its foot (#100; owner, 2026-11-23), so a descent is not taken for a climb: the rectangle's top, height, rounded corners and colour, its foot 0.8 of its top's width, the same black letters; an outlined box an outlined trapezium. The same on every page with grade boxes: the difficulty boxes (pages 1, 1a), the difficulty column (2, 2a, 3: every descending box in it, filled or outlined), the large box (6a, 6b, 9) and the current difficulty group's (7, 7a, 8). The stacks (pages 4, 5) show grades as letters with no box. Connect IQ has no rounded polygon: the app draws the trapezium inset by the corner radius, grown by it on every side, a circle on each corner.
 - Rest `R`, exit `E`, danger `D`: outlined boxes in their colours, letters in the same colour.
 - The letters are centred in the box both ways, on the capitals' height.
 
@@ -91,6 +92,7 @@ The difficulty widget turned upright: the sections around the climber.
 - Five slots in a column, centred vertically: the current section second from the bottom, the one before it below, the three after it above (owner, 2026-11-23; it was in the middle, two and two). Missing slots, near the start or the top, stay empty; the current box does not move.
 - All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 35 % larger (owner, 2026-11-23; it was 8 %) and filled in its colour with black letters, Bold 0.0865.
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
+- A section that loses height, filled or outlined, as a trapezium narrower at its foot (*difficulty*, #100).
 - Letters `W` and `A` to `F/G`. A rest shows as `W`; the mock can show it as `R`.
 
 Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
@@ -120,8 +122,8 @@ Open: the scales, and flat sections in the ascent stack (lines, or a minimum hei
 The ascent widget bent around the screen's edge.
 
 - A thin grey arc from the start at the lower left, over the top, to the route's top at the lower right (284°), leaving the bottom free.
-- The climber's orange ring on it at the height climbed; the start and top as green and red dots.
-- In the gap at the bottom, the metres climbed beside the start's dot and the metres left beside the top's, facing inwards (0.0192 of the screen past the dots' edges), so the larger numbers stay on the screen.
+- The climber's orange ring on it at the real height, a position as on the *ascent* line (#100): it pulls back on a descent; the start and top as green and red dots.
+- In the gap at the bottom, the *ascent*'s two numbers: the real height above the head beside the start's dot and the top's less that beside the top's, facing inwards (0.0192 of the screen past the dots' edges), so the larger numbers stay on the screen.
 
 Options: the end dots on or off.
 
@@ -137,7 +139,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 
 ## gap ascent
 
-The ascent widget along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top as green and red dots on the gauge's two ends, the metres climbed and left beside them facing inwards (0.0144 of the screen from the dots), and between the numbers a grey line the climber's ring travels, reaching up to each number as drawn: it grows when a number is short and shrinks when it is long (the no-jitter rule given up for this widget on purpose, owner 2026-11-22).
+The ascent widget along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top as green and red dots on the gauge's two ends, the *ascent*'s two numbers beside them facing inwards (the real height above the head, and the top's less that; #100) (0.0144 of the screen from the dots), and between the numbers a grey line the climber's ring travels, reaching up to each number as drawn: it grows when a number is short and shrinks when it is long (the no-jitter rule given up for this widget on purpose, owner 2026-11-22). The ring is a position, the real height: it pulls back on a descent (#100).
 
 ## next
 
@@ -161,7 +163,7 @@ The profile of the zoom window: 100 m of path (each section's length and height 
 
 The current difficulty with what surrounds it, as one unit; its sizes scale together (pages 7 and 8 draw it 50 % larger), each text at the font table's nearest size.
 
-- The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`.
+- The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`; a trapezium narrower at its foot for a section that loses height (*difficulty*, #100). The group's placement on page 7 is the rectangle's: the trapezium's top is as wide.
 - Above it, the altitude with its unit, centred on the box together (owner, 2026-11-23), its baseline 0.0288 of the screen above the box (below it, the next line's capitals as far below; the same gap on pages 6a to 9): on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
 - Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
 - Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the ferrata's head (`HEAD`, green; never START, as the climb may start on the approach, owner 2026-11-23) and the route's top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).

@@ -37,8 +37,8 @@ module ReplayTest {
     }
 
     // A replay made from the demo's readings drives a tracker to within 15 m of the demo's own place
-    // (the plan's bar, as for the demo through the tracker) at every reading that falls on a climbing
-    // section, and to the top at the end. Read as the view reads the sensors, once a second, at the
+    // (the plan's bar, as for the demo through the tracker; within a metre on the steep descent) at
+    // every reading that falls on a climbing or descending section, and to the top at the end. Read as the view reads the sensors, once a second, at the
     // replay's speed: a minute of the climb a reading, so places between readings are not checked.
     (:test)
     function replayMatchesDemo(logger as Logger) as Boolean {
@@ -51,22 +51,32 @@ module ReplayTest {
         var first = samples[0][0] as Number, last = samples[samples.size() - 1][0] as Number;
         // A second past the reading that reaches the last entry.
         var endMs = ((last - first) / ReplayInput.SPEED + 2) * 1000;
-        var worst = 0.0, checked = 0, lastT = first;
+        var worst = 0.0, checked = 0, worstDown = 0.0, down = 0, lastT = first;
         for (var ms = 1000; ms <= endMs && lastT < last; ms += 1000) {
             var rd = input.read(ms);
             lastT = rd.t;
             t.update(rd);
             var st = new Climb.State((rd.t / 60.0 - Climb.START_CLOCK) / Climb.PACE);
-            if (Climb.UP[st.cur] > 0) {
+            if (Climb.UP[st.cur] != 0) {
                 var e = (t.d - st.d).abs();
-                if (e > worst) { worst = e; }
-                checked++;
+                if (Climb.UP[st.cur] > 0) {
+                    if (e > worst) { worst = e; }
+                    checked++;
+                } else {
+                    if (e > worstDown) { worstDown = e; }
+                    down++;
+                }
                 Test.assertMessage(e <= 15.0, "t " + rd.t + ": tracker " + t.d + ", demo " + st.d);
             }
         }
         Test.assertEqualMessage(lastT, last, "the replay reached its last entry");
-        logger.debug(samples.size() + " entries; checked " + checked + ", worst " + worst + " m");
+        logger.debug(samples.size() + " entries; checked " + checked + ", worst " + worst + " m; descending "
+            + down + ", worst " + worstDown + " m");
         Test.assertMessage(checked > 50, "climbing readings checked: " + checked);
+        Test.assertMessage(down > 10, "descending readings checked: " + down);
+        // The Dihedral falls 4.4 m a metre along: a whole-metre reading, interpolated on the 10 s grid,
+        // places the climber to a fraction of a metre there, so a metre is room enough.
+        Test.assertMessage(worstDown <= 1.0, "on the descent, worst " + worstDown + " m");
         Test.assertMessage(near(t.d, Climb.totalD().toFloat(), 0.01), "at the top, d " + t.d);
         return true;
     }

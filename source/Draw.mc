@@ -169,6 +169,35 @@ class Draw {
         dc.fillRectangle(s(x), s(y), s(wd) < 1 ? 1 : s(wd), s(h) < 1 ? 1 : s(h));
     }
 
+    // A convex polygon through the points [x, y], in order around it, grown by r on every side, its
+    // corners rounded to r (Connect IQ has no rounded polygon): a circle of radius r on each corner and
+    // the polygon of the sides moved out by r. Worked out in whole pixels from the same corners, so the
+    // sides meet the circles without a step.
+    function roundPoly(pts as Array<Array<Float>>, r as Numeric, c as Number) as Void {
+        var n = pts.size(), R = s(r), px = new Array<Number>[n], py = new Array<Number>[n], mx = 0.0, my = 0.0;
+        for (var i = 0; i < n; i++) {
+            px[i] = s(pts[i][0]); py[i] = s(pts[i][1]);
+            mx += px[i]; my += py[i];
+        }
+        mx /= n; my /= n;
+        var out = [] as Array<[Numeric, Numeric]>;
+        for (var i = 0; i < n; i++) {
+            var j = (i + 1) % n, dx = (px[j] - px[i]).toFloat(), dy = (py[j] - py[i]).toFloat();
+            var len = Math.sqrt(dx * dx + dy * dy);
+            if (len <= 0) { continue; }
+            // The side's normal, turned away from the polygon's middle.
+            var nx = -dy / len, ny = dx / len;
+            if (((px[i] + px[j]) / 2.0 - mx) * nx + ((py[i] + py[j]) / 2.0 - my) * ny < 0) { nx = -nx; ny = -ny; }
+            out.add([Math.round(px[i] + nx * R).toNumber(), Math.round(py[i] + ny * R).toNumber()]);
+            out.add([Math.round(px[j] + nx * R).toNumber(), Math.round(py[j] + ny * R).toNumber()]);
+        }
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        if (out.size() >= 3) { dc.fillPolygon(out); }
+        if (R > 0) {
+            for (var i = 0; i < n; i++) { dc.fillCircle(px[i], py[i], R); }
+        }
+    }
+
     function roundRect(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, r as Numeric, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(s(x), s(y), s(wd), s(h), s(r));

@@ -138,7 +138,7 @@ module Pages {
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = SECTION_BW, bh = SECTION_BH, by = 0.5;
         Widgets.gauge(d, st, byUp);
-        Widgets.bigDifficultyOf(d, Widgets.section(st.cur, false), 0.5, by, bw, bh, 0.1683);
+        Widgets.bigDifficultyOf(d, Widgets.section(st.cur, false), 0.5, by, bw, bh, 0.1683, Climb.descends(st.cur));
         altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, Widgets.altitudeNow(st, Widgets.feet()));
         // What comes next, Bold 36 px at 416, its capitals' top GROUP_GAP below the box (owner, 2026-11-23).
         var nextBase = by + bh / 2 + Widgets.GROUP_GAP + 0.7 * 0.0865;
@@ -186,21 +186,29 @@ module Pages {
 
     // ---------------------------------------------------------------- page 9: a section preview
 
+    // Page 9's altitudes, [above the box, below it], to the metre or foot: a climb's end above and its
+    // start below, up the stack; a descent, whose trapezium already says it goes down, its start (the
+    // higher) above and its end below (#100; owner, 2026-11-23).
+    function sectionLines(i as Number, ft as Boolean) as [Number, Number] {
+        var a = Widgets.sectionAltitudes(i, ft);
+        return Climb.descends(i) ? [a[0], a[1]] : [a[1], a[0]];
+    }
+
     // design/page-9.md: page 6b's gauge showing the selected section (the climber's until the user
-    // steps), its difficulty in the middle between chevrons, its top's altitude above and its foot's
-    // below, under them its points as words, a dim dot between; the ascent along the gauge's gap shows
-    // the climber.
+    // steps), its difficulty in the middle between chevrons (a trapezium for a descent), its altitudes
+    // above and below (sectionLines), under them its points as words, a dim dot between; the ascent
+    // along the gauge's gap shows the climber.
     function sectionPage(d as Draw, st as Climb.State) as Void {
         var i = selected >= 0 ? selected : st.cur, n = Climb.count();
         var bw = SECTION_BW, bh = SECTION_BH, by = SECTION_BY;
         Widgets.selectionGauge(d, i);
-        Widgets.bigDifficultyOf(d, Widgets.section(i, false), 0.5, by, bw, bh, 0.1683);
+        Widgets.bigDifficultyOf(d, Widgets.section(i, false), 0.5, by, bw, bh, 0.1683, Climb.descends(i));
         Widgets.chevron(d, 0.5 - bw / 2 - 0.096154, by, -1, i > 0);
         Widgets.chevron(d, 0.5 + bw / 2 + 0.096154, by, 1, i < n - 1);
-        var alts = Widgets.sectionAltitudes(i, Widgets.feet());
+        var alts = sectionLines(i, Widgets.feet());
         var footBase = by + bh / 2 + Widgets.GROUP_GAP + 0.7 * 0.0962;
-        altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, alts[1]);
-        altitudeLine(d, footBase, alts[0]);
+        altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, alts[0]);
+        altitudeLine(d, footBase, alts[1]);
         // The points, Bold 28 px at 416, letter-spaced, each in its colour, centred as one line.
         var kinds = Widgets.sectionPoints(i);
         if (kinds.size() > 0) {

@@ -15,4 +15,4 @@ Two upright widgets side by side, composed from existing widgets. The app's fift
 - The column centred 0.0481 of the screen below its middle, to make room for the title at the top, its digits' top at 0.0962 of the screen down: "NOW" and the **altitude**. "NOW" is in the altitude's font and size, in the current section's difficulty colour (a rest's blue while resting), with no box, 0.0288 of the screen before the altitude (owner, 2026-11-22: the first version's black Bold 24 in a box of that colour was barely readable on the watch). The line is centred as wide as the route's widest altitude, so it never moves.
 - Difficulty colours: heat with amber, no purple.
 
-The ascent's climber ring and the current box share a height only by chance: one is the height climbed, the other the sections around the climber.
+The ascent's climber ring and the current box share a height only by chance: one is the real height on the way to the top (it pulls back on a descent, #100), the other the sections around the climber. A descending section's box in the column is a trapezium narrower at its foot.
