@@ -414,12 +414,6 @@ module Widgets {
         return g < 0 && !points ? 0 : g;
     }
 
-    // How far the difficulty widget at size k can reach either side of its centre: wide boxes in every
-    // slot.
-    function difficultyReach(k as Float) as Float {
-        return BOX_WIDE * k / 2 + BOX_GAP + BOX_WIDE * SATELLITE * k;
-    }
-
     // ---------------------------------------------------------------- altitude, poi
 
     // The altitude's size and its unit's, and the poi word's (bold), as shares of the screen's width
