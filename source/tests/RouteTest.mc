@@ -85,9 +85,9 @@ module RouteTest {
         Test.assertEqualMessage(Climb.EXIT_AT.toString(), [4, 8].toString(), "exits");
         Test.assertEqualMessage(Climb.EXIT_NAME.toString(), ["Band exit", "Last exit"].toString(), "exit names");
         Test.assertEqualMessage(Climb.DANGER_AT.toString(), [55, 520].toString(), "dangers");
-        // Half steps on the K scale the pages draw: 5 (C) is K3, 9 (E) is K5.
-        Test.assertEqualMessage(Climb.GRADE[0], 3, "first wall");
-        Test.assertEqualMessage(Climb.GRADE[8], 5, "overhang");
+        // The half steps the pages draw (#95): 5 is C, 9 is E.
+        Test.assertEqualMessage(Climb.GRADE[0], 5, "first wall");
+        Test.assertEqualMessage(Climb.GRADE[8], 9, "overhang");
         return true;
     }
 
@@ -314,9 +314,9 @@ module RouteTest {
 
     (:test)
     function hardIsDAndAbove(logger as Logger) as Boolean {
-        // S1 is C/D (6), drawn as K4 but not hard; S2 is D (7).
+        // S1 is C/D (6), not hard; S2 is D (7).
         Climb.use(Route.fromJson(source()) as Route, :ferrata);
-        Test.assertEqualMessage(Climb.GRADE[0], 4, "C/D draws as K4");
+        Test.assertEqualMessage(Climb.GRADE[0], 6, "C/D drawn as such");
         var st = new Climb.State(0.0);
         Test.assertEqualMessage(st.nextHard(), 1, "D is the next hard section");
         var data = source();

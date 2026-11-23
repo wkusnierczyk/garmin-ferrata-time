@@ -158,20 +158,15 @@ module DescentTest {
         return true;
     }
 
-    // Every page on the route that dips below its head; page 7 also on the one with no sideways travel,
-    // whose fit divided by 0 (the other pages draw nothing there the dip does not).
+    // Every page on the route that dips below its head; pages 7 and 7a also on the one with no sideways
+    // travel, whose fit divided by 0 (the other pages draw nothing there the dip does not).
     (:test, :noreplay)
-    function pagesOneToNineDrawOnADip(logger as Logger) as Boolean {
-        return drawsEverywhere(dipRoute(), 0, Pages.SECTION_PAGE);
+    function pagesDrawOnADip(logger as Logger) as Boolean {
+        return drawsEverywhere(dipRoute(), 0, Pages.COUNT - 1);
     }
 
     (:test, :noreplay)
-    function demoPagesDrawOnADip(logger as Logger) as Boolean {
-        return drawsEverywhere(dipRoute(), Pages.SECTION_PAGE + 1, Pages.COUNT - 1);
-    }
-
-    (:test, :noreplay)
-    function frontPageDrawsWithoutSidewaysTravel(logger as Logger) as Boolean {
-        return drawsEverywhere(downRoute(), 7, 7);
+    function frontPagesDrawWithoutSidewaysTravel(logger as Logger) as Boolean {
+        return drawsEverywhere(downRoute(), 10, 11);
     }
 }

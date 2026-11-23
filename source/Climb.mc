@@ -1,3 +1,4 @@
+using Toybox.Math;
 import Toybox.Lang;
 
 // The route the pages show and the climber's place on it. The route is one part of the loaded route
@@ -7,19 +8,18 @@ import Toybox.Lang;
 module Climb {
 
     // One entry per section of the part: metres along the route, metres up (negative going down),
-    // grade, guidebook minutes, name. Grade 0 is walking, 1 to 5 are K1 to K5, and -1 marks a rest
-    // stretch.
+    // grade, guidebook minutes, name. The grade is the route file's, in half steps: 1 A, 2 A/B ... 7 D
+    // ... 12 F/G; 0 is walking, and -1 marks a rest stretch.
     var LEN as Array<Number> = [] as Array<Number>;
     var UP as Array<Number> = [] as Array<Number>;
     var GRADE as Array<Number> = [] as Array<Number>;
     var MIN as Array<Number> = [] as Array<Number>;
     var NAME as Array<String> = [] as Array<String>;
-    // The grades as the route file has them, in half steps (1 A ... 7 D ... 12 F/G; 0 walking, -1
-    // rest): GRADE is what the pages draw, this is what decides.
+    // The grades as the route file has them: the pages draw these too (A to F, #95), so GRADE is HALF
+    // until the K setting (#58) lets the pages draw K grades instead.
     var HALF as Array<Number> = [] as Array<Number>;
     // Hard is D and above (design, section 5).
     const HARD = 7;
-    const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"] as Array<String>;
 
     // Exits leave at the start of these sections.
     var EXIT_AT as Array<Number> = [] as Array<Number>;
@@ -69,7 +69,7 @@ module Climb {
             LEN[i] = s["len"] as Number;
             UP[i] = s["up"] as Number;
             HALF[i] = s["grade"] as Number;
-            GRADE[i] = kGrade(HALF[i]);
+            GRADE[i] = HALF[i];
             MIN[i] = Route.minutes(s);
             NAME[i] = s["name"] as String;
             SIDE[i] = (s["side"] as Numeric).toFloat();
@@ -118,8 +118,8 @@ module Climb {
     }
 
     // A grade in the route file's half steps (1 A, 2 A/B ... 11 F, 12 F/G; 0 walking, -1 rest) on
-    // the K scale the pages draw: A is K1 to E K5, a half step rounds up to the harder grade, and F
-    // and above draw as K5. Until the pages draw half steps (#58).
+    // the K scale: A is K1 to E K5, a half step rounds up to the harder grade, and F and above are K5.
+    // For the K setting (#58); the pages draw the half steps meanwhile.
     function kGrade(h as Number) as Number {
         if (h <= 0) { return h; }
         var k = h / 2 + 1;
@@ -195,11 +195,11 @@ module Climb {
 
     // The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs
     // (a flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each
-    // grade above walking (rests count as walking). The guidebook minute reached at fraction f.
+    // full grade above walking, 1.1 to the power of half the half steps, as the mocks (rests count as
+    // walking). The guidebook minute reached at fraction f.
     function demoWeight(i as Number) as Float {
         var w = (UP[i] > 5 ? UP[i] : 5).toFloat();
-        for (var g = 0; g < GRADE[i]; g++) { w *= 1.1; }
-        return w;
+        return w * Math.pow(1.1, (GRADE[i] > 0 ? GRADE[i] : 0) / 2.0).toFloat();
     }
 
     // The weights summed up to each boundary, worked out once.
@@ -392,12 +392,6 @@ module Climb {
         return (t / 60).format("%d") + ":" + (t % 60).format("%02d");
     }
 
-    function durationText(minutes as Float) as String {
-        var t = minutes.toNumber();
-        if (t < 0) { t = 0; }
-        return (t / 60).format("%d") + ":" + (t % 60).format("%02d");
-    }
-
     // The climber's state at guidebook minute m (the demo), or at a place the tracker worked out
     // (placed).
     class State {
@@ -458,48 +452,10 @@ module Climb {
         function elapsed() as Float { var e = given; return e != null ? e : m * pace; }
         function left() as Float { return (totalM() - m) * pace; }
         function clock() as Float { return startClock + elapsed(); }
-        function finish() as Float { return clock() + left(); }
-
-        // Minutes until the start of section i, at the climber's pace.
-        function untilStart(i as Number) as Float { return (mAt(i) - m) * pace; }
 
         // The next section ahead that is D or harder, by its half-step grade; -1 if none.
         function nextHard() as Number {
             for (var i = cur + 1; i < count(); i++) { if (HALF[i] >= HARD) { return i; } }
-            return -1;
-        }
-
-        function nextRest() as Number {
-            for (var i = cur + 1; i < count(); i++) { if (GRADE[i] < 0) { return i; } }
-            return -1;
-        }
-
-        // Index into EXIT_AT of the next exit ahead, or -1.
-        function nextExit() as Number {
-            for (var e = 0; e < EXIT_AT.size(); e++) { if (dAt(EXIT_AT[e]) > d) { return e; } }
-            return -1;
-        }
-
-        function exitsLeft() as Number {
-            var n = 0;
-            for (var e = 0; e < EXIT_AT.size(); e++) { if (dAt(EXIT_AT[e]) > d) { n++; } }
-            return n;
-        }
-
-        function hardestDone() as Number {
-            var g = -1;
-            for (var i = 0; i < cur; i++) { if (GRADE[i] > g) { g = GRADE[i]; } }
-            return g;
-        }
-
-        function hardestAhead() as Number {
-            var g = -1;
-            for (var i = cur; i < count(); i++) { if (GRADE[i] > g) { g = GRADE[i]; } }
-            return g;
-        }
-
-        function firstAhead(grade as Number) as Number {
-            for (var i = cur; i < count(); i++) { if (GRADE[i] == grade) { return i; } }
             return -1;
         }
     }
