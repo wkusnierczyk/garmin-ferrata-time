@@ -164,7 +164,7 @@ The current difficulty with what surrounds it, as one unit; its sizes scale toge
 - The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`.
 - Above it, the altitude with its unit, centred on the box together (owner, 2026-11-23), its baseline 0.0288 of the screen above the box (below it, the next line's capitals as far below; the same gap on pages 6a to 9): on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
 - Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
-- Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the route's start (`START`, green) and top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).
+- Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the ferrata's head (`HEAD`, green; never START, as the climb may start on the approach, owner 2026-11-23) and the route's top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).
 
 ## Groups
 
@@ -200,4 +200,4 @@ A left- or right-pointing chevron, round-ended, white; dimmed when there is noth
 
 ## section points (page 9)
 
-The points a section includes or is next to, as words under its foot's altitude: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `DANGER` (yellow), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.
+The points a section includes or is next to, as words under its foot's altitude: the ferrata's head for the first section, a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `HEAD` (green), `DANGER` (yellow), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.

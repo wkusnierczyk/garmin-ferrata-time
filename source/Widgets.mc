@@ -1037,11 +1037,12 @@ module Widgets {
         d.dot(p[0], p[1], SEL_DISK / 2, lit ? c : d.darken(c, 0.33));
     }
 
-    // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,
-    // top: a point in it or at its foot or top; a rest that is the section itself or right before or
-    // after it; the route's top for the last section.
+    // The points section i includes or is next to, as poiNear's kinds: the ferrata's head for the first
+    // section, then danger, exit, rest, and the route's top for the last section: a point in it or at
+    // its foot or top; a rest that is the section itself or right before or after it.
     function sectionPoints(i as Number) as Array<Number> {
         var kinds = [] as Array<Number>, n = Climb.count();
+        if (i == 0) { kinds.add(POI_HEAD); }
         var danger = false, exit = false;
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) { if (holds(i, Climb.DANGER_AT[e].toFloat())) { danger = true; } }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { if (holds(i, Climb.dAt(Climb.EXIT_AT[e]).toFloat())) { exit = true; } }
@@ -1374,17 +1375,18 @@ module Widgets {
     // ---------------------------------------------------------------- current difficulty group
 
     // The point of interest within the uncertainty stretch: 0 danger, 1 exit, 2 rest, and with ends
-    // also 3 the top and 4 the start; -1 for none. The nearest wins; on a tie, in that order.
+    // also 3 the top and 4 the ferrata's head (HEAD, never START: the climb may start on the approach;
+    // owner, 2026-11-23); -1 for none. The nearest wins; on a tie, in that order.
     const POI_TOP = 3;
-    const POI_START = 4;
-    const POI_WORD = ["DANGER", "EXIT", "REST", "TOP", "START"] as Array<String>;
+    const POI_HEAD = 4;
+    const POI_WORD = ["DANGER", "EXIT", "REST", "TOP", "HEAD"] as Array<String>;
     const POI_COLOUR = [WARNING, GREEN, REST, RED, GREEN] as Array<Number>;
 
     function poiNear(st as Climb.State, ends as Boolean) as Number {
         var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, kind = -1;
         // From the last kind to the first, so a tie goes to the earlier one.
-        if (ends && lo <= 0.001) { best = st.d; kind = POI_START; }
+        if (ends && lo <= 0.001) { best = st.d; kind = POI_HEAD; }
         var top = Climb.totalD().toFloat();
         if (ends && hi >= top - 0.001 && top - st.d <= best) { best = top - st.d; kind = POI_TOP; }
         for (var i = 0; i < Climb.count(); i++) {
@@ -1441,7 +1443,7 @@ module Widgets {
     // comes next, "C/D 125 m", GROUP_GAP from the box; all centred on the box (owner, 2026-11-23: the
     // altitude's unit ended at the box's right edge). Page 7: the altitude at SemiBold 40 and its unit
     // 24 (px at 416) whatever k, no point of interest. Page 8 (points): the altitude at 26 and the unit
-    // 16 times k, and the point of interest the stretch covers (the route's start and top too) as a
+    // 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's top too) as a
     // word under the next line, centred, the top of its capitals 0.0288 below that line's baseline.
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
