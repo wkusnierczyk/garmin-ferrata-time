@@ -15,6 +15,20 @@ module Pages {
     const SECTION_BW = 0.317308;
     const SECTION_BH = 0.221154;
     var selected as Number = -1;
+
+    // Page 9's words, letter-spaced, measured once: the points' words by their kind (Widgets.POI_WORD),
+    // and the dot between them.
+    const SEPARATOR = 5;
+    var wordWidths as Array<Float?> = new Array<Float?>[6];
+
+    function wordWidth(d as Draw, font as Graphics.FontType, kind as Number) as Float {
+        var w = wordWidths[kind];
+        if (w == null) {
+            w = d.spacedWidth(font, kind == SEPARATOR ? " · " : Widgets.POI_WORD[kind]);
+            wordWidths[kind] = w;
+        }
+        return w;
+    }
     const DIM = 0x7f8a8a;
 
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
@@ -190,20 +204,19 @@ module Pages {
         // The points, Bold 28 px at 416, letter-spaced, each in its colour, centred as one line.
         var kinds = Widgets.sectionPoints(i);
         if (kinds.size() > 0) {
-            var font = d.bold(0.0673), dot = " · ", total = 0.0;
+            var font = d.bold(0.0673), total = 0.0;
             for (var p = 0; p < kinds.size(); p++) {
-                if (p > 0) { total += d.spacedWidth(font, dot); }
-                total += d.spacedWidth(font, Widgets.POI_WORD[kinds[p]]);
+                if (p > 0) { total += wordWidth(d, font, SEPARATOR); }
+                total += wordWidth(d, font, kinds[p]);
             }
             var px = 0.5 - total / 2, base = footBase + 0.028846 + 0.7 * 0.0673;
             for (var p = 0; p < kinds.size(); p++) {
                 if (p > 0) {
-                    d.spaced(px, base, font, dot, DIM, Graphics.TEXT_JUSTIFY_LEFT);
-                    px += d.spacedWidth(font, dot);
+                    d.spaced(px, base, font, " · ", DIM, Graphics.TEXT_JUSTIFY_LEFT);
+                    px += wordWidth(d, font, SEPARATOR);
                 }
-                var word = Widgets.POI_WORD[kinds[p]];
-                d.spaced(px, base, font, word, Widgets.POI_COLOUR[kinds[p]], Graphics.TEXT_JUSTIFY_LEFT);
-                px += d.spacedWidth(font, word);
+                d.spaced(px, base, font, Widgets.POI_WORD[kinds[p]], Widgets.POI_COLOUR[kinds[p]], Graphics.TEXT_JUSTIFY_LEFT);
+                px += wordWidth(d, font, kinds[p]);
             }
         }
         Widgets.ascentGap(d, st);

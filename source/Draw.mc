@@ -262,8 +262,12 @@ class Draw {
     // its baseline at y, starting at x (justify left), centred on it or ending there (right): the
     // spacing after its last letter counts, as in the mocks.
     function spaced(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
-        var a = str.toCharArray(), total = spacedWidth(font, str);
-        var cx = justify == Graphics.TEXT_JUSTIFY_LEFT ? x : justify == Graphics.TEXT_JUSTIFY_RIGHT ? x - total : x - total / 2;
+        var a = str.toCharArray(), cx = x;
+        // Its width only when it is needed to place it.
+        if (justify != Graphics.TEXT_JUSTIFY_LEFT) {
+            var total = spacedWidth(font, str);
+            cx = justify == Graphics.TEXT_JUSTIFY_RIGHT ? x - total : x - total / 2;
+        }
         for (var i = 0; i < a.size(); i++) {
             var ch = a[i].toString();
             textBase(cx, y, font, ch, c, Graphics.TEXT_JUSTIFY_LEFT);
