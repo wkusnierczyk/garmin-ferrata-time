@@ -1,7 +1,7 @@
 # Ferrata. Page 9, version 1
 
 Status: settled with the owner on 2026-11-21 (#27)  
-Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/page-9.html` (the dial held on the left; click the chevrons, or press the left and right arrow keys)  
 Widgets: `design/widgets.md` (*gauge*, *gap ascent*, and new here: *selection gauge*, *chevron*, *section points*)
 

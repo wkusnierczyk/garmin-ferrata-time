@@ -1,7 +1,7 @@
 # Ferrata. Page 3, version 1
 
 Status: settled with the owner on 2026-11-21 (#18)  
-Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/page-3.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 

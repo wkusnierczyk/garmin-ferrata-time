@@ -1,7 +1,7 @@
 # Ferrata. Pages 4 and 4a
 
 Status: settled with the owner on 2026-11-21 (#20)  
-Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/pages-4-5.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
 Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
 

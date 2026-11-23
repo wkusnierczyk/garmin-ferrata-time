@@ -1,7 +1,7 @@
 # Ferrata. Pages 6a and 6b, version 1
 
 Status: settled with the owner on 2026-11-21 (#21)  
-Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/page-6.html` (both versions held on the left, the options on the right; it opens with these settings)  
 Widgets: `design/widgets.md`
 
