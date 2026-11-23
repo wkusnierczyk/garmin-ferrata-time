@@ -1,18 +1,26 @@
 # Ferrata. Page 1, version 1
 
 Status: settled with the owner on 2026-11-20 (#16)  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
 Reference mock: `design/demo/page-1.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
-The prototype's side-profile page (page A) stays as it is. Page 1, version 1 is a simpler page beside it, and the app's first page: the profile alone, with the numbers moved into widgets around it.
+The app's first page: the profile alone, with the numbers moved into widgets around it (it replaced the prototype's side-profile page, page A). Page 1a, the second page, is the same page with the profile zoomed.
 
 ## Layout
 
-- Difficulty colours: heat with amber, no purple (grey, light blue, yellow, amber, orange, red).
-- **profile** and **ascent** share the start point: the ascent line rises from the profile's first point, and its top is level with the profile's end. Together they span a rectangle, in the mock from (92, 92) to (352, 318).
+- Difficulty colours: heat with amber, no purple (grey, light blue, yellow, amber, orange, red), a colour for each half step (`design/widgets.md`).
+- **profile** and **ascent** share the start point: the ascent line rises from the profile's first point, and its top is level with the profile's end. Together they span a rectangle, from 0.2212 to 0.8462 of the screen across and from 0.2212 to 0.7644 down.
 - Descents (#56): the profile draws the route's real height, so a section that loses height goes down, and it spans the rectangle from the route's lowest point to its highest; the ascent counts height gained, as Garmin does, and still spans the rectangle from the start to the top. So after a descent the ascent's ring sits higher than the climber on the profile: it counts the metres climbed, which the descent did not take back. On a route that dips below its start, or climbs above its end before coming down to it, the profile's first point or its end is then no longer level with the ascent line's ends. The altitude group shows the real altitude.
-- **difficulty**, without points (rests, exits, dangers), in the rectangle's lower right: its bottom on the rectangle's bottom, its widest possible extent (two-character boxes in all three slots) ending at the rectangle's right edge, so the middle box does not move.
+- **difficulty**, without points (rests, exits, dangers), in the rectangle's lower right: its boxes' bottoms level with the bottom of the ascent's start dot (owner, 2026-11-22; they stood on its centre), its widest possible extent (wide boxes in all three slots) ending at the rectangle's right edge, so the middle box does not move.
 - The **altitude group** (altitude, with poi under it) in the rectangle's upper left: the top of the altitude's digits level with the rectangle's top, its box starting a small space right of the ascent line's ring.
+
+## Page 1a: the profile zoomed
+
+- The profile shows 100 m of path (each section's length and height combined) around the climber, a fifth of it behind and the rest ahead, slid inside the route near its ends, at one scale across and up.
+- The scale and place are the largest that keep the route, with the climber's outline, 0.0385 of the screen clear of the altitude group with its poi, the difficulty boxes and the ascent line: the largest scale first, then 0.92 of it (up to 16 times), each tried at the box's middle, quarters and edges; failing all, the placement touching least. The watch tries three placements a frame and keeps the last placement meanwhile, as the whole search in one frame would stop the app on the watchdog.
+- The route is cut just right of the ascent widget and 0.0337 of the screen past the rectangle elsewhere. A rest is drawn as walking ground (its stretch is too long to leave out), its ring kept.
+- Everything else as on page 1.
 
 ## Removed from page A
 

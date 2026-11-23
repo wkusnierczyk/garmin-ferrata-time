@@ -1,29 +1,30 @@
-# Ferrata. Page 5, version 1
+# Ferrata. Pages 5 and 5a
 
 Status: settled with the owner on 2026-11-21 (#20)  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
 Reference mock: `design/demo/pages-4-5.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
 Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
 
-The **path stack** with the **ascent gauge** around it: the route's sections as boxes as tall as their length along the route, in a window that moves with the climber, and the height climbed as an arc around the screen's edge. The app's fifth page.
+The **path stack**: the route's sections as boxes as tall as their length along the route, in a window that moves with the climber. Page 5a is the same stack inside the **ascent gauge** around the screen's edge. Pages 4 and 5 look alike (owner, 2026-11-22: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
 
 ## Settings
 
 | Setting | Value |
 |:--|:--|
-| Scale | 0.0024 of the screen per metre of path: 288 m in view |
+| Column | 0.1058 of the screen wide, centred on the screen |
+| Window | from 0.0865 to 0.9135 of the screen down; on page 5a from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
+| Scale | 0.0024 of the screen per metre of path: 344 m in view, 272 m on page 5a |
+| The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
+| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section larger (0.0865) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
+| Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |
 | Altitude ticks | every 10 m (50 ft in feet), where the route first reaches each altitude: they crowd on walls and spread on walks |
-| The next altitude to reach | 200 % of the other tick labels: the first tick above the altitude now, which may sit further along the route than the climber |
-| The altitudes just above and below it | 150 % |
-| The climber | the orange ring on the column's left edge; no line or tick across the column |
-| Section names | on, on the right, stopping inside the gauge |
-| Points of interest | on: rings on the column's right edge, as on page 4 |
-| Their names | on, while the climber is in range: one tick step (10 m of path) before to half a step after |
-| Ascent gauge | an arc from the start (lower left) over the top to the route's top (lower right), the climber's ring at the height climbed, the start and top as green and red dots, the metres climbed and left past its ends |
-| Layout | the stack centred as a group: tick labels (as wide as the larger label), column, 0.1923 of the screen's width for names |
-| Difficulty colours | heat with amber, no purple; rests shown as W |
+| Labels | three: the next altitude to reach (SemiBold 0.1250; the first tick above the climber on the stack, which may sit further along the route than the climber; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865); the other ticks bare |
+| Fit | everything within 0.4399 of the screen's centre (6 % of the width clear of the edge), within 0.4087 inside the gauge |
+| Section names | none |
+| Difficulty colours | heat with amber, no purple, a colour per half step; rests shown as W |
 
-Points of interest as on page 4 (`design/page-4.md`): danger yellow, exit green, rest blue, the top red; one ring per group of touching rings, by precedence in range (danger, exit, rest, top) and by nearness out of it.
+Symbols that would touch show one: of those in the climber's range (one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
 
 ## Open
 
-- The range for point names is measured in metres of path, with the altitude tick step as its unit; whether it should be measured in height instead.
+- Flat sections: lines, or a minimum height.

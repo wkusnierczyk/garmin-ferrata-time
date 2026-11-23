@@ -1,28 +1,29 @@
-# Ferrata. Page 4, version 1
+# Ferrata. Pages 4 and 4a
 
 Status: settled with the owner on 2026-11-21 (#20)  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23). The reference mock below is the first version's.  
 Reference mock: `design/demo/pages-4-5.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
-Widgets: `design/widgets.md` (*difficulty stack*)
+Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
 
-The **ascent stack** alone: the route's sections as boxes as tall as the metres they climb, in a window that moves with the climber. The app's fourth page.
+The **ascent stack**: the route's sections as boxes as tall as the metres they climb, in a window that moves with the climber. Page 4a is the same stack inside the **ascent gauge** around the screen's edge. Pages 4 and 5 look alike (owner, 2026-11-22: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
 
 ## Settings
 
 | Setting | Value |
 |:--|:--|
-| Scale | 0.0072 of the screen per metre: 96 m in view, 24 m below the climber and 72 m above |
+| Column | 0.1058 of the screen wide, centred on the screen |
+| Window | from 0.0865 to 0.9135 of the screen down; on page 4a from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
+| Scale | 0.0072 of the screen per metre climbed: 115 m in view, 91 m on page 4a |
+| The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
+| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section larger (0.0865) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
+| Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |
 | Altitude ticks | every 20 m (100 ft in feet) |
-| The next altitude above the climber | 200 % of the other tick labels |
-| The altitudes just above and below it | 150 % |
-| The climber | the orange ring on the column's left edge; no line or tick across the column |
-| Section names | on, on the right |
-| Points of interest | on: rings on the column's right edge |
-| Their names | on, while the climber is in range (one tick step before to half a step after) |
-| Difficulty colours | heat with amber, no purple; rests shown as W |
+| Labels | three: the next altitude to reach (SemiBold 0.1250; the first tick above the climber; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865); the other ticks bare |
+| Fit | everything within 0.4399 of the screen's centre (6 % of the width clear of the edge), within 0.4087 inside the gauge |
+| Section names | none |
+| Difficulty colours | heat with amber, no purple, a colour per half step; rests shown as W |
 
-## Points of interest
-
-Four kinds, in the colours of the other pages: danger yellow, exit green, rest blue (at the middle of the rest), the route's top red; dimmed once passed. Names are the kind ("Danger", "Exit", "Rest", "Top"); a rest's section keeps its own name (such as Bench) in white, which gives way while the point's name shows. Points whose rings would touch show one ring: of those in range, the first of danger, exit, rest, top, with its name; with none in range, the one nearest the climber, unnamed.
+Symbols that would touch show one: of those in the climber's range (one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
 
 ## Open
 

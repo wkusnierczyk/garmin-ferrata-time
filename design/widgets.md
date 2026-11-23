@@ -1,6 +1,7 @@
 # Ferrata. Widgets
 
 Status: settled with the owner on 2026-11-20 (#16)  
+Revised: as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; on the watch from #95, 2026-11-23).  
 Reference mock: `design/demo/page-1.html`
 
 The watch app's pages are built from widgets: drawing parts that a page places and sizes, meant for reuse across pages. Sizes and positions are fractions of the screen's width (the screen is round, so of its height too), to four decimals here: the mocks' px ÷ 416. The code carries them to six, so that on the 416 px epix they land on the mocks' pixels. Each widget takes the climber's state (the guidebook minute reached, and from it the distance along the route, the height climbed and which section the climber is in) and its own options.
@@ -14,9 +15,11 @@ Shared colours:
 | Climber | orange `#ff6f3c`, the launcher icon's |
 | Rest | blue `#3a86ff` |
 | Exit, start | green `#3fd77f` |
-| Danger | yellow `#ffd60a`, a warning |
+| Danger | red `#ff4b4b` on the route (profile, gauge, front view) and as a word; yellow `#ffd60a`, a warning, as a symbol and on page 9's selection gauge |
 | Top | red `#ff4b4b` |
 | Passed or climbed | the colour at a third of its brightness |
+
+Difficulty colours: heat with amber, no purple, for walking and A to E (grey, light blue, yellow, amber, orange, red), F taking E's. The route's grades are half steps (1 A, 2 A/B ... 12 F/G), and the pages draw them as such (#95): each half step its letters (`C/D`) and its own colour, the rounded mean of its two neighbours' channel by channel, as the mocks' `halfSteps`. The K scale is a setting to come (#58).
 
 ## profile
 
@@ -28,7 +31,7 @@ The route seen from the side, from its start at the left to its end at the right
 - Points on the route as hollow rings, black inside so the route breaks there, dimmed once the climber has passed them:
   - rests: blue, at the middle of the rest stretch;
   - exits: green, where the exit leaves;
-  - dangers: yellow, where the route has them.
+  - dangers: red, where the route has them.
 - The climber: an orange outline around the stretch of route they could be on, from the position's uncertainty (25 m up or down). It is short on steep ground and long on flat ground. Drawn as a wide orange line with a narrower black one inside it, under the sections.
 - The top: a hollow white ring.
 
@@ -39,6 +42,7 @@ Options: the difficulty colour map; danger points shown or not.
 The route's height as a vertical line, with the climber on it.
 
 - A thin grey line from the start (bottom) to the top.
+- Sizes (owner, 2026-11-22: slightly larger): the ring 0.0264 of the screen in radius with a 0.0072 pen, the end dots 0.0180, the numbers SemiBold 0.0673.
 - The start and the top as a green and a red dot at the line's ends. On by default; an option turns them off.
 - The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot. The height is height gained, as Garmin counts ascent: a descent does not lower it (#56).
 - Stacking, back to front: the line; the ring's black inside, hiding the line; the end dots; the ring's orange outline.
@@ -56,7 +60,7 @@ What the climber is on, and what the uncertainty reaches.
 - Three slots sharing a bottom edge: a larger middle box, and two smaller satellites (0.72 of its size) a narrow gap (0.0120 of the screen) from its edges. The middle box stays put; the satellites follow its width.
 - Middle: the section the climber is estimated to be in.
 - Satellites: when the uncertainty stretch reaches past that section, the nearest thing behind goes left and the nearest ahead goes right. A thing is the neighbouring section, or an exit or danger point inside the stretch; a point wins a tie with a section boundary. Empty slots stay empty.
-- Grades `W` (walk) and `K1` to `K5`: filled boxes in the profile's colour map, black letters.
+- Grades `W` (walk) and `A` to `F/G` in half steps: filled boxes in the profile's colour map, black letters; a box as wide as its letters, 0.1106 of the screen for one, 0.1394 for more.
 - Rest `R`, exit `E`, danger `D`: outlined boxes in their colours, letters in the same colour.
 - The letters are centred in the box both ways, on the capitals' height.
 
@@ -74,7 +78,7 @@ The approximate altitude above sea level.
 
 The point of interest the uncertainty stretch covers, as one word.
 
-- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger yellow; bold capitals, no box.
+- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or red; bold capitals letter-spaced 0.0024 of the screen, no box.
 - Shown only while such a point lies within the stretch; nothing otherwise.
 - With several, the nearest to the climber's estimate wins; on a tie, danger before exit before rest.
 
@@ -87,30 +91,29 @@ The difficulty widget turned upright: the sections around the climber.
 - Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
 - All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
-- Letters `W` and `K1` to `K5`. A rest shows as `W`; the mock can show it as `R`.
+- Letters `W` and `A` to `F/G`. A rest shows as `W`; the mock can show it as `R`.
 
 Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
 
 ## difficulty stack
 
-The difficulty column to scale: the sections as boxes in a window that moves with the climber. Two variants:
+The sections to scale: boxes in a narrow column centred on the screen (0.1058 of its width), in a window that moves with the climber. Two variants:
 
-- **ascent stack:** each box as tall as the metres its section climbs (0.0072 of the screen per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour. So is a section that loses height: the stack counts height gained (#56).
-- **path stack:** each box as tall as its section's length along the route (0.0024 of the screen per metre on page 5). Flat sections are boxes; walls are short.
+- **ascent stack** (pages 4, 4a): each box as tall as the metres its section climbs (0.0072 of the screen per metre). A flat section has no height: it is a line across the column at its altitude, in its own colour. So is a section that loses height: the stack counts height gained (#56).
+- **path stack** (pages 5, 5a): each box as tall as its section's length along the route (0.0024 of the screen per metre). Flat sections are boxes; walls are short.
 
-In the app, ascent or path is a setting.
+The rest is common:
 
-- The climber stays a quarter of the way up from the window's bottom, marked by the climber's orange ring on the column's left edge. No line crosses the column: it hid the letters (the mock keeps a tick across the current box, and the ring on the right, as options).
-- The boxes meet with no gap. The current one is filled, letters black and larger; the others are black with their sides in their colour, letters in it; those behind the climber at 55 % of their colour.
+- The climber stays a quarter of the way up from the window's bottom, marked by the climber's orange ring on the column's left edge. No line crosses the column.
+- The boxes meet with no gap. The current one is filled; the others are black with their sides in their colour; those behind the climber at 55 % of their colour.
 - A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
-- Letters are centred on the part of a box in view, left out when it is too short for them.
-- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. A tick sits where the route rises through its altitude (#56): in the path stack where it first reaches it, so ticks crowd on walls and spread on walks; on a descent none, and a climb after a descent marks again the altitudes it passes a second time. The labels are real altitudes. A label that would touch the one below is left out. The label of the next altitude to reach (the first tick above the climber on the stack: by path it may sit further along the route than the climber, and after a descent its altitude may be below the one now), is twice the other labels' height and always shown, and the labels just above and below it one and a half times (a scalable Roboto Condensed Bold sized from the extra-tiny system font); the other labels make room around them.
-- Section names on the right, centred on the part in view, greyed behind the climber, cut with an ellipsis to fit the round screen.
-- Points of interest as rings on the column's edge opposite the climber (the right), at their place on the column, in the colours of the other pages: danger yellow, exit green, rest blue (the middle of the rest), the top red; dimmed once passed. The names sit a little further right to clear them.
-- A point's name beside its ring, in its colour ("Danger", "Exit", "Rest", "Top"; a rest's section keeps its own name in white), while the climber is in range: from one tick step before the point to half a step after it, along the stack's axis (page 4 at 20 m ticks: 20 m below to 10 m above). A section name it would touch gives way.
-- Points whose rings would touch show one ring and at most one name: of those in range, the first of danger, exit, rest, top; with none in range, the one nearest the climber, unnamed.
+- Every section's grade right of the column, at the middle of its box's part in view (a flat section's at its line), in its colour, Bold 0.0673 of the screen, the climber's section 0.0865; placed from the climber's section outwards and left out where they would touch letters already placed or leave the screen.
+- Points of interest as symbols (0.0529 across) right of the letters at their place on the column, dimmed once passed: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (the middle of the rest), the top a red square. Symbols that would touch show one: of those in the climber's range (from one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
+- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route. A tick sits where the route rises through its altitude (#56): in the path stack where it first reaches it, so ticks crowd on walls and spread on walks; on a descent none, and a climb after a descent marks again the altitudes it passes a second time. The labels are real altitudes.
+- Three labels, right-aligned 0.0337 of the screen left of the column: the next altitude to reach (SemiBold 0.1250; the first tick above the climber on the stack: by path it may sit further along the route than the climber, and after a descent its altitude may be below the one now; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865). The other ticks are bare.
+- Everything within a radius of the screen's centre the page sets: 6 % of the width clear of the edge, or inside the ascent gauge.
 
-Options: ascent or path; the scale; the tick step; names on or off; points and their names on or off; the colour map. The mock also keeps, as options, the larger labels' sizes, the ring's side, and a tick from the ring across the current box. Open: the tick resolution, the scales, and flat sections in the ascent stack (lines, or a minimum height).
+Open: the scales, and flat sections in the ascent stack (lines, or a minimum height).
 
 ## ascent gauge
 
@@ -118,7 +121,7 @@ The ascent widget bent around the screen's edge.
 
 - A thin grey arc from the start at the lower left, over the top, to the route's top at the lower right (284°), leaving the bottom free.
 - The climber's orange ring on it at the height climbed; the start and top as green and red dots.
-- The metres climbed just past the start end, the metres left just past the top end, in the gap at the bottom.
+- In the gap at the bottom, the metres climbed beside the start's dot and the metres left beside the top's, facing inwards (0.0192 of the screen past the dots' edges), so the larger numbers stay on the screen.
 
 Options: the end dots on or off.
 
@@ -127,18 +130,18 @@ Options: the end dots on or off.
 The route around the screen's edge, from its start at the lower left, over the top, to its top at the lower right (284°), leaving the bottom free.
 
 - Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
-- Sections a hair apart; climbed parts dimmed.
-- Rests, exits and dangers as hollow rings on it, dimmed once passed.
+- Sections a hair apart, none after the last, so the gauge ends where the gap ascent's top dot is; climbed parts dimmed.
+- Rests, exits and dangers (red) as hollow rings on it, dimmed once passed.
 - The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
 - By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart. By ascent a section that loses height climbs none, and takes 3° as a flat one does (#56).
 
-## flat ascent
+## gap ascent
 
-The ascent widget laid flat: a line from the start (left) to the top (right), the climber's ring on it, the end dots, the metres climbed under its left stretch and the metres left under its right one, each centred on its stretch, kept clear of the ring, never past the line's end.
+The ascent widget along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top as green and red dots on the gauge's two ends, the metres climbed and left beside them facing inwards (0.0144 of the screen from the dots), and between the numbers a grey line the climber's ring travels, reaching up to each number as drawn: it grows when a number is short and shrinks when it is long (the no-jitter rule given up for this widget on purpose, owner 2026-11-22).
 
 ## next
 
-The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m: "K4 in 125 m", the grade in its colour; "Top in …" after the last change. The mock can give the distance in metres up instead.
+The next section of a different difficulty (a rest counts as walking) and the distance to its start along the route, rounded to 5 m, without "in": "C/D 125 m", the grade in its colour; "Top …" after the last change. Bold, centred; the page sets its size.
 
 ## front view
 
@@ -147,15 +150,22 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 - The sections in their difficulty colours, climbed parts dimmed, round joints.
 - Rests, exits and dangers as hollow rings, dimmed once passed; the start and the top as a green and a red dot.
 - The climber as the orange outline of the stretch they could be on, rounded at its ends.
+- Dangers red.
 - Fitted into a box, one scale across and up.
+- Zoomed (page 7a): the zoom window's part fitted into the box, at least 20 m each way; the rest of the route runs on past it.
+
+## profile zoomed
+
+The profile of the zoom window: 100 m of path (each section's length and height combined) around the climber, a fifth of it behind and the rest ahead, slid inside the route near its ends, at one scale across and up, placed as large as it goes while it keeps clear of the widgets around it (page 1a: `design/page-1.md`). A rest is drawn as walking ground there, its ring kept.
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger). On the watch the box, its letters, the symbol and the gaps scale; the altitude, its unit and "K4 125 m" are system-font text and keep their size, so at page 8's 150 % the symbol stands taller than the digits.
+The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger, page 8 50 %), each text at the font table's nearest size.
 
-- The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), a rest as `W`.
-- Above it, on one baseline: the altitude, unit included, right-aligned with the box's right edge; the point of interest as a filled symbol, 10 % smaller than the text, starting where the box's corner rounding ends. With fit (page 7) the box is at least as wide as that line needs (corner, symbol, gap, the route's widest altitude and its unit), so the two never touch; without it (page 8) the box keeps 0.2115 by 0.1490 of the screen times the scale, and the symbol moves left only if the altitude would touch it. Symbols, after safety signs and media controls, on every page that uses the group: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (two bars), and the start (green play) and top (red stop) while the uncertainty reaches them.
-- Below it, what comes next without "in": "K4 125 m", the grade in its colour, centred.
+- The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`.
+- Above it, 0.0288 of the screen clear of it, the altitude with its unit ending at the box's right edge: on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
+- Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
+- Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the route's start (`START`, green) and top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).
 
 ## Groups
 
@@ -178,7 +188,7 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## Open
 
-- The difficulty colour map for the earlier pages. Pages 1 to 8 use heat with amber and no purple (owner, 2026-11-21); the pages after them take it as they are revised. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
+- The difficulty colour map. Pages 1 to 9 use heat with amber and no purple (owner, 2026-11-21), a colour per half step; the pages after them take it as they come back. No via ferrata scale (Hüsler K1 to K6, Schall A to E, French F to ED) defines colours. Candidates in the mock: the prototype's heat map (grey, light blue, yellow, orange, red, purple); heat with amber and no purple (grey, light blue, yellow, amber, orange, red); ski piste; viridis; one orange hue. A map must read on black, stay distinct when dimmed, and not clash with the climber's orange, the exits' green and the dangers' red.
 - Where danger points come from in route data (`design/route-data.md`).
 
 ## selection gauge (page 9)
@@ -191,4 +201,4 @@ A left- or right-pointing chevron, round-ended, white; dimmed when there is noth
 
 ## section points (page 9)
 
-The points a section includes or is next to, as symbols after its name: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; danger first, then exit, rest, top. They stand on the name's baseline.
+The points a section includes or is next to, as words under its foot's altitude: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `DANGER` (red), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.
