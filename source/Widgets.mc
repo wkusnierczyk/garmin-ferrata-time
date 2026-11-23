@@ -282,9 +282,11 @@ module Widgets {
     function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Float {
         var w = widest[slot];
         if (w == null || widestFeet[slot] != ft) {
-            // Tabular digits: the altitude with the most digits is the widest, the end farther from zero.
-            var low = altitudeValue(Climb.netLow().toFloat(), ft), high = altitudeValue(Climb.netHigh().toFloat(), ft);
-            w = d.width(font, (high.abs() > low.abs() ? high : low).format("%d"));
+            // Tabular digits: the widest altitude is one of the two ends, the one with more digits or with a
+            // minus sign; both are measured rather than reasoned about.
+            var low = d.width(font, altitudeValue(Climb.netLow().toFloat(), ft).format("%d"));
+            var high = d.width(font, altitudeValue(Climb.netHigh().toFloat(), ft).format("%d"));
+            w = low > high ? low : high;
             widest[slot] = w;
             widestFeet[slot] = ft;
         }
