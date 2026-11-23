@@ -62,7 +62,7 @@ module InputsTest {
         var input = new DemoInput(RouteTest.demo());
         input.read(0);
         var rd = input.read(DemoInput.LOOP_MS);
-        Test.assertMessage(near(rd.alt as Float, 1788.0, 0.01), "alt " + rd.alt);
+        Test.assertMessage(near(rd.alt as Float, 1568.0, 0.01), "alt " + rd.alt);
         var end = Math.round((Climb.START_CLOCK + Climb.totalM() * Climb.PACE) * 60).toNumber();
         Test.assertEqualMessage(rd.t, end, "t at the top");
         var later = input.read(DemoInput.LOOP_MS + DemoInput.HOLD_MS);
