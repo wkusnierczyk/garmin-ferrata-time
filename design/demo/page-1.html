@@ -519,6 +519,10 @@ function altitudeGroup(st, x, yt, opt) {
 // Page 1a's half-transparent box under the altitude group: its padding, its width (the altitude at its
 // widest with its unit), and its height (the digits, and the poi word under them when there is one).
 const ALT_PAD = 6;
+// The poi word is right-aligned with the digits and may be wider than them (3-digit altitudes, "DANGER"):
+// the box reaches left to cover it too (review of #103). altGroupLeft is how far left of the group it starts.
+const altGroupLeft = (st, opt) => { const m = poi(st, 0, 0, opt).match(/>([A-Z]+)</);
+  return m ? Math.max(0, textWidth(m[1], 24, 700) + m[1].length - altBox(opt.feet)) : 0; };
 const altGroupWidth = opt => altBox(opt.feet) + 4 + textWidth(opt.feet ? "ft" : "m", 24);
 const altGroupHeight = (st, opt) => 0.7 * ALT_SIZE + (poi(st, 0, 0, opt) ? 12 + 0.7 * 24 : 0);
 
@@ -542,7 +546,7 @@ function page(st, opt) {
   // Page 1a: the altitude group (with its point of interest) on a half-transparent black box, so the
   // zoomed route running under it shows through half-dimmed (owner, 2026-11-23), not searched around.
   const ax = x0 + RING_OUTER + 8, altGround = opt.zoom ?
-    `<rect x="${ax - ALT_PAD}" y="${(altTop - ALT_PAD).toFixed(1)}" width="${(altGroupWidth(opt) + 2 * ALT_PAD).toFixed(1)}" height="${(altGroupHeight(st, opt) + 2 * ALT_PAD).toFixed(1)}" rx="${ALT_PAD}" fill="#000" fill-opacity="0.5"/>` : "";
+    `<rect x="${(ax - altGroupLeft(st, opt) - ALT_PAD).toFixed(1)}" y="${(altTop - ALT_PAD).toFixed(1)}" width="${(altGroupLeft(st, opt) + altGroupWidth(opt) + 2 * ALT_PAD).toFixed(1)}" height="${(altGroupHeight(st, opt) + 2 * ALT_PAD).toFixed(1)}" rx="${ALT_PAD}" fill="#000" fill-opacity="0.5"/>` : "";
   return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, 208, dTop, opt, DIFFICULTY_BIG) +
     // In the rectangle's upper left, a small space right of the ascent line.
     altGround + altitudeGroup(st, ax, altTop, opt);
