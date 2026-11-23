@@ -282,17 +282,16 @@ module Climb {
     //   that high point: noise, or a sync off), lo is where it first reaches that high point.
     // - u below: if the route ahead goes down (after any flat), down to the next low point, likewise;
     //   if it goes up, lo is fromD: a reading falling on a climb does not move the place.
-    // - Either way, a turn just ahead is passed: when the route first goes the other way by at most
-    //   CREST metres (over any flats) before it turns towards u, the climber passed that crest or
-    //   trough between two readings, and the search goes on from there (#100: the demo's readings step
-    //   over the top of the Dihedral and over its foot, and the place stayed before each for good).
     // - u equal: lo is fromD.
-    // hi extends lo over a flat stretch at lo's height (a traverse), and then over a crest or trough of
-    // at most CREST just ahead, to where the route is back at lo's height: the climber may have passed
-    // it since the reading, which reads the same either side, and time moves the place over it (#100:
-    // at the Dihedral's foot, the Band after it rising a metre in 15, the whole-metre readings read the
-    // same on the last metre down and the first 15 m of the Band, and the place stayed before the foot).
-    // Else hi is lo.
+    // hi extends lo over a flat stretch at lo's height (a traverse), and then past a crest or trough
+    // just ahead (turnAhead): when the route first goes away from u by at most CREST metres (over any
+    // flats; either way when u is lo's height), then turns, hi is where it reaches u beyond, or as far
+    // as it goes that way. The climber may have passed that turn between two readings, or since a
+    // reading that reads the same either side, so time carries the place over it at the climber's
+    // pace; lo never moves past it, so a reading a little off near a crest does not jump the place
+    // over (#100: the demo's readings step over the top of the Dihedral and over its foot, whose
+    // whole-metre reading is also the Band's first 15 m, and the place stayed before each; the review
+    // of #101: moving lo over a gentle crest on a reading 0.5 m low jumped it 33 m). Else hi is lo.
     // (Coordinator's definition, replacing the plan's, after the review of #88: the plan's searched
     // the whole route ahead, so a reading a few metres off jumped past a dip or to the top.)
     // A crest or trough no more than this from the place may have been passed between two readings:
@@ -307,18 +306,13 @@ module Climb {
         var h = netAtDistance(fromD);
         var lo = fromD;
         if (u != h) {
-            // dir: 1 searching up, -1 down; started once the route goes that way.
-            var dir = u > h ? 1 : -1, started = false;
+            // dir: 1 searching up, -1 down. A route going the other way first keeps lo at fromD.
+            var dir = u > h ? 1 : -1;
             var turn = fromD;
             for (var i = sectionAt(fromD); i < count(); i++) {
                 var d0 = fromD > dAt(i) ? fromD : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
                 if (d1 <= d0 || UP[i] == 0) { continue; }
-                var slope = UP[i] > 0 ? 1 : -1;
-                if (slope != dir) {
-                    if (!started && dir * (netAt(i + 1) - h) >= -CREST) { continue; }
-                    break;
-                }
-                started = true;
+                if ((UP[i] > 0 ? 1 : -1) != dir) { break; }
                 var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
                 if (dir > 0 ? b >= u : b <= u) {
                     turn = d0 + crossing(dir * a, dir * b, dir * u) * (d1 - d0);
@@ -328,11 +322,11 @@ module Climb {
             }
             lo = turn;
         }
-        // Over the flat stretch lo is on, if any, then over a turn just ahead back to lo's height, and
-        // over a flat stretch there.
+        // Over the flat stretch lo is on, if any, then over a turn just ahead to u, and over a flat
+        // stretch there.
         var hi = flatAhead(lo);
-        var back = turnAhead(hi);
-        if (back > hi) { hi = flatAhead(back); }
+        var past = turnAhead(hi, u);
+        if (past > hi) { hi = flatAhead(past); }
         return [lo, hi];
     }
 
@@ -348,27 +342,36 @@ module Climb {
         return end;
     }
 
-    // Where the route ahead of d is back at d's height after a crest or trough at most CREST from it
-    // (over any flats), or d when it has none: it goes further first, or never comes back.
-    function turnAhead(d as Float) as Float {
+    // Past a crest or trough just ahead of d, towards u: when the route ahead first goes away from u
+    // (either way when u is d's height) by at most CREST, over any flats, and then turns, where it
+    // then reaches u, or, short of it, where it turns again or ends; d when there is no such turn.
+    function turnAhead(d as Float, u as Float) as Float {
         var h = netAtDistance(d);
-        // dir: the way the route goes first, 0 until known.
-        var dir = 0;
+        // s: the way the route goes first, 0 until known; turned once it goes the other way.
+        var s = 0, turned = false, far = d;
         for (var i = sectionAt(d); i < count(); i++) {
             var d0 = d > dAt(i) ? d : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
             if (d1 <= d0 || UP[i] == 0) { continue; }
             var slope = UP[i] > 0 ? 1 : -1;
-            if (dir == 0) { dir = slope; }
-            if (slope == dir) {
-                if (dir * (netAt(i + 1) - h) > CREST) { break; }
-                continue;
+            if (s == 0) {
+                // Towards u from the start: no turn to pass. Within a centimetre u is d's height (lo
+                // found where the route reaches u, but for the Float sums).
+                if (slope * (u - h) > 0.01) { return d; }
+                s = slope;
             }
-            // Turned back: d's height again in this section, else the route turns short of it.
+            if (!turned) {
+                if (slope == s) {
+                    if (s * (netAt(i + 1) - h) > CREST) { return d; }
+                    continue;
+                }
+                turned = true;
+            }
+            if (slope == s) { break; }
             var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
-            if (dir < 0 ? b >= h : b <= h) { return d0 + crossing(-dir * a, -dir * b, -dir * h) * (d1 - d0); }
-            break;
+            if (s < 0 ? b >= u : b <= u) { return d0 + crossing(-s * a, -s * b, -s * u) * (d1 - d0); }
+            far = d1;
         }
-        return d;
+        return far;
     }
 
     // The stretch around distance d the climber may be on when the altitude is sure to band metres up

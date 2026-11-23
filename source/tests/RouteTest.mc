@@ -199,29 +199,52 @@ module RouteTest {
     }
 
     // A reading below the place, the route ahead rising a few metres to a crest and then going down:
-    // the climber passed the crest between two readings (#100: the demo's Dihedral, after the Ledge
-    // traverse), so the place follows the descent. A longer rise keeps the place, as on a climb; and
-    // the same for a trough.
+    // the climber may have passed the crest between two readings (#100: the demo's Dihedral, after the
+    // Ledge traverse), so the stretch runs on down the descent and time carries the place over; the
+    // place itself stays (the review of #101). A longer rise keeps the stretch at the place, as on a
+    // climb; and the same for a trough.
     (:test)
     function stretchAheadOverACrestJustAhead(logger as Logger) as Boolean {
         Climb.use(made([[100, 100], [100, -100], [100, 100]]), :ferrata);
-        // 2 m below the crest; the reading 90: 10 m down the other side.
-        stretch(98.0, 90.0, 110.0, 110.0);
+        // 2 m below the crest; the reading 90: on to 10 m down the other side.
+        stretch(98.0, 90.0, 98.0, 110.0);
         // Past the low point it stops there.
-        stretch(98.0, -10.0, 200.0, 200.0);
+        stretch(98.0, -10.0, 98.0, 200.0);
         // 10 m below the crest: a reading falling on a climb.
         stretch(90.0, 80.0, 90.0, 90.0);
         // A flat stretch between the rise and the crest is crossed too.
         Climb.use(made([[100, 100], [20, 0], [10, 3], [100, -100]]), :ferrata);
-        stretch(99.0, 50.0, 183.0, 183.0);
+        stretch(99.0, 50.0, 99.0, 183.0);
         // No descent after the crest: the place stays.
         Climb.use(made([[100, 100], [100, 0]]), :ferrata);
         stretch(98.0, 90.0, 98.0, 98.0);
         // The same for a trough: a reading above the place, the route ahead going down 2 m before it
-        // climbs, is 8 m up the climb after it; 10 m down, the place stays.
+        // climbs, runs on to 8 m up the climb after it; 10 m down, the place stays.
         Climb.use(made([[100, 100], [100, -100], [100, 100]]), :ferrata);
-        stretch(198.0, 10.0, 210.0, 210.0);
+        stretch(198.0, 10.0, 198.0, 210.0);
         stretch(190.0, 20.0, 190.0, 190.0);
+        return true;
+    }
+
+    // A reading a little off near a crest never moves the place over it (the review of #101: a reading
+    // 0.5 m low, 2 m under a gentle crest 30 m ahead, jumped the place 33 m down the far side, and a
+    // 20 m drop of the weather near a crest of at most CREST put it 20 m down). The stretch runs over
+    // the crest, so time alone carries the place on.
+    (:test)
+    function stretchAheadNoJumpOverACrest(logger as Logger) as Boolean {
+        // Up 4 m in 60 to a crest at 160 m, 104 m up, then down 40 m in 50.
+        Climb.use(made([[100, 100], [60, 4], [50, -40], [100, 100]]), :ferrata);
+        // At 130 m, 102 m up; the reading 101.5: the place stays, the stretch to 101.5 m beyond.
+        stretch(130.0, 101.5, 130.0, 163.125);
+        // A 20 m drop 2 m under a crest.
+        Climb.use(made([[100, 100], [100, -100]]), :ferrata);
+        stretch(98.0, 78.0, 98.0, 122.0);
+        // Through the tracker: the place moves on only by time, at the climber's pace.
+        var t = new Tracker(made([[100, 100], [60, 4], [50, -40], [100, 100]]));
+        t.start(:head, new Reading(1000.0, null, null, 0));
+        t.d = 130.0;
+        t.update(new Reading(1101.5, null, null, 6));
+        Test.assertMessage(t.d > 130.0 && t.d < 133.0, "moved by time only, d " + t.d);
         return true;
     }
 
