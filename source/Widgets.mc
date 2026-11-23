@@ -128,26 +128,43 @@ module Widgets {
     // route (with the climber's outline) keeps 0.0385 of the width clear of the widgets around it
     // (avoid: boxes [x0, y0, x1, y1, ...]). The mocks' search: the largest scale first, then 0.92 of it,
     // up to 16 times, each at the box's middle, quarters and edges across and up; the first placement
-    // touching nothing wins, failing that the one touching least. On the watch the search is spread
-    // over frames (ZOOM_TRIES placements a frame) and kept per window, the last placement drawn
-    // meanwhile: the whole of it in one frame would trip the watchdog. A rest is drawn as walking
-    // here (its stretch is too long to leave out), its ring kept.
+    // touching nothing wins, failing that the one touching least. The whole search in one frame would
+    // trip the watchdog, so on the watch the placement found is kept by its place in that order, and
+    // each new window is drawn at once at that placement, made for the window; one check of it, and
+    // only if it touches a widget a search across frames (ZOOM_TRIES placements a frame, on the window
+    // of each frame). Every ZOOM_AGAIN metres along the route the search starts again from the
+    // largest, so the profile grows back where it can. A rest is drawn as walking here (its stretch is
+    // too long to leave out), its ring kept.
     const ZOOM_TRIES = 3;
+    const ZOOM_AGAIN = 20.0;
     const ZOOM_CLEAR = 0.038462;
     // The window's start, and its [from, to, lowest net height, highest, the largest scale].
     var zoomKey as Float = -1.0;
     var zoomArgs as Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0] as Array<Float>;
     // The placement drawn, [x, y, scale, distance, net height]: the screen point of that place on the
-    // route, and the scale in shares of the width per metre.
+    // route, and the scale in shares of the width per metre; and its place in the search's order.
     var zoomFit as Array<Float>? = null;
+    var zoomIndex as Number = 0;
+    // The search: the next placement to try (-1: none running), where it started, the best so far.
     var zoomNext as Number = -1;
-    var zoomBest as Array<Float>? = null;
+    var zoomFrom as Float = 0.0;
+    var zoomBestIndex as Number = 0;
     var zoomBestHits as Number = 0;
 
     function profileZoom(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float,
             avoid as Array<Float>) as Void {
         var win = zoomWindow(st);
-        if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5) { zoomStart(win[0], win[1], x0, w, y0, h); }
+        if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5) {
+            zoomStart(win[0], win[1], w, h);
+            zoomFit = zoomCandidate(zoomIndex, x0, w, y0, h);
+            if (zoomNext < 0 && (zoomIndex > 0 && (win[0] - zoomFrom).abs() >= ZOOM_AGAIN
+                    || zoomHits(zoomFit as Array<Float>, x0, w, y0, h, avoid) > 0)) {
+                zoomNext = 0;
+                zoomFrom = win[0];
+                zoomBestIndex = zoomIndex;
+                zoomBestHits = 1000000;
+            }
+        }
         zoomStep(x0, w, y0, h, avoid);
         var f = zoomFit;
         if (f == null) { return; }
@@ -158,8 +175,8 @@ module Widgets {
         d.unclip();
     }
 
-    // A new window: its heights, the largest scale, and the search from its start.
-    function zoomStart(d0 as Float, d1 as Float, x0 as Float, w as Float, y0 as Float, h as Float) as Void {
+    // A new window: its heights and the largest scale.
+    function zoomStart(d0 as Float, d1 as Float, w as Float, h as Float) as Void {
         zoomKey = d0;
         var n0 = 1.0e9, n1 = -1.0e9;
         for (var j = 0; j <= 50; j++) {
@@ -169,13 +186,10 @@ module Widgets {
         }
         var ka = w / (d1 - d0 > 1 ? d1 - d0 : 1.0), kb = h / (n1 - n0 > 1 ? n1 - n0 : 1.0);
         zoomArgs = [d0, d1, n0, n1, ka < kb ? ka : kb] as Array<Float>;
-        zoomNext = 0;
-        zoomBest = null;
-        zoomBestHits = 1000000;
-        if (zoomFit == null) { zoomFit = zoomCandidate(0, x0, w, y0, h); }
     }
 
-    // Placement t of the search's 400: the scale 0.92 to the power t / 25, then across and up.
+    // Placement t of the search's 400 on the current window: the scale 0.92 to the power t / 25, then
+    // across and up.
     const ZOOM_PLACES = [0.5, 0.25, 0.75, 0.0, 1.0];
 
     function zoomCandidate(t as Number, x0 as Float, w as Float, y0 as Float, h as Float) as Array<Float> {
@@ -184,16 +198,22 @@ module Widgets {
         return [x0 + (w - W) * ZOOM_PLACES[(t % 25) / 5], y0 - (h - H) * ZOOM_PLACES[t % 5], k, a[0], a[2]] as Array<Float>;
     }
 
+    // ZOOM_TRIES more placements of a running search; the first touching nothing is kept, and after the
+    // last the one touching least.
     function zoomStep(x0 as Float, w as Float, y0 as Float, h as Float, avoid as Array<Float>) as Void {
         if (zoomNext < 0) { return; }
         for (var c = 0; c < ZOOM_TRIES && zoomNext < 400; c++) {
-            var cand = zoomCandidate(zoomNext, x0, w, y0, h);
+            var t = zoomNext, cand = zoomCandidate(t, x0, w, y0, h);
             zoomNext++;
             var n = zoomHits(cand, x0, w, y0, h, avoid);
-            if (n == 0) { zoomFit = cand; zoomNext = -1; return; }
-            if (n < zoomBestHits) { zoomBestHits = n; zoomBest = cand; }
+            if (n == 0) { zoomIndex = t; zoomFit = cand; zoomNext = -1; return; }
+            if (n < zoomBestHits) { zoomBestHits = n; zoomBestIndex = t; }
         }
-        if (zoomNext >= 400) { zoomFit = zoomBest; zoomNext = -1; }
+        if (zoomNext >= 400) {
+            zoomIndex = zoomBestIndex;
+            zoomFit = zoomCandidate(zoomIndex, x0, w, y0, h);
+            zoomNext = -1;
+        }
     }
 
     // How many points of the route in view, every 0.0072 of the width, fall near a widget.
@@ -306,6 +326,7 @@ module Widgets {
         pathCum = null;
         zoomKey = -1.0;
         zoomFit = null;
+        zoomIndex = 0;
         zoomNext = -1;
         stackSideWidest = null;
         groupPlaced = null;

@@ -33,4 +33,22 @@ module PagesTest {
         Test.assertMessage(Widgets.poiNear(at(Climb.totalD().toFloat()), true) != Widgets.POI_TOP, "no TOP at the head");
         return true;
     }
+
+    // Page 1a draws the placement made for the climber's window, not one kept from an earlier window
+    // (review of #99): the climber stays on the zoomed profile as the window moves on.
+    (:test, :noreplay)
+    function zoomFollowsTheWindow(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        var d = draw(), places = [100.0, 150.0, 151.0, 400.0, 600.0] as Array<Float>;
+        for (var p = 0; p < places.size(); p++) {
+            var st = at(places[p]);
+            // A few frames at each place, so a search across frames runs too.
+            for (var frame = 0; frame < 3; frame++) { Pages.draw(1, d, st); }
+            var f = Widgets.zoomFit as Array<Float>, win = Widgets.zoomWindow(st);
+            Test.assertMessage(RouteTest.near(f[3], win[0]), "at " + places[p] + ": the window drawn starts at " + f[3] + ", not " + win[0]);
+            var x = f[0] + (st.d - f[3]) * f[2];
+            Test.assertMessage(x > 0.2 && x < 0.9, "at " + places[p] + ": the climber at " + x + ", off the profile");
+        }
+        return true;
+    }
 }
