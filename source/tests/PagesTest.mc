@@ -54,33 +54,75 @@ module PagesTest {
     }
 
     // Page 1a draws each window at the largest scale that fits the rectangle, centred in it (#102: no
-    // search for a place clear of the widgets).
+    // search for a place clear of the widgets), on the demo route and on one with a crest a metre wide,
+    // narrower than the window's height samples.
     (:test, :noreplay)
     function zoomLargestCentred(logger as Logger) as Boolean {
-        Climb.use(RouteTest.demo(), :ferrata);
+        var routes = [RouteTest.demo(), RouteTest.made([[60, 0], [1, 30], [1, -30], [60, 0]] as Array<Array<Number> >)] as Array<Route>;
         var d = draw(), x0 = Pages.PROFILE_X0, w = Pages.PROFILE_W, y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
-        var places = [0.0, 100.0, 250.0, 400.0, Climb.totalD().toFloat()] as Array<Float>;
-        for (var p = 0; p < places.size(); p++) {
-            Pages.draw(1, d, at(places[p]));
-            var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2];
-            var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k, where = "at " + places[p] + ": ";
-            Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, where + "fits, " + W + " by " + H);
-            Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), where + "as large as fits, " + W + " by " + H);
-            Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), where + "centred across");
-            Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), where + "centred up");
+        for (var r = 0; r < routes.size(); r++) {
+            Climb.use(routes[r], :ferrata);
+            var total = Climb.totalD().toFloat();
+            var places = [0.0, total / 4, total / 2, total * 3 / 4, total] as Array<Float>;
+            for (var p = 0; p < places.size(); p++) {
+                Pages.draw(1, d, at(places[p]));
+                var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2];
+                var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k, where = "route " + r + " at " + places[p] + ": ";
+                Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, where + "fits, " + W + " by " + H);
+                Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), where + "as large as fits, " + W + " by " + H);
+                Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), where + "centred across");
+                Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), where + "centred up");
+                zoomInside(where);
+            }
         }
         return true;
     }
 
-    // Page 1a frame by frame as the demo plays the route at its pace, the whole climb: it draws every
-    // frame, within the watchdog.
+    // The route page 1a draws, at the window's ends and every section end between them, inside the
+    // profile's rectangle.
+    function zoomInside(where as String) as Void {
+        var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2], e = 0.0001;
+        var x0 = Pages.PROFILE_X0, w = Pages.PROFILE_W, y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
+        var ds = [a[0], a[1]] as Array<Float>;
+        for (var i = 0; i <= Climb.count(); i++) {
+            var b = Climb.dAt(i).toFloat();
+            if (b > a[0] && b < a[1]) { ds.add(b); }
+        }
+        for (var q = 0; q < ds.size(); q++) {
+            var x = f[0] + (ds[q] - f[3]) * k, y = f[1] - (Climb.netAtDistance(ds[q]) - f[4]) * k;
+            Test.assertMessage(x >= x0 - e && x <= x0 + w + e && y >= y0 - h - e && y <= y0 + e,
+                where + "the route at " + ds[q] + " m drawn at " + x + ", " + y + ", outside the rectangle");
+        }
+    }
+
+    // Page 1a's zoomed profile frame by frame as the demo plays the route at its pace, the whole climb:
+    // every frame draws the climber's window, worked out anew only when the window moves, inside the
+    // rectangle, the climber on it.
     (:test, :noreplay)
     function zoomDrawsTheDemoFrameByFrame(logger as Logger) as Boolean {
-        var f = new TestFeed(RouteTest.demo(), true, false), d = draw();
-        for (var frame = 0; frame < DemoInput.LOOP_MS / Feed.DEMO_TICK_MS; frame++) {
+        var f = new TestFeed(RouteTest.demo(), true, false), d = draw(), moves = 0, frames = DemoInput.LOOP_MS / Feed.DEMO_TICK_MS;
+        var before = null as Array<Float>?;
+        for (var frame = 0; frame < frames; frame++) {
             f.tick();
-            Pages.draw(1, d, f.tracker.state());
+            var st = f.tracker.state(), win = Widgets.zoomWindow(st), key = Widgets.zoomKey, end = Widgets.zoomArgs[1];
+            var where = "frame " + frame + ": ";
+            // The zoomed profile alone: the whole page every frame takes minutes in the simulator.
+            Widgets.profileZoom(d, st, Pages.PROFILE_X0, Pages.PROFILE_W, Pages.PROFILE_Y0, Pages.PROFILE_H);
+            var fit = Widgets.zoomFit as Array<Float>;
+            if (key >= 0 && (win[0] - key).abs() <= 0.5 && (win[1] - end).abs() <= 0.5) {
+                Test.assertMessage(fit == before, where + "the window stayed, its placement worked out again");
+            } else {
+                Test.assertMessage(RouteTest.near(fit[3], win[0]), where + "the window drawn starts at " + fit[3] + ", not " + win[0]);
+                moves++;
+            }
+            before = fit;
+            zoomInside(where);
+            // Within the half metre the window may move before it is worked out again.
+            var x = fit[0] + (st.d - fit[3]) * fit[2], e = 0.5 * fit[2];
+            Test.assertMessage(x >= Pages.PROFILE_X0 - e && x <= Pages.PROFILE_X0 + Pages.PROFILE_W + e, where + "the climber at " + x + ", off the profile");
         }
+        logger.debug("the window moved on " + moves + " of " + frames + " frames");
+        Test.assertMessage(moves > 1 && moves < frames, "the window moved on " + moves + " of " + frames + " frames");
         return true;
     }
 

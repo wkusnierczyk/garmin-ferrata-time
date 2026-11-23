@@ -138,7 +138,8 @@ module Widgets {
 
     function profileZoom(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float) as Void {
         var win = zoomWindow(st);
-        if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5) {
+        // Again when either end has moved half a metre: near the top the end moves faster than the start.
+        if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5 || (win[1] - zoomArgs[1]).abs() > 0.5) {
             zoomStart(win[0], win[1], w, h);
             zoomFit = zoomCentred(x0, w, y0, h);
         }
@@ -151,12 +152,16 @@ module Widgets {
         d.unclip();
     }
 
-    // A new window: its heights and the largest scale that fits the box.
+    // A new window: its heights and the largest scale that fits the box. The route is straight between
+    // section ends, so its lowest and highest points are at the window's ends or at a section end in
+    // it (a crest between samples would run out of the box; review of #103).
     function zoomStart(d0 as Float, d1 as Float, w as Float, h as Float) as Void {
         zoomKey = d0;
-        var n0 = 1.0e9, n1 = -1.0e9;
-        for (var j = 0; j <= 50; j++) {
-            var n = Climb.netAtDistance(d0 + (d1 - d0) * j / 50.0);
+        var n0 = Climb.netAtDistance(d0), n1 = n0, e = Climb.netAtDistance(d1);
+        if (e < n0) { n0 = e; }
+        if (e > n1) { n1 = e; }
+        for (var i = Climb.sectionAt(d0) + 1; i <= Climb.count() && Climb.dAt(i) < d1; i++) {
+            var n = Climb.netAt(i).toFloat();
             if (n < n0) { n0 = n; }
             if (n > n1) { n1 = n; }
         }
