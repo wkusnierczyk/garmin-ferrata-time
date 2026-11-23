@@ -306,6 +306,7 @@ module Widgets {
         zoomFit = null;
         zoomNext = -1;
         stackSideWidest = null;
+        groupPlaced = null;
     }
 
     // The widest number the ascent widget can show, measured once per part.
@@ -357,9 +358,10 @@ module Widgets {
     }
 
     // The section the climber is estimated in, in a larger box centred on x; the nearest thing behind
-    // and ahead within the uncertainty stretch in smaller boxes beside it. All share the bottom yb.
-    // Without points, only sections count, and a rest shows as walking ground (W).
-    function difficulty(d as Draw, st as Climb.State, x as Float, yb as Float, points as Boolean) as Void {
+    // and ahead within the uncertainty stretch in smaller boxes beside it, all at size k. All share the
+    // top yt (owner, 2026-11-23: they shared the bottom; under the profile the round screen narrows
+    // below them). Without points, only sections count, and a rest shows as walking ground (W).
+    function difficulty(d as Draw, st as Climb.State, x as Float, yt as Float, points as Boolean, k as Float) as Void {
         var around = st.stretch(), lo = around[0], hi = around[1];
         var cur = st.cur;
         var left = NONE, right = NONE, leftDist = 1.0e9, rightDist = 1.0e9;
@@ -381,10 +383,11 @@ module Widgets {
             if (p >= lo && p <= st.d && st.d - p < leftDist) { left = code; leftDist = st.d - p; }
             if (p > st.d && p <= hi && p - st.d < rightDist) { right = code; rightDist = p - st.d; }
         }
-        var mid = section(cur, points), half = boxWidth(mid, 1.0) / 2;
-        badge(d, x, yb, 1.0, mid);
-        if (left != NONE) { badge(d, x - half - BOX_GAP - boxWidth(left, SATELLITE) / 2, yb, SATELLITE, left); }
-        if (right != NONE) { badge(d, x + half + BOX_GAP + boxWidth(right, SATELLITE) / 2, yb, SATELLITE, right); }
+        var mid = section(cur, points), half = boxWidth(mid, k) / 2, ks = SATELLITE * k;
+        badge(d, x, yt + d.whole(BOX_H * k), k, mid);
+        var yb = yt + d.whole(BOX_H * ks);
+        if (left != NONE) { badge(d, x - half - BOX_GAP - boxWidth(left, ks) / 2, yb, ks, left); }
+        if (right != NONE) { badge(d, x + half + BOX_GAP + boxWidth(right, ks) / 2, yb, ks, right); }
     }
 
     // A section's box code; a rest is walking ground when points are left out.
@@ -393,9 +396,10 @@ module Widgets {
         return g < 0 && !points ? 0 : g;
     }
 
-    // How far the difficulty widget can reach right of its centre: wide boxes in every slot.
-    function difficultyReach() as Float {
-        return BOX_WIDE / 2 + BOX_GAP + BOX_WIDE * SATELLITE;
+    // How far the difficulty widget at size k can reach either side of its centre: wide boxes in every
+    // slot.
+    function difficultyReach(k as Float) as Float {
+        return BOX_WIDE * k / 2 + BOX_GAP + BOX_WIDE * SATELLITE * k;
     }
 
     // ---------------------------------------------------------------- altitude, poi
@@ -486,7 +490,8 @@ module Widgets {
     const COL_W = 0.153846;
     const COL_H = 0.096154;
     const COL_GAP = 0.019231;
-    const COL_BIG = 1.08;
+    // The current box 35 % larger, its letters Bold 36 px at 416 (owner, 2026-11-23: it was 8 %).
+    const COL_BIG = 1.35;
     const COL_DIM = 0.55;
     const COL_SPACE = 0.024038;
     // The letters' size (bold), and the altitudes' and their unit's, as shares of the screen's width
@@ -583,10 +588,10 @@ module Widgets {
     // route. Every section's letters beside the column, the points as symbols beside the letters, three
     // altitude labels on its left; all within radius fitR of the screen's centre.
     const STACK_W = 0.105769;
-    // The letters beside the column, Bold, the climber's section's larger; the symbols' size (28, 36 and
-    // 22 px at 416).
+    // The letters beside the column, Bold, the climber's section's as large as the next altitude's label
+    // (owner, 2026-11-23); the symbols' size (28, 52 and 22 px at 416).
     const SIDE_FS = 0.0673;
-    const SIDE_FS_NOW = 0.0865;
+    const SIDE_FS_NOW = 0.125;
     const SYM_SIZE = 0.052885;
     // The labels: the next altitude to reach, and the two beside it (52 and 36 px at 416).
     const LABEL_NEXT = 0.125;
@@ -971,8 +976,6 @@ module Widgets {
 
     // ---------------------------------------------------------------- selection gauge (page 9)
 
-    // The points' rings inside the gauge, 0.0096 of the width clear of the sections.
-    const SEL_POI_R = G_R - G_PEN / 2 - 0.009615 - 0.020433;
 
     // Whether the point at distance dist is in section i or at its foot or top.
     function holds(i as Number, dist as Float) as Boolean {
@@ -987,25 +990,58 @@ module Widgets {
             var arc = sectionArc(i, true);
             d.arc(G_R, arc[0], arc[1], d.grade(section(i, false), i != sel), G_PEN);
         }
-        for (var i = 0; i < Climb.count(); i++) {
-            if (Climb.GRADE[i] < 0) {
-                selectionPoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, (i - sel).abs() <= 1);
-            }
+        // Most important first, so it takes the lane nearest the gauge where two meet: dangers, exits,
+        // then rests (a rest lights up with the section itself and the ones right before and after it).
+        var lanes = [] as Array<Array<Float>>;
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
+            var de = Climb.DANGER_AT[e].toFloat();
+            selectionMark(d, lanes, de, WARNING, holds(sel, de));
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var de = Climb.dAt(Climb.EXIT_AT[e]).toFloat();
-            selectionPoint(d, de, GREEN, holds(sel, de));
+            selectionMark(d, lanes, de, GREEN, holds(sel, de));
         }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
-            var de = Climb.DANGER_AT[e].toFloat();
-            selectionPoint(d, de, WARNING, holds(sel, de));
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.GRADE[i] < 0) {
+                selectionMark(d, lanes, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, (i - sel).abs() <= 1);
+            }
         }
     }
 
-    function selectionPoint(d as Draw, dist as Float, c as Number, lit as Boolean) as Void {
-        var p = d.onCircle(SEL_POI_R, gaugeAngle(dist, true));
-        d.dot(p[0], p[1], 0.019231, BLACK);
-        d.ring(p[0], p[1], 0.016827, lit ? c : d.darken(c, 0.33), 0.007212);
+    // A point on the selection gauge as a short arc along its inside, round-ended (owner, 2026-11-23:
+    // the rings were small and hard to read): two thirds of the gauge's pen thick, twice its pen long,
+    // SEL_GAP clear of the sections; a point that would come within SEL_GAP of one already placed moves
+    // one lane further in, so each stays on its own angle.
+    const SEL_PEN = 0.019231;
+    const SEL_LEN = 0.057692;
+    const SEL_GAP = 0.009615;
+
+    function selectionLane(k as Number) as Float {
+        return G_R - G_PEN / 2 - SEL_GAP - SEL_PEN / 2 - k * (SEL_PEN + SEL_GAP);
+    }
+
+    function selectionMark(d as Draw, lanes as Array<Array<Float>>, dist as Float, c as Number, lit as Boolean) as Void {
+        var a = gaugeAngle(dist, true), k = 0;
+        while (k < lanes.size()) {
+            var clear = true, lane = lanes[k];
+            for (var j = 0; j < lane.size(); j++) {
+                if ((lane[j] - a).abs() * Math.PI / 180 * selectionLane(k) < SEL_LEN + SEL_GAP) { clear = false; break; }
+            }
+            if (clear) { break; }
+            k++;
+        }
+        if (k == lanes.size()) { lanes.add([] as Array<Float>); }
+        lanes[k].add(a);
+        var r = selectionLane(k), colour = lit ? c : d.darken(c, 0.33);
+        // The arc's own span is the length less the pen; the round ends add half a pen each. On whole
+        // degrees, as the watch draws arcs, so the ends' dots sit on its ends.
+        var half = (SEL_LEN - SEL_PEN) / 2 / r * 180 / Math.PI;
+        var a0 = Math.round(a + half), a1 = Math.round(a - half);
+        if (a0 - a1 < 1) { a0 = a1 + 1; }
+        d.arc(r, a0, a1, colour, SEL_PEN);
+        var p0 = d.onCircle(r, a0), p1 = d.onCircle(r, a1);
+        d.dot(p0[0], p0[1], SEL_PEN / 2, colour);
+        d.dot(p1[0], p1[1], SEL_PEN / 2, colour);
     }
 
     // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,
@@ -1405,20 +1441,20 @@ module Widgets {
 
     // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
     // on (cx, by), 0.2115 by 0.1490 of the width; above it, 0.0288 clear of it, the altitude with its
-    // unit ending at the box's right edge; below it what comes next, "C/D 125 m", centred. Page 7: the
-    // altitude at SemiBold 40 and its unit 24 (px at 416) whatever k, no point of interest. Page 8
-    // (points): the altitude at 26 and the unit 16 times k, and the point of interest the stretch
-    // covers (the route's start and top too) as a word under the next line, centred, the top of its
-    // capitals 0.0288 below that line's baseline.
+    // unit; below it what comes next, "C/D 125 m"; all centred on the box (owner, 2026-11-23: the
+    // altitude's unit ended at the box's right edge). Page 7: the altitude at SemiBold 40 and its unit
+    // 24 (px at 416) whatever k, no point of interest. Page 8 (points): the altitude at 26 and the unit
+    // 16 times k, and the point of interest the stretch covers (the route's start and top too) as a
+    // word under the next line, centred, the top of its capitals 0.0288 below that line's baseline.
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
-        var bw = 0.211538 * k, bh = 0.149038 * k, ft = feet(), unit = ft ? "ft" : "m";
+        var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k);
-        var base = by - bh / 2 - 0.028846 * k, alt = altitudeNow(st, ft).format("%d");
-        var font = points ? d.semi(0.0625 * k) : d.semi(0.0962), small = points ? d.semi(0.0385 * k) : d.semi(0.0577);
-        var gap = points ? 0.007212 * k : 0.007212;
-        var right = cx + bw / 2 - d.width(small, unit) - gap;
-        d.textBase(right, base, font, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textBase(right + gap, base, small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+        var base = by - bh / 2 - 0.028846 * k, alt = altitudeNow(st, feet());
+        if (points) {
+            altitudeCentred(d, cx, base, alt, d.semi(0.0625 * k), d.semi(0.0385 * k), 0.007212 * k);
+        } else {
+            altitudeCentred(d, cx, base, alt, d.semi(0.0962), d.semi(0.0577), 0.007212);
+        }
         var nextBase = by + bh / 2 + 0.0625 * k + 0.35 * 0.0577 * k;
         nextUp(d, st, cx, nextBase, 0.0577 * k);
         if (points) {
@@ -1428,5 +1464,72 @@ module Widgets {
                     Graphics.TEXT_JUSTIFY_CENTER);
             }
         }
+    }
+
+    // An altitude v and its unit (grey, gap after the number) centred on x together, on the baseline base.
+    function altitudeCentred(d as Draw, x as Float, base as Float, v as Number, font as Graphics.FontType,
+            small as Graphics.FontType, gap as Float) as Void {
+        var text = v.format("%d"), unit = feet() ? "ft" : "m";
+        var wn = d.width(font, text), left = x - d.half(wn + gap + d.width(small, unit));
+        d.textBase(left, base, font, text, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textBase(left + wn + gap, base, small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // Page 7's group (page 7 draws it at size k, its box centred at height by) as far left as the round
+    // screen allows (owner, 2026-11-23): each of its rows keeps GROUP_MARGIN clear of the round edge at
+    // its outer corner, and the row needing the most room sets the group's centre. The rows: the
+    // altitude, at the route's widest; the box, the centres of its corners' rounding; the next line at
+    // its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
+    // keeps clear of it. Worked out once per part and unit; nothing in it changes as the climber moves.
+    const GROUP_MARGIN = 0.019231;
+    var groupPlaced as Array<Float>? = null;
+    var groupFeet as Boolean = false;
+
+    function groupPlace(d as Draw, by as Float, k as Float) as Array<Float> {
+        var ft = feet(), placed = groupPlaced;
+        if (placed != null && groupFeet == ft) { return placed; }
+        var bw = 0.211538 * k, bh = 0.149038 * k, rx = 0.024038 * k, r = 0.5 - GROUP_MARGIN;
+        // The altitude: the top of its digits, and half its width at the route's widest end.
+        var font = d.semi(0.0962), aTop = by - bh / 2 - 0.028846 * k - 0.7 * 0.0962;
+        var low = d.width(font, altitudeValue(Climb.netLow().toFloat(), ft).format("%d"));
+        var high = d.width(font, altitudeValue(Climb.netHigh().toFloat(), ft).format("%d"));
+        var altHalf = ((low > high ? low : high) + 0.007212 + d.width(d.semi(0.0577), ft ? "ft" : "m")) / 2;
+        // The next line: its baseline, and half its longest width.
+        var nextBase = by + bh / 2 + 0.0625 * k + 0.35 * 0.0577 * k;
+        var nextHalf = longestNext(d, d.bold(0.0577 * k)) / 2;
+        // The box: its corners' rounding within r - rx of the centre.
+        var cy = by - bh / 2 + rx - 0.5, inner = (r - rx) * (r - rx) - cy * cy;
+        var box = 0.5 - Math.sqrt(inner > 0 ? inner : 0) - rx + bw / 2;
+        var cx = box, a = edgeAt(aTop, r) + altHalf, n = edgeAt(nextBase, r) + nextHalf;
+        if (a > cx) { cx = a; }
+        if (n > cx) { cx = n; }
+        var half = bw / 2;
+        if (altHalf > half) { half = altHalf; }
+        if (nextHalf > half) { half = nextHalf; }
+        placed = [cx.toFloat(), (cx + half).toFloat()] as Array<Float>;
+        groupPlaced = placed;
+        groupFeet = ft;
+        return placed;
+    }
+
+    // The round edge's left side at height y, r from the centre.
+    function edgeAt(y as Float, r as Float) as Float {
+        var q = r * r - (y - 0.5) * (y - 0.5);
+        return (0.5 - Math.sqrt(q > 0 ? q : 0)).toFloat();
+    }
+
+    // The widest next line on the part: for each run of sections of one difficulty, the next difficulty
+    // and its distance from the run's start, rounded as nextUp rounds it.
+    function longestNext(d as Draw, font as Graphics.FontType) as Float {
+        var n = Climb.count(), widest = 0.0;
+        for (var i = 0; i < n; i++) {
+            if (i > 0 && section(i, false) == section(i - 1, false)) { continue; }
+            var j = i + 1;
+            while (j < n && section(j, false) == section(i, false)) { j++; }
+            var m = (Math.round(((j < n ? Climb.dAt(j) : Climb.totalD()) - Climb.dAt(i)) / 5.0) * 5).toNumber();
+            var w = d.width(font, (j < n ? BOX_NAME[section(j, false)] : "Top") + " " + m.format("%d") + " m");
+            if (w > widest) { widest = w; }
+        }
+        return widest;
     }
 }

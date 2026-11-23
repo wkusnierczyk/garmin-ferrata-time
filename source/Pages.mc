@@ -42,17 +42,22 @@ module Pages {
 
     // ---------------------------------------------------------------- pages 1 and 1a: the profile
 
-    // design/page-1.md: profile and ascent share the start and span a rectangle; the difficulty boxes
-    // in its lower right, their bottoms level with the bottom of the ascent's start dot; the altitude
-    // group in its upper left. Page 1a: the profile zoomed to 100 m of path around the climber, kept
-    // clear of the altitude group, the difficulty boxes and the ascent.
+    // design/page-1.md: profile and ascent share the start and span a rectangle; the altitude group in
+    // its upper left, the top of the altitude's digits level with the top of the ascent's top number at
+    // the line's end (0.31 of that number's size above the line's end); under the profile the difficulty
+    // boxes, 40 % larger than elsewhere, centred on the screen, their tops a box gap below the climber's
+    // ring at the start (owner, 2026-11-23). Page 1a: the profile zoomed to 100 m of path around the
+    // climber, kept clear of the altitude group, the difficulty boxes and the ascent.
+    const BOXES_BIG = 1.4;
+
     function profilePage(d as Draw, st as Climb.State, zoom as Boolean) as Void {
         var x0 = 0.221154, w = 0.625, y0 = 0.764423, h = 0.543269;
-        var reach = Widgets.difficultyReach(), yb = y0 + Widgets.ASC_DOT;
+        var reach = Widgets.difficultyReach(BOXES_BIG), boxTop = y0 + Widgets.RING_OUTER + Widgets.BOX_GAP;
+        var altTop = y0 - h - 0.31 * Widgets.NUMBER_SIZE;
         if (zoom) {
             var avoid = [
-                x0 + 0.019231, y0 - h - 0.014423, x0 + 0.336538, y0 - h + 0.177885,
-                x0 + w - 2 * reach - 0.009615, yb - 0.120192, x0 + w + 0.009615, yb + 0.009615,
+                x0 + 0.019231, altTop - 0.014423, x0 + 0.336538, altTop + 0.192308,
+                0.5 - reach - 0.009615, boxTop - 0.009615, 0.5 + reach + 0.009615, boxTop + Widgets.BOX_H * BOXES_BIG + 0.009615,
                 x0 - Widgets.RING_OUTER - 0.004808, y0 - h - 0.024038, x0 + Widgets.RING_OUTER + 0.004808, y0 + 0.024038
             ] as Array<Float>;
             Widgets.profileZoom(d, st, x0, w, y0, h, avoid);
@@ -60,8 +65,8 @@ module Pages {
             Widgets.profile(d, st, x0, w, y0, h);
         }
         Widgets.ascent(d, st, x0, y0, h, true);
-        Widgets.difficulty(d, st, x0 + w - reach, yb, false);
-        Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 0.019231, y0 - h);
+        Widgets.difficulty(d, st, 0.5, boxTop, false, BOXES_BIG);
+        Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 0.019231, altTop);
     }
 
     // ---------------------------------------------------------------- page 2: the difficulty column
@@ -112,13 +117,13 @@ module Pages {
 
     // design/page-6.md: the gauge, each section's arc its length along the route (6a) or the metres it
     // climbs (byUp, 6b); the current difficulty in a large box centred on the screen; above it the
-    // altitude, its number ending at the box's right edge; below it what comes next, and under that the
-    // point of interest as a word, centred; the ascent along the gauge's gap at the bottom.
+    // altitude with its unit; below it what comes next, and under that the point of interest as a word,
+    // all centred; the ascent along the gauge's gap at the bottom.
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = SECTION_BW, bh = SECTION_BH, by = 0.5;
         Widgets.gauge(d, st, byUp);
         Widgets.bigDifficultyOf(d, Widgets.section(st.cur, false), 0.5, by, bw, bh, 0.1683);
-        altitudeLine(d, 0.5 + bw / 2, by - bh / 2 - 0.028846, Widgets.altitudeNow(st, Widgets.feet()));
+        altitudeLine(d, by - bh / 2 - 0.028846, Widgets.altitudeNow(st, Widgets.feet()));
         // What comes next, Bold 36 px at 416, centred 0.1827 below the box's centre.
         var nextBase = by + 0.182692 + 0.35 * 0.0865;
         Widgets.nextUp(d, st, 0.5, nextBase, 0.0865);
@@ -130,24 +135,28 @@ module Pages {
         Widgets.ascentGap(d, st);
     }
 
-    // An altitude in SemiBold 40 px at 416, ending at x, its unit (24) past it, on the baseline base.
-    function altitudeLine(d as Draw, x as Float, base as Float, v as Number) as Void {
-        d.textBase(x, base, d.semi(0.0962), v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
-        d.textBase(x + 0.007212, base, d.semi(0.0577), Widgets.feet() ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
+    // An altitude in SemiBold 40 px at 416 and its unit (24), centred on the screen together (owner,
+    // 2026-11-23: the number ended at the box's right edge), on the baseline base.
+    function altitudeLine(d as Draw, base as Float, v as Number) as Void {
+        Widgets.altitudeCentred(d, 0.5, base, v, d.semi(0.0962), d.semi(0.0577), 0.007212);
     }
 
     // ---------------------------------------------------------------- pages 7 and 7a: from the front
 
     // design/page-7.md: the front view on the right (7a: zoomed to 100 m of path around the climber,
-    // cut on the left short of the group); on the left the current difficulty group, 15 % larger, its
-    // box centred vertically on the screen.
+    // cut on the left 0.0192 of the width right of the group); on the left the current difficulty
+    // group, 50 % larger as on pages 6a, 6b, 8 and 9, its box centred vertically on the screen, as far
+    // left as the round screen allows (Widgets.groupPlace; owner, 2026-11-23).
+    const FRONT_GROUP = 1.5;
+
     function frontPage(d as Draw, st as Climb.State, zoom as Boolean) as Void {
+        var place = Widgets.groupPlace(d, 0.5, FRONT_GROUP);
         if (zoom) {
-            Widgets.frontZoom(d, st, 0.442308, 0.884615, 0.153846, 0.846154, 0.418269);
+            Widgets.frontZoom(d, st, 0.442308, 0.884615, 0.153846, 0.846154, place[1] + Widgets.GROUP_MARGIN);
         } else {
             Widgets.frontView(d, st, 0.442308, 0.884615, 0.153846, 0.846154);
         }
-        Widgets.group(d, st, 0.278846, 0.5, 1.15, false);
+        Widgets.group(d, st, place[0], 0.5, FRONT_GROUP, false);
     }
 
     // ---------------------------------------------------------------- page 8: the centre
@@ -172,10 +181,10 @@ module Pages {
         Widgets.bigDifficultyOf(d, Widgets.section(i, false), 0.5, by, bw, bh, 0.1683);
         Widgets.chevron(d, 0.5 - bw / 2 - 0.096154, by, -1, i > 0);
         Widgets.chevron(d, 0.5 + bw / 2 + 0.096154, by, 1, i < n - 1);
-        var alts = Widgets.sectionAltitudes(i, Widgets.feet()), x = 0.5 + bw / 2;
+        var alts = Widgets.sectionAltitudes(i, Widgets.feet());
         var footBase = by + bh / 2 + 0.028846 + 0.7 * 0.0962;
-        altitudeLine(d, x, by - bh / 2 - 0.028846, alts[1]);
-        altitudeLine(d, x, footBase, alts[0]);
+        altitudeLine(d, by - bh / 2 - 0.028846, alts[1]);
+        altitudeLine(d, footBase, alts[0]);
         // The points, Bold 28 px at 416, letter-spaced, each in its colour, centred as one line.
         var kinds = Widgets.sectionPoints(i);
         if (kinds.size() > 0) {
