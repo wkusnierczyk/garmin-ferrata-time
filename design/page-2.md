@@ -9,7 +9,7 @@ The difficulty widget turned upright, as a variant of the ascent widget: the sec
 
 ## Layout
 
-- The **difficulty column group**, centred on the screen: the current section second from the bottom, one section before it below and three after it above (owner, 2026-11-23: it was in the middle, two and two); the current box 35 % larger than the others, its letters Bold 0.0865 of the screen (owner, 2026-11-23: it was 8 %).
+- The **difficulty column group**, centred on the screen: the current section second from the bottom, one section before it below and three after it above (owner, 2026-11-23: it was in the middle, two and two); the current box 35 % larger than the others, its letters Bold 0.0865 of the screen (owner, 2026-11-23: it was 8 %). Every box of a section that loses height, filled or outlined, is a trapezium narrower at its foot (#100).
 - The altitudes from the current section's bottom up to the column's top edge (owner, 2026-11-23: the bottom of the section before it is no longer shown).
 - Difficulty colours: heat with amber, no purple (grey, light blue, yellow, amber, orange, red); the half steps' letters (`C/D`) and colours.
 
