@@ -57,7 +57,7 @@ Options: the end dots on or off.
 
 What the climber is on, and what the uncertainty reaches.
 
-- Three slots sharing a bottom edge: a larger middle box, and two smaller satellites (0.72 of its size) a narrow gap (0.0120 of the screen) from its edges. The middle box stays put; the satellites follow its width.
+- Three slots sharing a top edge (owner, 2026-11-23: under the profile the round screen narrows below them): a larger middle box, and two smaller satellites (0.72 of its size) a narrow gap (0.0120 of the screen) from its edges, all at a size the page sets (page 1: 140 %). The middle box stays put; the satellites follow its width.
 - Middle: the section the climber is estimated to be in.
 - Satellites: when the uncertainty stretch reaches past that section, the nearest thing behind goes left and the nearest ahead goes right. A thing is the neighbouring section, or an exit or danger point inside the stretch; a point wins a tie with a section boundary. Empty slots stay empty.
 - Grades `W` (walk) and `A` to `F/G` in half steps: filled boxes in the profile's colour map, black letters; a box as wide as its letters, 0.1106 of the screen for one, 0.1394 for more.
@@ -89,7 +89,7 @@ Options: dangers follow the profile's danger setting.
 The difficulty widget turned upright: the sections around the climber.
 
 - Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
-- All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 8 % larger and filled in its colour with black letters; its letters are a font size larger on the watch (the mock scales them by 8 %).
+- All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 35 % larger (owner, 2026-11-23; it was 8 %) and filled in its colour with black letters, Bold 0.0865.
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
 - Letters `W` and `A` to `F/G`. A rest shows as `W`; the mock can show it as `R`.
 
@@ -107,7 +107,7 @@ The rest is common:
 - The climber stays a quarter of the way up from the window's bottom, marked by the climber's orange ring on the column's left edge. No line crosses the column.
 - The boxes meet with no gap. The current one is filled; the others are black with their sides in their colour; those behind the climber at 55 % of their colour.
 - A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
-- Every section's grade right of the column, at the middle of its box's part in view (a flat section's at its line), in its colour, Bold 0.0673 of the screen, the climber's section 0.0865; placed from the climber's section outwards and left out where they would touch letters already placed or leave the screen.
+- Every section's grade right of the column, at the middle of its box's part in view (a flat section's at its line), in its colour, Bold 0.0673 of the screen, the climber's section as large as the next altitude's label (0.1250); placed from the climber's section outwards and left out where they would touch letters already placed or leave the screen.
 - Points of interest as symbols (0.0529 across) right of the letters at their place on the column, dimmed once passed: danger a yellow triangle, exit a green arrow pointing down to the right, rest a blue pause (the middle of the rest), the top a red square. Symbols that would touch show one: of those in the climber's range (from one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
 - Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route. A tick sits where the route rises through its altitude (#56): in the path stack where it first reaches it, so ticks crowd on walls and spread on walks; on a descent none, and a climb after a descent marks again the altitudes it passes a second time. The labels are real altitudes.
 - Three labels, right-aligned 0.0337 of the screen left of the column: the next altitude to reach (SemiBold 0.1250; the first tick above the climber on the stack: by path it may sit further along the route than the climber, and after a descent its altitude may be below the one now; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865). The other ticks are bare.
@@ -160,10 +160,10 @@ The profile of the zoom window: 100 m of path (each section's length and height 
 
 ## current difficulty group
 
-The current difficulty with what surrounds it, as one unit; its sizes scale together (page 7 draws it 15 % larger, page 8 50 %), each text at the font table's nearest size.
+The current difficulty with what surrounds it, as one unit; its sizes scale together (pages 7 and 8 draw it 50 % larger), each text at the font table's nearest size.
 
 - The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`.
-- Above it, 0.0288 of the screen clear of it, the altitude with its unit ending at the box's right edge: on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
+- Above it, 0.0288 of the screen clear of it, the altitude with its unit, centred on the box together (owner, 2026-11-23): on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
 - Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
 - Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the route's start (`START`, green) and top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).
 
@@ -193,7 +193,7 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## selection gauge (page 9)
 
-Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as rings just inside the gauge, 0.0096 of the screen clear of the sections, so the gauge holds only the sections; a ring is lit where the selected section shows its symbol (*section points*), dimmed elsewhere.
+Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as short round-ended arcs just inside the gauge (0.0192 of the screen thick, 0.0577 long), 0.0096 clear of the sections and of each other, a point moving one lane further in where it would touch one already placed (dangers first, then exits, then rests); an arc is lit where the selected section shows the point (*section points*), dimmed elsewhere.
 
 ## chevron (page 9)
 

@@ -9,7 +9,7 @@ The difficulty widget turned upright, as a variant of the ascent widget: the sec
 
 ## Layout
 
-- The **difficulty column group**, centred on the screen, with altitudes at the column's outer edges too.
+- The **difficulty column group**, centred on the screen, with altitudes at the column's outer edges too; the current box 35 % larger than the others, its letters Bold 0.0865 of the screen (owner, 2026-11-23: it was 8 %).
 - Difficulty colours: heat with amber, no purple (grey, light blue, yellow, amber, orange, red); the half steps' letters (`C/D`) and colours.
 
 ## Open

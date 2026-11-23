@@ -15,7 +15,7 @@ The **path stack**: the route's sections as boxes as tall as their length along 
 | Window | from 0.0865 to 0.9135 of the screen down; on page 5a from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
 | Scale | 0.0024 of the screen per metre of path: 344 m in view, 272 m on page 5a |
 | The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
-| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section larger (0.0865) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
+| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section as large as the next altitude's label (Bold 0.1250; owner, 2026-11-23) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
 | Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |
 | Altitude ticks | every 10 m (50 ft in feet), where the route first reaches each altitude: they crowd on walls and spread on walks |
 | Labels | three: the next altitude to reach (SemiBold 0.1250; the first tick above the climber on the stack, which may sit further along the route than the climber; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865); the other ticks bare |
