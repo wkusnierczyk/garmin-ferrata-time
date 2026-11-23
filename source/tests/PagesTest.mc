@@ -63,11 +63,11 @@ module PagesTest {
         for (var p = 0; p < places.size(); p++) {
             Pages.draw(1, d, at(places[p]));
             var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2];
-            var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k, at = "at " + places[p] + ": ";
-            Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, at + "fits, " + W + " by " + H);
-            Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), at + "as large as fits, " + W + " by " + H);
-            Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), at + "centred across");
-            Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), at + "centred up");
+            var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k, where = "at " + places[p] + ": ";
+            Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, where + "fits, " + W + " by " + H);
+            Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), where + "as large as fits, " + W + " by " + H);
+            Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), where + "centred across");
+            Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), where + "centred up");
         }
         return true;
     }
