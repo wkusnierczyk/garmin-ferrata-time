@@ -43,7 +43,7 @@ module PagesTest {
         var d = draw(), places = [100.0, 150.0, 151.0, 400.0, 600.0] as Array<Float>;
         for (var p = 0; p < places.size(); p++) {
             var st = at(places[p]);
-            // A few frames at each place, so a search across frames runs too.
+            // A few frames at each place: the window is worked out on the first, kept on the others.
             for (var frame = 0; frame < 3; frame++) { Pages.draw(1, d, st); }
             var f = Widgets.zoomFit as Array<Float>, win = Widgets.zoomWindow(st);
             Test.assertMessage(RouteTest.near(f[3], win[0]), "at " + places[p] + ": the window drawn starts at " + f[3] + ", not " + win[0]);
