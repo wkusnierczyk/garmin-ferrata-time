@@ -1151,18 +1151,24 @@ module Widgets {
     // the route, rounded to 5 m ("C/D 125 m", the grade in its colour), or the top; centred on x, its
     // baseline at base, Bold at size (a share of the screen's width).
     function nextUp(d as Draw, st as Climb.State, x as Float, base as Float, size as Float) as Void {
-        var here = section(st.cur, false), i = st.cur + 1;
-        while (i < Climb.count() && section(i, false) == here) { i++; }
-        var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
-        var m = (Math.round(dist / 5) * 5).toNumber();
-        if (m < 0) { m = 0; }
-        var what = i < Climb.count() ? BOX_NAME[section(i, false)] : "Top";
-        var c = i < Climb.count() ? d.grade(section(i, false), false) : WHITE;
-        var rest = " " + m.format("%d") + " m";
+        var next = nextSection(st), i = next[0];
+        var what = i >= 0 ? BOX_NAME[section(i, false)] : "Top";
+        var c = i >= 0 ? d.grade(section(i, false), false) : WHITE;
+        var rest = " " + next[1].format("%d") + " m";
         var font = d.bold(size);
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
         d.textBase(x - d.half(w), base, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
         d.textBase(x - d.half(w) + w1, base, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // The next section of a different difficulty (-1 for the top) and the metres to its start along
+    // the route, rounded to 5 m.
+    function nextSection(st as Climb.State) as [Number, Number] {
+        var here = section(st.cur, false), i = st.cur + 1;
+        while (i < Climb.count() && section(i, false) == here) { i++; }
+        var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
+        var m = (Math.round(dist / 5) * 5).toNumber();
+        return [i < Climb.count() ? i : -1, m < 0 ? 0 : m];
     }
 
     // The ascent along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top dots on

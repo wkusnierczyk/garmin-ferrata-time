@@ -1,3 +1,4 @@
+using Toybox.Math;
 using Toybox.Graphics;
 using Toybox.System;
 
@@ -79,6 +80,86 @@ module PagesTest {
         var d = draw(), big = Widgets.groupPlace(d, 0.5, 1.5)[1], small = Widgets.groupPlace(d, 0.5, 1.0)[1];
         Test.assertMessage(small != big, "a smaller group is placed anew: " + small + " against " + big);
         Test.assertEqualMessage(Widgets.groupPlace(d, 0.5, 1.5)[1], big, "the same again");
+        return true;
+    }
+
+    // A route of sections [len, up, grade], from a head at 1000 m, with the points given.
+    function route(steps as Array<Array<Number> >, points as Array<Dictionary>) as Route {
+        var sections = [] as Array<Dictionary>, len = 0;
+        for (var i = 0; i < steps.size(); i++) {
+            sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => steps[i][2], "min" => 10,
+                "name" => "S" + i, "side" => 0.0});
+            len += steps[i][0];
+        }
+        var all = [{"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
+            {"kind" => "top", "at" => len, "name" => "Top"}] as Array<Dictionary>;
+        all.addAll(points);
+        return Route.fromJson({"format" => 1, "id" => "p", "name" => "P", "short" => "P",
+            "sections" => sections, "points" => all}) as Route;
+    }
+
+    // The half steps' colours: a full grade its colour of the map (A to E; F and F/G as E), a half step
+    // the rounded mean of its neighbours, channel by channel.
+    (:test)
+    function halfStepColours(logger as Logger) as Boolean {
+        var t = Palette.halfSteps(), c = Palette.HEAT_AMBER;
+        Test.assertEqualMessage(t.size(), 13, "walking and twelve half steps");
+        Test.assertEqualMessage(t[0], c[0], "walking");
+        for (var k = 1; k <= 5; k++) { Test.assertEqualMessage(t[2 * k - 1], c[k], "full grade " + k); }
+        for (var g = 10; g <= 12; g++) { Test.assertEqualMessage(t[g], c[5], "E/F to F/G as E"); }
+        // C/D (6) between C (amber yellow) and D (amber).
+        var mix = 0;
+        for (var sh = 0; sh <= 16; sh += 8) {
+            mix |= Math.round((((c[3] >> sh) & 0xff) + ((c[4] >> sh) & 0xff)) / 2.0).toNumber() << sh;
+        }
+        Test.assertEqualMessage(t[6], mix, "C/D");
+        return true;
+    }
+
+    // The point of interest: the nearest; on a tie danger, then exit, then rest.
+    (:test)
+    function poiNearestThenInOrder(logger as Logger) as Boolean {
+        var at100 = [{"kind" => "exit", "at" => 100, "name" => "Exit"}] as Array<Dictionary>;
+        var both = [{"kind" => "exit", "at" => 100, "name" => "Exit"},
+            {"kind" => "danger", "at" => 100, "name" => "Danger"}] as Array<Dictionary>;
+        var steps = [[100, 100, 3], [20, 0, -1], [100, 100, 5]] as Array<Array<Number> >;
+        Climb.use(route(steps, both), :ferrata);
+        Test.assertEqualMessage(Widgets.poiNear(at(100.0), false), 0, "danger before exit and rest");
+        Climb.use(route(steps, at100), :ferrata);
+        Test.assertEqualMessage(Widgets.poiNear(at(100.0), false), 1, "exit before rest");
+        Climb.use(route(steps, [] as Array<Dictionary>), :ferrata);
+        Test.assertEqualMessage(Widgets.poiNear(at(100.0), false), 2, "the rest");
+        Test.assertEqualMessage(Widgets.poiNear(at(220.0), true), Widgets.POI_TOP, "the top within the stretch");
+        Test.assertEqualMessage(Widgets.poiNear(at(220.0), false), -1, "nothing without the ends");
+        return true;
+    }
+
+    // What comes next: the next section of a different difficulty and its distance to 5 m, or the
+    // top; page 7 places its group by the widest such line on the route.
+    (:test)
+    function nextAndTheLongestNext(logger as Logger) as Boolean {
+        Climb.use(route([[100, 100, 1], [50, 0, 1], [100, 100, 3]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
+        var n = Widgets.nextSection(at(12.0));
+        Test.assertEqualMessage(n[0], 2, "B after the two A sections");
+        Test.assertEqualMessage(n[1], 140, "138 m, to 5 m");
+        n = Widgets.nextSection(at(200.0));
+        Test.assertEqualMessage(n[0], -1, "the top");
+        Test.assertEqualMessage(n[1], 50, "50 m to the top");
+        var d = draw(), font = d.bold(0.0577);
+        var a = d.width(font, "B 150 m"), b = d.width(font, "Top 100 m");
+        Test.assertEqualMessage(Widgets.longestNext(d, font), a > b ? a : b, "the longer of the two runs' lines");
+        return true;
+    }
+
+    // The stack's ticks in feet: every step in feet, where the route rises through them.
+    (:test)
+    function stackTicksInFeet(logger as Logger) as Boolean {
+        Climb.use(DescentTest.downRoute(), :ferrata);
+        // 1000 m is 3281 ft: 3300 to 3600 on the first climb, none down to 1050 m (3445 ft), then 3500
+        // to 3700 on the second climb to 1150 m (3773 ft).
+        var t = Widgets.stackTicks(true, 0.0, 200.0, 100, 3.28084);
+        Test.assertEqualMessage(t[0].toString(), [3300, 3400, 3500, 3600, 3500, 3600, 3700].toString(), "altitudes in feet");
+        Test.assertMessage(RouteTest.near(t[1][0], 3300 / 3.28084 - 1000), "3300 ft about 5.8 m up");
         return true;
     }
 }
