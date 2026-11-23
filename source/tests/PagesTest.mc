@@ -51,4 +51,13 @@ module PagesTest {
         }
         return true;
     }
+
+    // A long flat stretch, as the Daubenhorn's 600 m traverse at its start: pages 1a and 7a draw only what
+    // can be on the screen (review of #99, finding 2), and draw everywhere on it.
+    (:test, :noreplay)
+    function zoomedPagesDrawOnALongTraverse(logger as Logger) as Boolean {
+        var r = RouteTest.made([[600, 0], [60, 40], [40, 97], [60, 10]] as Array<Array<Number> >);
+        DescentTest.drawsEverywhere(r, 1, 1);
+        return DescentTest.drawsEverywhere(r, 12, 12);
+    }
 }

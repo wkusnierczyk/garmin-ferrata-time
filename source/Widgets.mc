@@ -241,8 +241,12 @@ module Widgets {
     // left of xl or right of xr left out.
     function profileAt(d as Draw, st as Climb.State, f as Array<Float>, xl as Float, xr as Float) as Void {
         var ox = f[0], oy = f[1], k = f[2], d0 = f[3], n0 = f[4];
-        // The climber's outline, every 4 m along the stretch.
+        // The climber's outline, every 4 m along the stretch, as far as it can be on the screen (between
+        // xl and xr): a long flat stretch reaches far past the zoomed box.
         var around = st.stretch(), lo = around[0], hi = around[1];
+        var dl = d0 + (xl - ox) / k - 4, dr = d0 + (xr - ox) / k + 4;
+        if (lo < dl) { lo = dl; }
+        if (hi > dr) { hi = dr; }
         for (var pass = 0; pass < 2; pass++) {
             var pen = pass == 0 ? 0.067308 : 0.052885, c = pass == 0 ? CLIMBER : BLACK;
             var px = ox + (lo - d0) * k, py = oy - (Climb.netAtDistance(lo) - n0) * k, dd = lo;
@@ -1321,17 +1325,21 @@ module Widgets {
     // dimmed; rests, exits and dangers as rings, dimmed once passed; the start and the top as a green
     // and a red dot; the climber as the orange outline of the stretch they could be on.
     function frontView(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Void {
-        frontDraw(d, st, frontOnScreen(x0, x1, y0, y1));
+        frontDraw(d, st, frontOnScreen(x0, x1, y0, y1), 0.0, Climb.totalD().toFloat());
     }
 
-    // The front view through the screen points pts.
-    function frontDraw(d as Draw, st as Climb.State, pts as Array<Array<Float>>) as Void {
-        var around = st.stretch(), lo = around[0], hi = around[1];
+    // The front view through the screen points pts, between the distances from and to along the route
+    // (page 7a draws only the part around its window).
+    function frontDraw(d as Draw, st as Climb.State, pts as Array<Array<Float>>, from as Float, to as Float) as Void {
+        var around = st.stretch(), lo = around[0] > from ? around[0] : from, hi = around[1] < to ? around[1] : to;
         // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
         frontBrush(d, pts, lo, hi, 0.026442, CLIMBER);
         frontBrush(d, pts, lo, hi, 0.019231, BLACK);
         for (var i = 0; i < Climb.count(); i++) {
             var g = section(i, false), a = Climb.dAt(i).toFloat(), b = Climb.dAt(i + 1).toFloat();
+            if (a < from) { a = from; }
+            if (b > to) { b = to; }
+            if (b <= a) { continue; }
             if (b <= st.d) {
                 frontStretch(d, pts, a, b, 0.019231, d.grade(g, true));
             } else if (a >= st.d) {
@@ -1342,13 +1350,12 @@ module Widgets {
             }
         }
         for (var i = 0; i < Climb.count(); i++) {
-            if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
+            if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, from, to); }
         }
-        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
-        var s0 = pts[0], s1 = pts[pts.size() - 1];
-        d.dot(s0[0], s0[1], 0.014423, GREEN);
-        d.dot(s1[0], s1[1], 0.014423, RED);
+        for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, from, to); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st, from, to); }
+        if (from <= 0) { var s0 = pts[0]; d.dot(s0[0], s0[1], 0.014423, GREEN); }
+        if (to >= Climb.totalD()) { var s1 = pts[pts.size() - 1]; d.dot(s1[0], s1[1], 0.014423, RED); }
     }
 
     // The route between two distances, painted with a round brush of radius r.
@@ -1364,7 +1371,9 @@ module Widgets {
         }
     }
 
-    function frontPoint(d as Draw, pts as Array<Array<Float>>, dist as Float, c as Number, st as Climb.State) as Void {
+    function frontPoint(d as Draw, pts as Array<Array<Float>>, dist as Float, c as Number, st as Climb.State,
+            from as Float, to as Float) as Void {
+        if (dist < from || dist > to) { return; }
         var p = frontAt(pts, dist);
         d.dot(p[0], p[1], 0.019231, BLACK);
         d.ring(p[0], p[1], 0.016827, dist <= st.d ? d.darken(c, 0.33) : c, 0.007212);
@@ -1397,13 +1406,21 @@ module Widgets {
             for (var j = 0; j < model.size(); j++) { pts[j] = [0.0, 0.0, model[j][2]] as Array<Float>; }
             frontZoomed = pts;
         }
-        for (var j = 0; j < model.size(); j++) {
+        // Only the part around the window can be on the screen: the window and one and a half of its
+        // lengths either side. Its points, and one past each end, are worked out; the rest is not drawn.
+        var ext = 1.5 * (d1 - d0), from = d0 - ext, to = d1 + ext;
+        if (from < 0) { from = 0.0; }
+        if (to > Climb.totalD()) { to = Climb.totalD().toFloat(); }
+        var j0 = frontIndex(model, from) - 1, j1 = frontIndex(model, to) + 1;
+        if (j0 < 0) { j0 = 0; }
+        if (j1 > model.size() - 1) { j1 = model.size() - 1; }
+        for (var j = j0; j <= j1; j++) {
             var q = pts[j];
             q[0] = ox + k * model[j][0];
             q[1] = oy - k * model[j][1];
         }
         d.clip(clipX, 0, 1 - clipX, 1);
-        frontDraw(d, st, pts);
+        frontDraw(d, st, pts, from, to);
         d.unclip();
     }
 
