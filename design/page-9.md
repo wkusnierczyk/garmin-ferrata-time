@@ -13,7 +13,7 @@ A preview of a section the user picks, built on page 6b. The app's last page for
 - The selected section's **difficulty** in the large box (0.3173 by 0.2212 of the screen) centred on the screen, a rest as `W`.
 - **Chevrons** left and right of the box, 0.0962 of the screen from it, to step to the section before and after; dimmed on the first and last sections. On the watch a tap level with the box, beside it, steps that way.
 - The section's **altitudes** to the metre (SemiBold 0.0962, the unit 0.0577), each centred on the screen with its unit (owner, 2026-11-23), 0.0288 of the screen clear of the box: its top's above the box, its foot's below. A flat section reads the same altitude twice.
-- Under the foot's altitude the **points** it includes or is next to, as words (Bold 0.0673, letter-spaced), each in its colour, a dim dot between, centred: `DANGER` red, `EXIT` green, `REST` blue, `TOP` red, in that order. No section name (owner, 2026-11-22).
+- Under the foot's altitude the **points** it includes or is next to, as words (Bold 0.0673, letter-spaced), each in its colour, a dim dot between, centred: `DANGER` yellow, `EXIT` green, `REST` blue, `TOP` red, in that order. No section name (owner, 2026-11-22).
 - A section shows a point that lies in it or at its foot or top, and a rest that is the section itself or right before or after it. An exit at a boundary shows on both sections that meet there.
 - At the bottom, the **gap ascent**, showing the climber.
 - The page opens on the climber's section; moving to another page and back opens it there again.

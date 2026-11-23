@@ -11,8 +11,10 @@ module Widgets {
     const CLIMBER = 0xff6f3c;
     const REST = 0x3a86ff;
     const GREEN = 0x3fd77f;
-    // Red is the route's top (end dots, the stop symbol); danger is yellow, a warning (WARNING).
+    // Red is the route's top only (end dots, the stop symbol); danger is yellow, a warning, on every
+    // page (owner, 2026-11-23).
     const RED = 0xff4b4b;
+    const WARNING = 0xffd60a;
     const SCALE = 0x777777;
     const WHITE = Graphics.COLOR_WHITE;
     const BLACK = Graphics.COLOR_BLACK;
@@ -76,7 +78,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, x0 + dd / td * w, profileY(dd, y0, h), RED, dd <= st.d);
+            point(d, x0 + dd / td * w, profileY(dd, y0, h), WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
@@ -255,7 +257,7 @@ module Widgets {
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, ox + (dd - d0) * k, oy - (Climb.netAtDistance(dd) - n0) * k, RED, dd <= st.d);
+            point(d, ox + (dd - d0) * k, oy - (Climb.netAtDistance(dd) - n0) * k, WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
@@ -345,7 +347,7 @@ module Widgets {
         } else if (code == CODE_EXIT) {
             text = "E"; colour = GREEN;
         } else if (code == CODE_DANGER) {
-            text = "D"; colour = RED;
+            text = "D"; colour = WARNING;
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
         var w = d.whole(boxWidth(code, k)), h = d.whole(BOX_H * k), top = yb - h;
@@ -958,7 +960,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { gaugePoint(d, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st, byUp); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { gaugePoint(d, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st, byUp); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), RED, st, byUp); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { gaugePoint(d, Climb.DANGER_AT[e].toFloat(), WARNING, st, byUp); }
     }
 
     function gaugePoint(d as Draw, dist as Float, c as Number, st as Climb.State, byUp as Boolean) as Void {
@@ -1269,7 +1271,7 @@ module Widgets {
             if (Climb.GRADE[i] < 0) { frontPoint(d, pts, (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0, REST, st); }
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) { frontPoint(d, pts, Climb.dAt(Climb.EXIT_AT[e]).toFloat(), GREEN, st); }
-        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), RED, st); }
+        for (var e = 0; e < Climb.DANGER_AT.size(); e++) { frontPoint(d, pts, Climb.DANGER_AT[e].toFloat(), WARNING, st); }
         var s0 = pts[0], s1 = pts[pts.size() - 1];
         d.dot(s0[0], s0[1], 0.014423, GREEN);
         d.dot(s1[0], s1[1], 0.014423, RED);
@@ -1385,7 +1387,7 @@ module Widgets {
     const POI_TOP = 3;
     const POI_START = 4;
     const POI_WORD = ["DANGER", "EXIT", "REST", "TOP", "START"] as Array<String>;
-    const POI_COLOUR = [RED, GREEN, REST, RED, GREEN] as Array<Number>;
+    const POI_COLOUR = [WARNING, GREEN, REST, RED, GREEN] as Array<Number>;
 
     function poiNear(st as Climb.State, ends as Boolean) as Number {
         var around = st.stretch(), lo = around[0], hi = around[1];
@@ -1416,7 +1418,6 @@ module Widgets {
     // A point's symbol, filled, size across, centred on (x, y), dimmed once passed, after safety signs
     // and media controls: danger a yellow triangle (a warning), exit a green arrow pointing down to the
     // right (a way off), a rest a pause (two blue bars), the top stop (a red square).
-    const WARNING = 0xffd60a;
 
     function symbol(d as Draw, kind as Number, x as Float, y as Float, size as Float, passed as Boolean) as Void {
         var h = size / 2;
@@ -1439,9 +1440,14 @@ module Widgets {
         }
     }
 
+    // The space above and below the large difficulty boxes (pages 6a to 9), the same on every page
+    // (owner, 2026-11-23): the altitude's baseline this far above the box, the capitals of the line
+    // below it this far below.
+    const GROUP_GAP = 0.028846;
+
     // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
-    // on (cx, by), 0.2115 by 0.1490 of the width; above it, 0.0288 clear of it, the altitude with its
-    // unit; below it what comes next, "C/D 125 m"; all centred on the box (owner, 2026-11-23: the
+    // on (cx, by), 0.2115 by 0.1490 of the width; above it the altitude with its unit; below it what
+    // comes next, "C/D 125 m", GROUP_GAP from the box; all centred on the box (owner, 2026-11-23: the
     // altitude's unit ended at the box's right edge). Page 7: the altitude at SemiBold 40 and its unit
     // 24 (px at 416) whatever k, no point of interest. Page 8 (points): the altitude at 26 and the unit
     // 16 times k, and the point of interest the stretch covers (the route's start and top too) as a
@@ -1449,13 +1455,13 @@ module Widgets {
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k);
-        var base = by - bh / 2 - 0.028846 * k, alt = altitudeNow(st, feet());
+        var base = by - bh / 2 - GROUP_GAP, alt = altitudeNow(st, feet());
         if (points) {
             altitudeCentred(d, cx, base, alt, d.semi(0.0625 * k), d.semi(0.0385 * k), 0.007212 * k);
         } else {
             altitudeCentred(d, cx, base, alt, d.semi(0.0962), d.semi(0.0577), 0.007212);
         }
-        var nextBase = by + bh / 2 + 0.0625 * k + 0.35 * 0.0577 * k;
+        var nextBase = by + bh / 2 + GROUP_GAP + 0.7 * 0.0577 * k;
         nextUp(d, st, cx, nextBase, 0.0577 * k);
         if (points) {
             var kind = poiNear(st, true);
@@ -1490,12 +1496,12 @@ module Widgets {
         if (placed != null && groupFeet == ft) { return placed; }
         var bw = 0.211538 * k, bh = 0.149038 * k, rx = 0.024038 * k, r = 0.5 - GROUP_MARGIN;
         // The altitude: the top of its digits, and half its width at the route's widest end.
-        var font = d.semi(0.0962), aTop = by - bh / 2 - 0.028846 * k - 0.7 * 0.0962;
+        var font = d.semi(0.0962), aTop = by - bh / 2 - GROUP_GAP - 0.7 * 0.0962;
         var low = d.width(font, altitudeValue(Climb.netLow().toFloat(), ft).format("%d"));
         var high = d.width(font, altitudeValue(Climb.netHigh().toFloat(), ft).format("%d"));
         var altHalf = ((low > high ? low : high) + 0.007212 + d.width(d.semi(0.0577), ft ? "ft" : "m")) / 2;
         // The next line: its baseline, and half its longest width.
-        var nextBase = by + bh / 2 + 0.0625 * k + 0.35 * 0.0577 * k;
+        var nextBase = by + bh / 2 + GROUP_GAP + 0.7 * 0.0577 * k;
         var nextHalf = longestNext(d, d.bold(0.0577 * k)) / 2;
         // The box: its corners' rounding within r - rx of the centre.
         var cy = by - bh / 2 + rx - 0.5, inner = (r - rx) * (r - rx) - cy * cy;

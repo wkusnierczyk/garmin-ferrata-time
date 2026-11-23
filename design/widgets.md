@@ -15,7 +15,7 @@ Shared colours:
 | Climber | orange `#ff6f3c`, the launcher icon's |
 | Rest | blue `#3a86ff` |
 | Exit, start | green `#3fd77f` |
-| Danger | red `#ff4b4b` on the route (profile, gauge, front view) and as a word; yellow `#ffd60a`, a warning, as a symbol and on page 9's selection gauge |
+| Danger | yellow `#ffd60a`, a warning, on every page: rings, boxes, symbols and words (owner, 2026-11-23); red is the route's top only |
 | Top | red `#ff4b4b` |
 | Passed or climbed | the colour at a third of its brightness |
 
@@ -31,7 +31,7 @@ The route seen from the side, from its start at the left to its end at the right
 - Points on the route as hollow rings, black inside so the route breaks there, dimmed once the climber has passed them:
   - rests: blue, at the middle of the rest stretch;
   - exits: green, where the exit leaves;
-  - dangers: red, where the route has them.
+  - dangers: yellow, where the route has them.
 - The climber: an orange outline around the stretch of route they could be on, from the position's uncertainty (25 m up or down). It is short on steep ground and long on flat ground. Drawn as a wide orange line with a narrower black one inside it, under the sections.
 - The top: a hollow white ring.
 
@@ -78,7 +78,7 @@ The approximate altitude above sea level.
 
 The point of interest the uncertainty stretch covers, as one word.
 
-- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or red; bold capitals letter-spaced 0.0024 of the screen, no box.
+- `REST`, `EXIT` or `DANGER`, in the rest blue, the exit green or the danger yellow; bold capitals letter-spaced 0.0024 of the screen, no box.
 - Shown only while such a point lies within the stretch; nothing otherwise.
 - With several, the nearest to the climber's estimate wins; on a tie, danger before exit before rest.
 
@@ -131,7 +131,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 
 - Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart, none after the last, so the gauge ends where the gap ascent's top dot is; climbed parts dimmed.
-- Rests, exits and dangers (red) as hollow rings on it, dimmed once passed.
+- Rests, exits and dangers as hollow rings on it, dimmed once passed.
 - The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
 - By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart. By ascent a section that loses height climbs none, and takes 3° as a flat one does (#56).
 
@@ -150,7 +150,6 @@ The route seen from the front, as on a topo photo of the face: up is height, acr
 - The sections in their difficulty colours, climbed parts dimmed, round joints.
 - Rests, exits and dangers as hollow rings, dimmed once passed; the start and the top as a green and a red dot.
 - The climber as the orange outline of the stretch they could be on, rounded at its ends.
-- Dangers red.
 - Fitted into a box, one scale across and up.
 - Zoomed (page 7a): the zoom window's part fitted into the box, at least 20 m each way; the rest of the route runs on past it.
 
@@ -163,7 +162,7 @@ The profile of the zoom window: 100 m of path (each section's length and height 
 The current difficulty with what surrounds it, as one unit; its sizes scale together (pages 7 and 8 draw it 50 % larger), each text at the font table's nearest size.
 
 - The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`.
-- Above it, 0.0288 of the screen clear of it, the altitude with its unit, centred on the box together (owner, 2026-11-23): on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
+- Above it, the altitude with its unit, centred on the box together (owner, 2026-11-23), its baseline 0.0288 of the screen above the box (below it, the next line's capitals as far below; the same gap on pages 6a to 9): on page 7 SemiBold 0.0962 and 0.0577 whatever the scale; on page 8 0.0625 and 0.0385 times the scale.
 - Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
 - Page 8 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the route's start (`START`, green) and top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Page 7 shows none (owner, 2026-11-22).
 
@@ -201,4 +200,4 @@ A left- or right-pointing chevron, round-ended, white; dimmed when there is noth
 
 ## section points (page 9)
 
-The points a section includes or is next to, as words under its foot's altitude: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `DANGER` (red), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.
+The points a section includes or is next to, as words under its foot's altitude: a point in it or at its foot or top, a rest that is the section itself or right before or after it, the route's top for the last section; `DANGER` (yellow), `EXIT` (green), `REST` (blue), `TOP` (red), in that order, Bold 0.0673, letter-spaced, a dim dot between, centred.

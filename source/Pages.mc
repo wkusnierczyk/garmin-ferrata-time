@@ -123,9 +123,9 @@ module Pages {
         var bw = SECTION_BW, bh = SECTION_BH, by = 0.5;
         Widgets.gauge(d, st, byUp);
         Widgets.bigDifficultyOf(d, Widgets.section(st.cur, false), 0.5, by, bw, bh, 0.1683);
-        altitudeLine(d, by - bh / 2 - 0.028846, Widgets.altitudeNow(st, Widgets.feet()));
-        // What comes next, Bold 36 px at 416, centred 0.1827 below the box's centre.
-        var nextBase = by + 0.182692 + 0.35 * 0.0865;
+        altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, Widgets.altitudeNow(st, Widgets.feet()));
+        // What comes next, Bold 36 px at 416, its capitals' top GROUP_GAP below the box (owner, 2026-11-23).
+        var nextBase = by + bh / 2 + Widgets.GROUP_GAP + 0.7 * 0.0865;
         Widgets.nextUp(d, st, 0.5, nextBase, 0.0865);
         var kind = Widgets.poiNear(st, false);
         if (kind >= 0) {
@@ -182,8 +182,8 @@ module Pages {
         Widgets.chevron(d, 0.5 - bw / 2 - 0.096154, by, -1, i > 0);
         Widgets.chevron(d, 0.5 + bw / 2 + 0.096154, by, 1, i < n - 1);
         var alts = Widgets.sectionAltitudes(i, Widgets.feet());
-        var footBase = by + bh / 2 + 0.028846 + 0.7 * 0.0962;
-        altitudeLine(d, by - bh / 2 - 0.028846, alts[1]);
+        var footBase = by + bh / 2 + Widgets.GROUP_GAP + 0.7 * 0.0962;
+        altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, alts[1]);
         altitudeLine(d, footBase, alts[0]);
         // The points, Bold 28 px at 416, letter-spaced, each in its colour, centred as one line.
         var kinds = Widgets.sectionPoints(i);
