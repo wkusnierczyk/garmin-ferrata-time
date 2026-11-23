@@ -39,6 +39,28 @@ module InputsTest {
         return true;
     }
 
+    // The demo's vertical pace weighs a descent by its height, as a climb (the review of #101): the
+    // Dihedral, down 110 m at grade 7, takes as long as a climb of 110 m at grade 7, not a moment as a
+    // flat stretch; a flat one weighs 5 m.
+    (:test)
+    function demoDescentTakesItsHeight(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        Test.assertEqualMessage(Climb.NAME[3], "Dihedral", "the Dihedral");
+        var grade7 = Math.pow(1.1, 3.5).toFloat();
+        Test.assertMessage(near(Climb.demoWeight(3), 110 * grade7, 0.01), "the Dihedral " + Climb.demoWeight(3));
+        Test.assertMessage(Climb.GRADE[1] < 0 && near(Climb.demoWeight(1), 5.0, 0.01), "the Ledge " + Climb.demoWeight(1));
+        // Its share of the demo's two minutes: as its weight's share of the whole.
+        var w = 0.0;
+        for (var i = 0; i < Climb.count(); i++) { w += Climb.demoWeight(i); }
+        var f0 = 0.0;
+        for (var i = 0; i < 3; i++) { f0 += Climb.demoWeight(i) / w; }
+        var f1 = f0 + Climb.demoWeight(3) / w;
+        Test.assertMessage(near(Climb.demoMinute(f0), Climb.mAt(3).toFloat(), 0.01), "the Dihedral starts " + Climb.demoMinute(f0));
+        Test.assertMessage(near(Climb.demoMinute(f1), Climb.mAt(4).toFloat(), 0.01), "and ends " + Climb.demoMinute(f1));
+        Test.assertMessage((f1 - f0) * DemoInput.LOOP_MS > 10000, "over 10 s of the demo: " + (f1 - f0) * DemoInput.LOOP_MS + " ms");
+        return true;
+    }
+
     // The demo's watch reads 12 m low, so the sync at the head is visible; the clock starts at 0.1.0's
     // 08:22.
     (:test)

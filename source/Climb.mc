@@ -201,11 +201,13 @@ module Climb {
     function totalM() as Number { return mAt(count()); }
 
     // The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs
-    // (a flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each
-    // full grade above walking, 1.1 to the power of half the half steps, as the mocks (rests count as
-    // walking). The guidebook minute reached at fraction f.
+    // or descends (a flat one as long as 5 m), so walks pass quickly and walls slowly, up or down, and
+    // 10 % longer for each full grade above walking, 1.1 to the power of half the half steps, as the
+    // mocks (rests count as walking; a descent weighs its height, as the mocks', the review of #101).
+    // The guidebook minute reached at fraction f.
     function demoWeight(i as Number) as Float {
-        var w = (UP[i] > 5 ? UP[i] : 5).toFloat();
+        var h = UP[i] < 0 ? -UP[i] : UP[i];
+        var w = (h > 5 ? h : 5).toFloat();
         return w * Math.pow(1.1, (GRADE[i] > 0 ? GRADE[i] : 0) / 2.0).toFloat();
     }
 
