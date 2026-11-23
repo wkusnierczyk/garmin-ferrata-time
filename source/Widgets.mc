@@ -299,14 +299,18 @@ module Widgets {
     // on the line where the route dips below the head or rises above its top before coming down to it.
     function ascentShare(st as Climb.State) as Float {
         var top = Climb.netAt(Climb.count());
-        if (top == 0) { return 0.0; }
+        // A part whose top is at or below its start (an approach going down) has no way up to show: the
+        // ring stays at the start (the review of #101), until the approach pages hide the height (#90).
+        if (top <= 0) { return 0.0; }
         var f = st.net() / top;
         return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
     }
 
     // Their numbers: the net height above the head now, to the metre, and the top's net height less it.
     // Amounts climbed stay height gained (State.climbed): the stacks, the gauge by ascent, the totals.
+    // A part whose top is at or below its start shows none, 0 and 0, as its ring stays at the start.
     function ascentNumbers(st as Climb.State) as [Number, Number] {
+        if (Climb.netAt(Climb.count()) <= 0) { return [0, 0]; }
         var up = Math.round(st.net()).toNumber();
         return [up, Climb.netAt(Climb.count()) - up];
     }

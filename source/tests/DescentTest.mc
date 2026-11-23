@@ -171,6 +171,26 @@ module DescentTest {
         return true;
     }
 
+    // A part whose top is at or below its start (an approach going down, or ending where it started):
+    // no way up, so the ring stays at the start and the numbers are 0 (the review of #101: the ring
+    // climbed as the climber went down, both numbers negative).
+    (:test)
+    function ascentWithNoWayUp(logger as Logger) as Boolean {
+        var routes = [[[100, -20]], [[50, 10], [50, -10]], [[50, 10], [50, -30]]] as Array<Array<Array<Number> > >;
+        for (var r = 0; r < routes.size(); r++) {
+            Climb.use(RouteTest.made(routes[r]), :ferrata);
+            var places = [0.0, 50.0, 75.0, 100.0] as Array<Float>;
+            for (var p = 0; p < places.size(); p++) {
+                var st = PagesTest.at(places[p]);
+                Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 0.0),
+                    "route " + r + " at " + places[p] + ": share " + Widgets.ascentShare(st));
+                Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [0, 0].toString(),
+                    "route " + r + " at " + places[p]);
+            }
+        }
+        return true;
+    }
+
     // Page 9 (#100): a descent's start, the higher altitude, above its box and its end below; a climb's
     // end above and its start below, as before.
     (:test)
