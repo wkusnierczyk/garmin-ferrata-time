@@ -44,19 +44,42 @@ module Fonts {
     }
 }
 
+// The difficulty colours (design/widgets.md): heat with amber, for walking and A to E, F taking E's.
+// The pages draw the route file's half steps (1 A, 2 A/B ... 11 F, 12 F/G; 0 walking), each with its
+// own colour, as the mocks' halfSteps do: a full grade its colour of the map, a half step the rounded
+// mean of its two neighbours, channel by channel. Worked out once.
+module Palette {
+
+    const HEAT_AMBER = [0x6b7280, 0x8ecae6, 0xffe14d, 0xffb000, 0xff7a1a, 0xe63946] as Array<Number>;
+    var half as Array<Number>? = null;
+
+    function halfSteps() as Array<Number> {
+        var t = half;
+        if (t == null) {
+            t = new Array<Number>[13];
+            t[0] = HEAT_AMBER[0];
+            for (var g = 1; g <= 12; g++) {
+                // Grade g sits at (g + 1) / 2 on the map: A 1, B 2 ... E 5; past it, E.
+                var k = (g + 1) / 2.0, lo = Math.floor(k).toNumber(), hi = Math.ceil(k).toNumber();
+                if (lo > 5) { lo = 5; }
+                if (hi > 5) { hi = 5; }
+                var a = HEAT_AMBER[lo], b = HEAT_AMBER[hi], m = 0;
+                for (var sh = 0; sh <= 16; sh += 8) {
+                    m |= Math.round((((a >> sh) & 0xff) + ((b >> sh) & 0xff)) / 2.0).toNumber() << sh;
+                }
+                t[g] = m;
+            }
+            half = t;
+        }
+        return t;
+    }
+}
+
 // Drawing helpers in shares of the screen: a position or size is a fraction of the screen's width
 // (the screen is round, so of its height too), scaled to pixels here.
 class Draw {
 
-    // Difficulty colours for walk and K1 to K5. The heat map, ending in purple, is the earlier pages';
-    // the revised pages use heat with amber and no purple (design/widgets.md).
-    const HEAT = [0x6b7280, 0x8ecae6, 0xffd166, 0xf79d3c, 0xef476f, 0xb05cff] as Array<Number>;
-    const HEAT_AMBER = [0x6b7280, 0x8ecae6, 0xffe14d, 0xffb000, 0xff7a1a, 0xe63946] as Array<Number>;
-    var colours as Array<Number> = HEAT;
-    const REST = 0x4fc3f7;
-    const EXIT = 0xcfd8dc;
     const MUTED = 0x99aaaa;
-    const DIM_GREY = 0x777777;
 
     var dc as Graphics.Dc;
     // The screen's width in pixels.
@@ -70,7 +93,7 @@ class Draw {
     // A share of the screen's width in whole pixels, cut towards zero. The shares are decimals, a hair
     // either side of the pixel they stand for (to six places, within a five-thousandth of a pixel):
     // adding two thousandths of a pixel keeps them on it. That margin holds for a few constants added
-    // up; a longer chain (whatsNext's rows) or a scale times hundreds of metres carries nine places.
+    // up; a longer chain or a scale times hundreds of metres carries nine places.
     const NUDGE = 0.002;
 
     function s(v as Numeric) as Number {
@@ -90,9 +113,9 @@ class Draw {
         return (Math.round(p < 0 ? p - NUDGE : p + NUDGE) / w).toFloat();
     }
 
-    // A grade's colour; climbed parts are drawn at a third of it.
+    // A grade's colour, in half steps (Palette); climbed parts are drawn at a third of it.
     function grade(g as Number, dim as Boolean) as Number {
-        var c = colours[g < 0 ? 0 : g];
+        var c = Palette.halfSteps()[g < 0 ? 0 : (g > 12 ? 12 : g)];
         return dim ? darken(c, 0.33) : c;
     }
 
@@ -122,19 +145,23 @@ class Draw {
         }
     }
 
-    // A dash's length, and the gap's. It and BRUSH_STEP divide lengths into counts, so they carry nine
-    // decimals.
-    const DASH = 0.021634615;
+    // A filled polygon through points [x, y].
+    function poly(pts as Array<Array<Float>>, c as Number) as Void {
+        var a = new Array<[Numeric, Numeric]>[pts.size()];
+        for (var i = 0; i < pts.size(); i++) { a[i] = [s(pts[i][0]), s(pts[i][1])]; }
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon(a);
+    }
 
-    function dashed(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, c as Number, pen as Numeric) as Void {
-        var dx = x2 - x1, dy = y2 - y1;
-        var len = Math.sqrt(dx * dx + dy * dy);
-        if (len <= 0) { return; }
-        var steps = (len / DASH).toNumber();
-        for (var i = 0; i < steps; i += 2) {
-            var a = i / steps.toFloat(), b = (i + 1) / steps.toFloat();
-            line(x1 + dx * a, y1 + dy * a, x1 + dx * b, y1 + dy * b, c, pen);
+    // A stroke pen wide from (x1, y1) to (x2, y2), as a polygon (the watch's thick lines end square and
+    // narrow at a slant), its ends round or cut square.
+    function seg(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, pen as Numeric, c as Number, round as Boolean) as Void {
+        var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0.00002) {
+            var nx = -dy / len * pen / 2, ny = dx / len * pen / 2;
+            poly([[x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny]] as Array<Array<Float>>, c);
         }
+        if (round) { dot(x1, y1, pen / 2, c); dot(x2, y2, pen / 2, c); }
     }
 
     function rect(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, c as Number) as Void {
@@ -145,17 +172,6 @@ class Draw {
     function roundRect(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, r as Numeric, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(s(x), s(y), s(wd), s(h), s(r));
-    }
-
-    // A progress bar's fill: rounded ends once it is wide enough for them, nothing before.
-    function bar(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, c as Number) as Void {
-        if (wd >= h) { roundRect(x, y, wd, h, h / 2, c); }
-    }
-
-    function frame(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, c as Number, pen as Numeric) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(s(pen));
-        dc.drawRectangle(s(x), s(y), s(wd), s(h));
     }
 
     function dot(x as Numeric, y as Numeric, r as Numeric, c as Number) as Void {
@@ -175,34 +191,10 @@ class Draw {
         dot(x, y, 0.007212, Graphics.COLOR_BLACK);
     }
 
-    // A small triangle pointing right, the "you are here" marker beside a ladder or list.
-    function pointer(x as Numeric, y as Numeric, size as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-        dc.fillPolygon([[s(x - size * 2), s(y - size)], [s(x), s(y)], [s(x - size * 2), s(y + size)]]);
-    }
-
-    // A small triangle pointing up, standing for "climbed".
-    function upMark(x as Numeric, y as Numeric, size as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-        dc.fillPolygon([[s(x), s(y - size)], [s(x + size), s(y + size * 0.6)], [s(x - size), s(y + size * 0.6)]]);
-    }
-
-    // The exit mark: a short arrow down and to the right.
-    function exitMark(x as Numeric, y as Numeric) as Void {
-        line(x - 0.012019, y - 0.012019, x + 0.009615, y + 0.009615, EXIT, 0.004808);
-        line(x + 0.009615, y + 0.009615, x + 0.009615, y - 0.004808, EXIT, 0.004808);
-        line(x + 0.009615, y + 0.009615, x - 0.004808, y + 0.009615, EXIT, 0.004808);
-    }
-
     // Text centred on (x, y).
     function text(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
         dc.setColor(c, Graphics.COLOR_TRANSPARENT);
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-
-    function textLeft(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function textRight(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
@@ -259,6 +251,36 @@ class Draw {
 
     function capHeight(font as Graphics.FontType) as Float {
         return ascent(font) * CAP;
+    }
+
+    // Text with its baseline at y, justified as given.
+    function textBase(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        textTop(x, y - ascent(font), font, str, c, justify);
+    }
+
+    // A word in letters spaced 0.0024 of the width apart (1 px at 416, the mocks' letter-spacing),
+    // its baseline at y, starting at x (justify left), centred on it or ending there (right): the
+    // spacing after its last letter counts, as in the mocks.
+    function spaced(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
+        var a = str.toCharArray(), cx = x;
+        // Its width only when it is needed to place it.
+        if (justify != Graphics.TEXT_JUSTIFY_LEFT) {
+            var total = spacedWidth(font, str);
+            cx = justify == Graphics.TEXT_JUSTIFY_RIGHT ? x - total : x - total / 2;
+        }
+        for (var i = 0; i < a.size(); i++) {
+            var ch = a[i].toString();
+            textBase(cx, y, font, ch, c, Graphics.TEXT_JUSTIFY_LEFT);
+            cx += width(font, ch) + SPACING;
+        }
+    }
+
+    const SPACING = 0.002404;
+
+    function spacedWidth(font as Graphics.FontType, str as String) as Float {
+        var a = str.toCharArray(), total = 0.0;
+        for (var i = 0; i < a.size(); i++) { total += width(font, a[i].toString()) + SPACING; }
+        return total;
     }
 
     // Text whose capitals start at y (their top), justified as given.

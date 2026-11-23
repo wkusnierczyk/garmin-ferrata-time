@@ -1,29 +1,16 @@
 # Ferrata. Page 8, version 1
 
 Status: settled with the owner on 2026-11-21 (#23)  
+Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/page-8.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
-The current difficulty large in the middle, the ascent around the edge. The app's eighth page.
+The current difficulty large in the middle, the ascent around the edge.
 
 ## Layout
 
 - The **current difficulty group** centred on the screen, 50 % larger than its base size.
 - The **ascent gauge** around the edge.
-- Difficulty colours: heat with amber, no purple.
-- The group's box keeps its base width here, 0.2115 by 0.1490 of the screen times 1.5 (no fit, unlike page 7); the symbol starts where the box's corner rounding ends, or further left if the altitude would touch it. The mock does not apply that clearance; the watch does.
-- On the watch the box, its letters and the symbol are 50 % larger; the altitude, its unit and "K4 125 m" are system-font text at their base size (the mock scales them too), so the symbol stands taller than the digits. As settled on the wrist.
-
-## Point symbols on this page
-
-After safety signs (ISO 7010) and media controls:
-
-| Point | Symbol |
-|---|---|
-| Danger | a yellow triangle (a warning) |
-| Exit | a green arrow pointing down to the right: a way off the route (it was a cross; owner, 2026-11-21) |
-| Rest | a blue pause: two bars, as tall as the triangle |
-| Start, while the uncertainty reaches it | a green play triangle, pointing right |
-| Top, while the uncertainty reaches it | a red stop square |
-
-The nearest wins; on a tie danger, exit, top, rest, start. Page 7 uses the same symbols, and every page the same colours: exit green, rest blue, danger yellow (#24).
+- Difficulty colours: heat with amber, no purple, a colour per half step.
+- Everything in the group 50 % larger: the box (0.2115 by 0.1490 of the screen times 1.5), its letters, the altitude (SemiBold 0.0625 times 1.5, its unit 0.0385 times 1.5, centred on the box with it, its baseline 0.0288 of the screen above the box; owner, 2026-11-23) and the next line (its capitals 0.0288 below the box) ("C/D 125 m", Bold 0.0577 times 1.5); each text at the font table's size nearest, the larger on a tie.
+- The point of interest as a word under the next line (owner, 2026-11-22: it was a symbol above the box): Bold 0.0673, letter-spaced, in its colour, centred, the top of its capitals 0.0288 below the next line's baseline. `DANGER` yellow, `EXIT` green, `REST` blue, and the route's ends while the uncertainty reaches them: `HEAD` green (the ferrata's head, never START: the climb may start on the approach; owner, 2026-11-23), `TOP` red. The nearest wins; on a tie danger, exit, rest, top, head.

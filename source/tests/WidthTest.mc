@@ -70,4 +70,45 @@ module WidthTest {
     function altitudeWidthsCountTheMinus(logger as Logger) as Boolean {
         return altitudesMatch(belowZero());
     }
+
+    // Page 2a: the relative altitudes' box is the widest of every difference the column can show, from
+    // each section's bottom to the borders above it, measured one by one.
+    function relativeMatches(r as Route) as Boolean {
+        Climb.use(r, :ferrata);
+        var d = draw(), font = d.semi(Widgets.COL_ALT), n = Climb.count();
+        for (var f = 0; f < 2; f++) {
+            var ft = f == 1, w = 0.0;
+            for (var c = 0; c < n; c++) {
+                for (var b = c; b <= n && b <= c + Widgets.COL_ABOVE + 1; b++) {
+                    var vw = d.width(font, Widgets.relativeText(Widgets.relativeValue(b, c, ft)));
+                    if (vw > w) { w = vw; }
+                }
+            }
+            Test.assertEqualMessage(Widgets.columnRelativeBox(d, ft), w, "relative box");
+        }
+        return true;
+    }
+
+    (:test)
+    function relativeWidthsAreTheWidest(logger as Logger) as Boolean {
+        return relativeMatches(RouteTest.demo());
+    }
+
+    // A route that falls: the minus sign counts.
+    (:test)
+    function relativeWidthsCountTheMinus(logger as Logger) as Boolean {
+        return relativeMatches(DescentTest.downRoute());
+    }
+
+    (:test)
+    function relativeValuesAreSigned(logger as Logger) as Boolean {
+        // Up 100, down 50, up 100: from section 1's bottom (100 m up), the descent's foot is -50 and the
+        // top +50.
+        Climb.use(DescentTest.downRoute(), :ferrata);
+        Test.assertEqualMessage(Widgets.relativeText(Widgets.relativeValue(1, 1, false)), "0", "its own bottom");
+        Test.assertEqualMessage(Widgets.relativeText(Widgets.relativeValue(2, 1, false)), "-50", "the descent's foot");
+        Test.assertEqualMessage(Widgets.relativeText(Widgets.relativeValue(3, 1, false)), "+50", "the top");
+        Test.assertEqualMessage(Widgets.relativeValue(3, 1, true), 165, "in feet, to 5");
+        return true;
+    }
 }

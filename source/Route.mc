@@ -59,6 +59,10 @@ class Route {
                 || !(d["grade"] instanceof Number) || !(d["name"] instanceof String)
                 || !isNumeric(d["side"] as Object?)) { return false; }
             if (d["min"] != null && !(d["min"] instanceof Number)) { return false; }
+            // A grade from -1 (rest) and 0 (walking) to 12 (F/G), as the route tool checks: the pages
+            // look a grade up in tables of these.
+            var g = d["grade"] as Number;
+            if (g < -1 || g > 12) { return false; }
         }
         return true;
     }

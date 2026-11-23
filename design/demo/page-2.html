@@ -45,14 +45,16 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
 .notes ul { margin: 8px 0 0; padding-left: 20px; max-width: 65ch; }
 .notes li + li { margin-top: 6px; }
 @media (max-width: 640px) { .live { grid-template-columns: 1fr; } .live .dial { width: min(360px, 100%); } }
+/* The watch's bitmap fonts have no kerning, no ligatures and tabular digits: the mock draws its text the same way. */
+svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'calt' 0; }
 </style>
 <main>
   <section>
     <h1>Ferrata · page 2, version 1, settled</h1>
-    <p class="lede">The difficulty widget turned upright, as a variant of the ascent widget. A column of boxes: the <b>current</b> section in the middle, filled and slightly larger; the two sections <b>before</b> it below, outlined and dimmed; the two <b>after</b> it above, outlined. To the right, the <b>altitudes</b> where the difficulty changes, level with the borders between the boxes.</p>
+    <p class="lede">The difficulty widget turned upright, as a variant of the ascent widget. A column of boxes: the <b>current</b> section second from the bottom, filled and larger; the one section <b>before</b> it below, outlined and dimmed; the three <b>after</b> it above, outlined. To the right, the <b>altitudes</b> where the difficulty changes, level with the borders between the boxes, from the current section's bottom up. Page 2a shows the same altitudes <b>relative</b> to the current section's bottom.</p>
   </section>
   <section class="live">
-    <div class="dial"><svg id="live" viewBox="0 0 1 1" role="img" aria-label="The sections around the climber, with the altitudes where they change"></svg></div>
+    <div class="dial"><svg id="live" viewBox="0 0 416 416" role="img" aria-label="The sections around the climber, with the altitudes where they change"></svg></div>
     <div class="controls">
       <label for="pos">Point of the climb</label>
       <input id="pos" type="range" min="0" max="1000" value="450">
@@ -68,21 +70,34 @@ figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-t
       <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
       <label class="check"><input id="outer" type="checkbox" checked> Altitudes at the column's outer edges too</label>
       <label class="check"><input id="each-unit" type="checkbox" checked> Unit after every altitude</label>
+      <label for="cur-size">Current section</label>
+      <select id="cur-size"><option value="now">as now (8 % larger than the others)</option><option value="large" selected>larger (35 % larger, letters Bold 36)</option></select>
       <div hidden><input id="box-exits" type="checkbox"><input id="box-dangers" type="checkbox"><input id="dangers" type="checkbox" checked><input id="ends" type="checkbox" checked></div>
+    </div>
+  </section>
+  <section class="live">
+    <div class="dial"><svg id="liveb" viewBox="0 0 416 416" role="img" aria-label="The sections around the climber, with the heights of their borders above the current section's bottom"></svg></div>
+    <div class="controls">
+      <h2>Page 2a · relative altitudes</h2>
+      <p class="lede">As page 2, the same slider and options, but each altitude is its height above the <b>bottom of the current section</b>: 0 there, a plus sign above it, a minus sign below (a route that descends). Metres to the metre, feet to 5 ft, in the page's unit.</p>
     </div>
   </section>
   <section>
     <h2>Through the climb</h2>
     <div class="row" id="row"></div>
+    <div class="row" id="rowb" style="margin-top: 28px"></div>
   </section>
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li>All boxes are the same size, 0.1538 by 0.0962 of the screen's width, whatever their letters; the current one is 8 % larger, letters included.</li>
+      <li>All boxes are the same size, 64 by 40 px on the 416 px screen, whatever their letters; the current one is larger, letters included: 35 % (86 by 54 px, letters Bold 36) by default, or 8 % as before (the menu chooses; owner, 2026-11-23, an idea to compare).</li>
       <li>The boxes before the climber are outlined at 55 % of their colour; the ones after at full colour.</li>
-      <li>Each altitude is where the route passes from the box below to the box above, rounded to 10 m or 50 ft like the altitude widget. The numbers are right-aligned in a box as wide as the widest altitude the route can show, 0.024 of the screen's width right of the column.</li>
-      <li>Near the start and the top there are fewer than two sections on one side; those slots stay empty, so the current box never moves.</li>
-      <li>The column and its altitudes are centred on the screen as one group.</li>
+      <li>Five slots: one before the climber, the current, three after (owner, 2026-11-23: what is ahead matters more than what is behind).</li>
+      <li>Each altitude is where the route passes from the box below to the box above, rounded to 10 m or 50 ft like the altitude widget. The numbers are right-aligned in a box as wide as the widest altitude the route can show, 10 px right of the column.</li>
+      <li>Five altitudes: the current section's bottom, and the tops of it and the three after it (the topmost, at the column's outer edge, only with the option). The bottom of the section before is left out (owner, 2026-11-23).</li>
+      <li>Page 2a: the same altitudes as differences from the current section's bottom, signed (+137, 0, -20), right-aligned in a box as wide as the widest the route can show. They are the route's own heights, not the climber's estimate, so finer than the altitude widget: 1 m or 5 ft.</li>
+      <li>Near the start there is no section before and near the top fewer than three after; those slots stay empty, so the current box never moves.</li>
+      <li>The column is centred on the screen, its altitudes beside it as one group; the current box sits 48 px below the middle (one slot's step, half of three above less one below).</li>
     </ul>
   </section>
 </main>
@@ -107,9 +122,9 @@ const MAPS = {
   orange: { name: "One hue, brighter when harder", c: [0x6b7280, 0x8a4a2c, 0xb85a30, 0xe8692f, 0xff8c55, 0xffc2a0] },
 };
 
-// Danger points are yellow, as a warning sign, on every page; red is the route's top.
-const DANGER_YELLOW = "#ffd60a";
 const REST = "#3a86ff", EXIT_GREEN = "#3fd77f", CLIMBER = "#ff6f3c", SCALE = "#777777", END_RED = "#ff4b4b";
+// Danger is yellow on every page, as in the app (owner, 2026-11-23); red is the route's top only.
+const DANGER_Y = "#ffd60a";
 const GRADE_NAME = ["walk", "K1", "K2", "K3", "K4", "K5"];
 const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "Band", "Bench",
   "Band", "Slabs", "Overhang", "Bridge", "Ladders", "Exit gully"];
@@ -167,31 +182,78 @@ function state(m) {
 
 // The numbers sit left of the height scale, right-aligned a small space before the climber's ring.
 const NUMBER_FONT = "Barlow Condensed, Arial Narrow, sans-serif";
-const RING_OUTER = 0.0216 + 0.006 / 2, NUMBER_SPACE = 0.012;
+// The app's font sizes (#62, PR #77), px at 416: the watch draws a text 1:1 only at a size in this
+// table. SemiBold (600) text, and larger sizes for numbers only (digits, space, "-", ":"); Bold (700)
+// text, and larger sizes for grades only. PROPOSED: sizes the mocks use that the table does not have
+// yet (an addition costs memory; the owner decides): 120 numbers only, page 10c-e's one big value.
+const FONT_SIZES = {
+  600: { text: [16, 18, 20, 22, 24, 28, 30, 32, 36, 40, 44, 46], only: [52, 58, 64, 84, 104], proposed: [], chars: /^[0-9 :-]*$/ },
+  700: { text: [18, 20, 24, 26, 28, 30, 34, 36], only: [52, 70], proposed: [], chars: /^[\/0-9A-GKRW]*$/ },
+};
+// The nearest size in the table (the larger on a tie) for a text at a weight; the larger sizes only
+// when every character of the text is one they hold.
+function snap(size, weight = 600, text = "") {
+  const f = FONT_SIZES[+weight >= 700 ? 700 : 600];
+  const list = f.chars.test(String(text)) ? [...f.text, ...f.only, ...f.proposed] : f.text;
+  return list.reduce((a, b) => Math.abs(b - size) < Math.abs(a - size) || (Math.abs(b - size) === Math.abs(a - size) && b > a) ? b : a);
+}
+// Every text in the dials at a size in the table: a size computed by scale (a group drawn larger,
+// tick labels, rows fitted to the screen) snaps here, after each draw, before it shows.
+function snapTexts(root) {
+  for (const el of root.querySelectorAll ? root.querySelectorAll("text, tspan") : []) {
+    const fs = parseFloat(el.getAttribute("font-size"));
+    if (!fs) continue;
+    const weight = el.getAttribute("font-weight") || el.closest("text")?.getAttribute("font-weight") || 600;
+    // The characters drawn at this size: its own text, and that of tspans inheriting the size.
+    const own = el.tagName === "text" ? [...el.childNodes].filter(n => n.nodeType === 3 || !n.getAttribute("font-size")).map(n => n.textContent).join("") : el.textContent;
+    const s = snap(fs, weight, own);
+    if (s !== fs) el.setAttribute("font-size", s);
+  }
+}
+new MutationObserver(ms => { for (const m of ms) if (m.target.closest && m.target.closest("svg")) snapTexts(m.target); })
+  .observe(document.documentElement, { childList: true, subtree: true });
+// A text's width as the watch draws it: at its size in the table, without kerning, digits tabular.
+const textWidth = (() => { const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"), el = document.createElementNS(NS, "text"), cache = new Map();
+  svg.setAttribute("style", "position: absolute; width: 0; height: 0; visibility: hidden"); svg.appendChild(el);
+  document.fonts?.ready.then(() => { cache.clear(); if (typeof show === "function") show(); if (typeof stills === "function") stills(); });
+  return (t, px, weight = 600) => {
+    const s = snap(px, weight, t), k = `${weight} ${s} ${t}`;
+    if (!cache.has(k)) {
+      if (!svg.isConnected) document.body.appendChild(svg);
+      el.setAttribute("font-family", NUMBER_FONT); el.setAttribute("font-size", s); el.setAttribute("font-weight", weight); el.textContent = t;
+      // A width of 0 means the font is not laid out yet (still loading): measure again next time.
+      const w = el.getComputedTextLength();
+      if (w > 0 || !t) cache.set(k, w); else return w;
+    }
+    return cache.get(k);
+  }; })();
+// The ascent widget's climber ring, end dots and numbers (owner, 2026-11-22: slightly larger, was 9, 2.5, 6, 22).
+const ASC_RING = 11, ASC_PEN = 3, ASC_DOT = 7.5, ASC_FS = 28;
+const RING_OUTER = ASC_RING + ASC_PEN / 2, NUMBER_SPACE = 5;
 
 const line = (x1, y1, x2, y2, c, w) =>
-  `<line x1="${x1.toFixed(4)}" y1="${y1.toFixed(4)}" x2="${x2.toFixed(4)}" y2="${y2.toFixed(4)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
 
-// The profile alone, in fractions of the screen's width.
+// The profile alone, in the design's 416 px coordinates.
 // The ascent widget: a vertical line for the route's height, the climber's height on it as an
 // orange ring, the metres climbed below the ring and the metres left above it, and optionally the
 // start and the top as a green and a red dot. The line stands at x, from y0 (start) up to y0 - h.
 function ascent(st, x, y0, h, ends) {
   const Y = u => y0 - u / TU * h, ty = Y(st.u), up = Math.round(st.u);
-  const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(4)}" y="${y.toFixed(4)}" text-anchor="end" fill="#fff" font-size="0.0529" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
+  const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" fill="#fff" font-size="${ASC_FS}" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
   // Back to front: the line, the ring's black inside (hiding the line, not the end dots), the end
   // dots, the ring's orange outline.
-  let s = line(x, Y(0), x, Y(TU), SCALE, 0.0048);
-  s += `<circle cx="${x}" cy="${ty.toFixed(4)}" r="0.0216" fill="#000"/>`;
+  let s = line(x, Y(0), x, Y(TU), SCALE, 2);
+  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="${ASC_RING}" fill="#000"/>`;
   // Centred on their stretches, kept clear of the ring when it nears either end, but never past the end.
-  const gap = 0.0481;
+  const gap = 24;
   s += num(Math.min(Math.max((ty + Y(0)) / 2, ty + gap), Y(0)), up) +
     num(Math.max(Math.min((Y(TU) + ty) / 2, ty - gap), Y(TU)), TU - up);
   if (ends) {
-    s += `<circle cx="${x}" cy="${Y(0)}" r="0.0144" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="0.0144" fill="${END_RED}"/>`;
+    s += `<circle cx="${x}" cy="${Y(0)}" r="${ASC_DOT}" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="${ASC_DOT}" fill="${END_RED}"/>`;
   }
   // Sized to ring an end's dot when it reaches it.
-  s += `<circle cx="${x}" cy="${ty.toFixed(4)}" r="0.0216" fill="none" stroke="${CLIMBER}" stroke-width="0.006"/>`;
+  s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="${ASC_RING}" fill="none" stroke="${CLIMBER}" stroke-width="${ASC_PEN}"/>`;
   return s;
 }
 
@@ -202,17 +264,17 @@ function ascent(st, x, y0, h, ends) {
 // (opt.colours, one of MAPS) and whether to show danger points (opt.dangers).
 function profile(st, x0, w, y0, h, opt) {
   const colours = opt.colours.c, dangers = opt.dangers;
-  const pen = 0.024;
+  const pen = 10;
   const X = d => x0 + d / TD * w, Y = u => y0 - u / TU * h;
   let s = "";
   // The climber: an orange outline around the stretch of route they could be on, from how sure the
   // position is. Drawn as a wide orange stroke with a narrower black one inside it.
   const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
   let pts = [];
-  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(4)},${Y(heightAt(dd)).toFixed(4)}`);
-  pts.push(`${X(hi).toFixed(4)},${Y(heightAt(hi)).toFixed(4)}`);
+  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(1)},${Y(heightAt(dd)).toFixed(1)}`);
+  pts.push(`${X(hi).toFixed(1)},${Y(heightAt(hi)).toFixed(1)}`);
   const band = (c, wd) => `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${wd}" stroke-linecap="round" stroke-linejoin="round"/>`;
-  s += band(CLIMBER, 0.0673) + band("#000", 0.0529);
+  s += band(CLIMBER, 28) + band("#000", 22);
   // The sections.
   const cx = X(st.d), cy = Y(st.u);
   for (let i = 0; i < N; i++) {
@@ -225,15 +287,15 @@ function profile(st, x0, w, y0, h, opt) {
   // Rests: blue rings on the middle of the rest stretch, hollow like the exits.
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) {
     const md = (D[i] + D[i + 1]) / 2;
-    s += `<circle cx="${X(md).toFixed(4)}" cy="${Y(heightAt(md)).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="0.0072"/>`;
+    s += `<circle cx="${X(md).toFixed(1)}" cy="${Y(heightAt(md)).toFixed(1)}" r="8" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="3"/>`;
   }
-  // Dangers: red rings on the route, hollow like the exits.
+  // Dangers: yellow rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(4)}" cy="${Y(heightAt(p.d)).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(DANGER_YELLOW, p.d <= st.d)}" stroke-width="0.0072"/>`;
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_Y, p.d <= st.d)}" stroke-width="3"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
-  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(4)}" cy="${Y(U[i]).toFixed(4)}" r="0.0192" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="0.0072"/>`;
-  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="0.0144" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="0.0072" fill="#000"/>`;
+  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
+  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="6" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="3" fill="#000"/>`;
   return s;
 }
 
@@ -241,18 +303,18 @@ function profile(st, x0, w, y0, h, opt) {
 // (1 for the middle box).
 // Grades are filled in their colour with black letters; rests, exits and dangers are outlined in
 // their colour with letters in it.
-const boxWidth = (text, k) => (text.length > 1 ? 0.1394 : 0.1106) * k;
+const boxWidth = (text, k) => (text.length > 1 ? 58 : 46) * k;
 function badge(x, yb, k, text, colour, filled) {
-  const w = boxWidth(text, k), h = 0.0913 * k, fs = 0.0625 * k, y = yb - h / 2;
+  const w = boxWidth(text, k), h = 38 * k, fs = 26 * k, y = yb - h / 2;
   const box = filled
-    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${0.0192 * k}" fill="${colour}"/>`
-    : `<rect x="${x - w / 2 + 0.0036}" y="${y - h / 2 + 0.0036}" width="${w - 0.0072}" height="${h - 0.0072}" rx="${0.0168 * k}" fill="#000" stroke="${colour}" stroke-width="0.0072"/>`;
+    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${8 * k}" fill="${colour}"/>`
+    : `<rect x="${x - w / 2 + 1.5}" y="${y - h / 2 + 1.5}" width="${w - 3}" height="${h - 3}" rx="${7 * k}" fill="#000" stroke="${colour}" stroke-width="3"/>`;
   // Centred on the capitals: the baseline sits half the cap height (0.7 em in Barlow Condensed) below the middle.
-  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
 }
 const BOX_NAME = ["W", "K1", "K2", "K3", "K4", "K5"];
 // The satellites' size against the middle box, and their gap from it.
-const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 0.012;
+const DIFFICULTY_K = 0.72, DIFFICULTY_GAP = 5;
 
 // What a box shows for a section, or for a point on the route.
 // With rests left out of the widget, a rest stretch shows as walking ground.
@@ -261,7 +323,7 @@ function sectionBox(colours, i, rests) {
   return g < 0 ? { text: "R", colour: REST, filled: false } : { text: BOX_NAME[g], colour: grade(colours, g, false), filled: true };
 }
 const EXIT_BOX = { text: "E", colour: EXIT_GREEN, filled: false };
-const DANGER_BOX = { text: "D", colour: DANGER_YELLOW, filled: false };
+const DANGER_BOX = { text: "D", colour: DANGER_Y, filled: false };
 
 // The difficulty widget: a larger middle box and two smaller satellites, sharing a bottom edge at y,
 // the middle one centred on x. Its symbols and colours follow the profile's: grades from the profile's
@@ -299,9 +361,7 @@ function difficulty(st, x, y, opt) {
 // a box as wide as the widest altitude this route can show, the box starting at x; the unit follows
 // it. The top of the digits is at yt (cap height 0.7 em in Barlow Condensed). Rounded to 10 m, or
 // 50 ft, since the position is only known to within 25 m.
-const ALT_SIZE = 0.1106;
-// The canvas measures in pixels: text is measured on a screen this many pixels wide, then scaled back.
-const MEASURE = 1000;
+const ALT_SIZE = 46;
 const altValue = (u, feet) => {
   const m = START_ALT + u;
   return feet ? Math.round(m * 3.28084 / 50) * 50 : Math.round(m / 10) * 10;
@@ -310,18 +370,17 @@ const altValue = (u, feet) => {
 const altWidest = {};
 function altBox(feet) {
   if (altWidest[feet] === undefined) {
-    const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `600 ${ALT_SIZE * MEASURE}px ${NUMBER_FONT}`;
+    // Measured as the watch draws it (tabular digits, no kerning): textWidth.
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width / MEASURE);
+    for (let u = 0; u <= TU; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), ALT_SIZE));
     altWidest[feet] = w;
   }
   return altWidest[feet];
 }
 function altitude(st, x, yt, feet) {
-  const y = (yt + 0.7 * ALT_SIZE).toFixed(4), right = x + altBox(feet);
-  return `<text x="${right.toFixed(4)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
-    `<text x="${(right + 0.0096).toFixed(4)}" y="${y}" font-family="${NUMBER_FONT}" font-size="0.0601" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
+  const y = (yt + 0.7 * ALT_SIZE).toFixed(1), right = x + altBox(feet);
+  return `<text x="${right.toFixed(1)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
+    `<text x="${(right + 4).toFixed(1)}" y="${y}" font-family="${NUMBER_FONT}" font-size="24" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
 }
 
 // The poi widget: one word for the point of interest the uncertainty stretch covers, REST, EXIT or
@@ -336,81 +395,111 @@ function poi(st, x, yt, opt) {
     found.push({ dist, rank: 2, word: "REST", colour: REST });
   }
   for (const i of EXIT_AT) if (D[i] >= lo && D[i] <= hi) found.push({ dist: Math.abs(D[i] - st.d), rank: 1, word: "EXIT", colour: EXIT_GREEN });
-  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_YELLOW });
+  if (opt.dangers) for (const p of DANGER_AT) if (p.d >= lo && p.d <= hi) found.push({ dist: Math.abs(p.d - st.d), rank: 0, word: "DANGER", colour: DANGER_Y });
   if (!found.length) return "";
   found.sort((a, b) => a.dist - b.dist || a.rank - b.rank);
-  const f = found[0], fs = 0.0577;
-  return `<text x="${x.toFixed(4)}" y="${(yt + 0.7 * fs).toFixed(4)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="0.0024" fill="${f.colour}">${f.word}</text>`;
+  const f = found[0], fs = 24;
+  return `<text x="${x.toFixed(1)}" y="${(yt + 0.7 * fs).toFixed(1)}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${fs}" font-weight="700" letter-spacing="1" fill="${f.colour}">${f.word}</text>`;
 }
 
 // The altitude group: the altitude widget with the poi widget under it, the poi word right-aligned
 // with the altitude number (not its unit). x is where the altitude's box starts, yt the top of its
 // digits.
 function altitudeGroup(st, x, yt, opt) {
-  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 0.0288, opt);
+  return altitude(st, x, yt, opt.feet) + poi(st, x + altBox(opt.feet), yt + 0.7 * ALT_SIZE + 12, opt);
 }
 
 // ---------------------------------------------------------------- page 2
 
 // A box in the vertical difficulty column: equal sizes, the current one larger by k.
-const COL_W = 0.1538, COL_H = 0.0962, COL_GAP = 0.0192, COL_BIG = 1.08, COL_FS = 0.0625, COL_DIM = 0.55;
+const COL_W = 64, COL_H = 40, COL_GAP = 8, COL_BIG = 1.08, COL_FS = 26, COL_DIM = 0.55;
+// The current box larger still, an option (owner, 2026-11-23: "a larger box and larger font"): 135 %,
+// 86 by 54 px, its letters Bold 36 (were 28). The column grows by the difference, about its middle.
+const COL_BIG_LARGE = 1.35;
 function columnBox(x, y, k, text, colour, filled) {
   const w = COL_W * k, h = COL_H * k, fs = COL_FS * k;
   const box = filled
-    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${0.0192 * k}" fill="${colour}"/>`
-    : `<rect x="${x - w / 2 + 0.0036}" y="${y - h / 2 + 0.0036}" width="${w - 0.0072}" height="${h - 0.0072}" rx="${0.0168 * k}" fill="#000" stroke="${colour}" stroke-width="0.0072"/>`;
-  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(4)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
+    ? `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="${8 * k}" fill="${colour}"/>`
+    : `<rect x="${x - w / 2 + 1.5}" y="${y - h / 2 + 1.5}" width="${w - 3}" height="${h - 3}" rx="${7 * k}" fill="#000" stroke="${colour}" stroke-width="3"/>`;
+  return box + `<text x="${x}" y="${(y + 0.35 * fs).toFixed(1)}" text-anchor="middle" fill="${filled ? "#000" : colour}" font-size="${fs}" font-weight="700" font-family="${NUMBER_FONT}">${text}</text>`;
 }
 const fade = (c, f) => { const n = parseInt(c.slice(1), 16);
   return hex((((n >> 16) & 255) * f | 0) << 16 | (((n >> 8) & 255) * f | 0) << 8 | ((n & 255) * f | 0)); };
 
 // The altitude at a border, right-aligned at x, its digits centred on y.
-const COL_ALT = 0.0721;
+const COL_ALT = 30;
 const colWidest = {};
 function colAltBox(feet) {
   if (colWidest[feet] === undefined) {
-    const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `600 ${COL_ALT * MEASURE}px ${NUMBER_FONT}`;
+    // Measured as the watch draws it (tabular digits, no kerning): textWidth.
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, ctx.measureText(String(altValue(u, feet))).width / MEASURE);
+    for (let u = 0; u <= TU; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), COL_ALT));
     colWidest[feet] = w;
   }
   return colWidest[feet];
 }
-function borderAltitude(u, x, y, feet, unit) {
-  const base = (y + 0.35 * COL_ALT).toFixed(4);
-  let s = `<text x="${x.toFixed(4)}" y="${base}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${COL_ALT}" font-weight="600" fill="#fff">${altValue(u, feet)}</text>`;
-  if (unit) s += `<text x="${(x + 0.0072).toFixed(4)}" y="${base}" font-family="${NUMBER_FONT}" font-size="0.0433" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
+// Page 2a: a border's height above the current section's bottom, signed ("+137", "0", "-20"). The
+// route's own heights, not the climber's estimate, so finer than the altitude widget: to the metre, or
+// to 5 ft.
+const relValue = (du, feet) => {
+  const v = feet ? Math.round(du * 3.28084 / 5) * 5 : Math.round(du);
+  return v > 0 ? "+" + v : v < 0 ? "-" + -v : "0";
+};
+const colRelWidest = {};
+function colRelBox(feet) {
+  if (colRelWidest[feet] === undefined) {
+    // Every difference the column can show: from each section's bottom to the borders above it.
+    let w = 0;
+    for (let c = 0; c < N; c++) for (let b = c; b <= Math.min(N, c + COL_ABOVE + 1); b++)
+      w = Math.max(w, textWidth(relValue(U[b] - U[c], feet), COL_ALT));
+    colRelWidest[feet] = w;
+  }
+  return colRelWidest[feet];
+}
+// The number as given (absolute or relative), with its unit after it as an option.
+function borderAltitude(text, x, y, feet, unit) {
+  const base = (y + 0.35 * COL_ALT).toFixed(1);
+  let s = `<text x="${x.toFixed(1)}" y="${base}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${COL_ALT}" font-weight="600" fill="#fff">${text}</text>`;
+  if (unit) s += `<text x="${(x + 3).toFixed(1)}" y="${base}" font-family="${NUMBER_FONT}" font-size="18" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
   return s;
 }
 
+// The column's slots around the current one (owner, 2026-11-23): one section before it below, three
+// after it above. The column, all five slots, is centred on cy; the current box sits off the middle,
+// half of (COL_ABOVE - COL_BELOW) slot steps below it.
+const COL_BELOW = 1, COL_ABOVE = 3;
+const colHeight = big => COL_H * big + (COL_BELOW + COL_ABOVE) * (COL_GAP + COL_H);
+const colCurrentY = (cy, big) => cy + colHeight(big) / 2 - COL_BELOW * (COL_GAP + COL_H) - COL_H * big / 2;
+
 // Page 2, version 1: the column of sections around the climber, centred on the screen with its
-// altitudes as one group.
+// altitudes as one group. Page 2a (opt.relative): the altitudes relative to the current section's bottom.
 function page2(st, opt) {
-  const colours = opt.colours.c, H = COL_H * COL_BIG, W = COL_W * COL_BIG, cy = 0.5;
-  const altW = colAltBox(opt.feet), unitW = opt.eachUnit ? 0.0072 + (opt.feet ? 0.0337 : 0.0288) : 0;
-  const groupW = W + 0.024 + altW + unitW, cx = 0.5 - groupW / 2 + W / 2, ax = cx + W / 2 + 0.024 + altW;
+  const colours = opt.colours.c, big = opt.colBig || COL_BIG, H = COL_H * big, W = COL_W * big, cy = colCurrentY(208, big);
+  const altW = opt.relative ? colRelBox(opt.feet) : colAltBox(opt.feet), unitW = opt.eachUnit ? 3 + (opt.feet ? 14 : 12) : 0;
+  const groupW = W + 10 + altW + unitW, cx = 208 - groupW / 2 + W / 2, ax = cx + W / 2 + 10 + altW;
   // Centre of slot k: 0 is the climber's, positive above.
   const slotY = k => k === 0 ? cy : cy - Math.sign(k) * (H / 2 + COL_GAP + COL_H / 2 + (Math.abs(k) - 1) * (COL_H + COL_GAP));
   let s = "";
-  for (let k = -2; k <= 2; k++) {
+  for (let k = -COL_BELOW; k <= COL_ABOVE; k++) {
     const i = st.cur + k;
     if (i < 0 || i >= N) continue;
     let g = GRADE[i];
     if (g < 0 && !opt.boxRests) g = 0;
     const colour = g < 0 ? REST : grade(colours, g, false), text = g < 0 ? "R" : BOX_NAME[g];
-    if (k === 0) s += columnBox(cx, cy, COL_BIG, text, colour, true);
+    if (k === 0) s += columnBox(cx, cy, big, text, colour, true);
     else s += columnBox(cx, slotY(k), 1, text, k < 0 ? fade(colour, COL_DIM) : colour, false);
   }
-  // Altitudes where the sections change. Border b lies between sections b - 1 and b, at height U[b];
-  // between two boxes it is always shown, at the column's outer edges only with the option.
-  const shown = i => i >= 0 && i < N && Math.abs(i - st.cur) <= 2;
+  // Altitudes where the sections change. Border b lies between sections b - 1 and b, at height U[b].
+  // From the current section's bottom up (owner, 2026-11-23: not the bottom of the one before): the
+  // current's bottom always, as the reference of page 2a even with no box below it; the others between
+  // two boxes always, at the column's top edge only with the option.
+  const shown = i => i >= 0 && i < N && i - st.cur >= -COL_BELOW && i - st.cur <= COL_ABOVE;
   const half = k => (k === 0 ? H : COL_H) / 2;
-  for (let b = st.cur - 2; b <= st.cur + 3; b++) {
+  for (let b = st.cur; b <= st.cur + COL_ABOVE + 1; b++) {
     const above = shown(b), below = shown(b - 1);
-    if (!(above && below) && !((above || below) && opt.outer)) continue;
+    if (b !== st.cur && !(above && below) && !((above || below) && opt.outer)) continue;
     const y = above ? slotY(b - st.cur) + half(b - st.cur) + COL_GAP / 2 : slotY(b - 1 - st.cur) - half(b - 1 - st.cur) - COL_GAP / 2;
-    s += borderAltitude(U[b], ax, y, opt.feet, opt.eachUnit);
+    s += borderAltitude(opt.relative ? relValue(U[b] - U[st.cur], opt.feet) : altValue(U[b], opt.feet), ax, y, opt.feet, opt.eachUnit);
   }
   return s;
 }
@@ -420,29 +509,30 @@ function page2(st, opt) {
 // on the rectangle's bottom, and its widest possible extent (two-character boxes in all three slots)
 // ending at the rectangle's right edge, so the middle box stays put whatever the satellites show.
 function page(st, opt) {
-  const x0 = 0.2212, w = 0.625, y0 = 0.7644, h = 0.5433;
+  const x0 = 92, w = 260, y0 = 318, h = 226;
   const reach = boxWidth("K1", 1) / 2 + DIFFICULTY_GAP + boxWidth("K1", DIFFICULTY_K);
   return profile(st, x0, w, y0, h, opt) + ascent(st, x0, y0, h, opt.ends) + difficulty(st, x0 + w - reach, y0, opt) +
     // In the rectangle's upper left, a small space right of the ascent line, level with its top.
-    altitudeGroup(st, x0 + RING_OUTER + 0.0192, y0 - h, opt);
+    altitudeGroup(st, x0 + RING_OUTER + 8, y0 - h, opt);
 }
 
 const speed = document.getElementById("speed");
-const live = document.getElementById("live"), pos = document.getElementById("pos"),
+const live = document.getElementById("live"), liveb = document.getElementById("liveb"), pos = document.getElementById("pos"),
   readout = document.getElementById("readout"), play = document.getElementById("play");
 const map = document.getElementById("map"), legend = document.getElementById("legend");
 for (const [k, m] of Object.entries(MAPS)) map.insertAdjacentHTML("beforeend", `<option value="${k}">${m.name}</option>`);
 map.value = "heat2";
 const units = document.getElementById("units");
-const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit");
+const outer = document.getElementById("outer"), eachUnit = document.getElementById("each-unit"), curSize = document.getElementById("cur-size");
 const boxRests = document.getElementById("box-rests"), boxExits = document.getElementById("box-exits"),
   boxDangers = document.getElementById("box-dangers");
 const ends = document.getElementById("ends"), dangers = document.getElementById("dangers");
 const opts = () => ({ ends: ends.checked, dangers: dangers.checked, colours: MAPS[map.value], feet: units.value === "ft",
-  boxRests: boxRests.checked, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
+  boxRests: boxRests.checked, colBig: curSize.value === "large" ? COL_BIG_LARGE : COL_BIG, outer: outer.checked, eachUnit: eachUnit.checked, boxExits: boxExits.checked, boxDangers: boxDangers.checked });
 function show() {
   const st = state(demoMinute(pos.value / 1000));
   live.innerHTML = page2(st, opts());
+  liveb.innerHTML = page2(st, { ...opts(), relative: true });
   const g = GRADE[st.cur];
   readout.textContent = `${Math.round(st.u)} of ${TU} m up · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
 }
@@ -455,20 +545,20 @@ play.addEventListener("click", () => {
 });
 show();
 
-const row = document.getElementById("row");
+const row = document.getElementById("row"), rowb = document.getElementById("rowb");
 function stills() {
-  row.innerHTML = "";
+  row.innerHTML = rowb.innerHTML = "";
   for (const f of [0.03, 0.4, 0.65, 0.97]) {
     const st = state(demoMinute(f));
-    row.insertAdjacentHTML("beforeend",
-      `<figure><div class="dial"><svg viewBox="0 0 1 1" role="img" aria-label="Page 2 at ${Math.round(f * 100)} percent">${page2(st, opts())}</svg></div>` +
-      `<figcaption>${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
+    for (const [r, name, relative] of [[row, "Page 2", false], [rowb, "Page 2a", true]]) r.insertAdjacentHTML("beforeend",
+      `<figure><div class="dial"><svg viewBox="0 0 416 416" role="img" aria-label="${name} at ${Math.round(f * 100)} percent">${page2(st, { ...opts(), relative })}</svg></div>` +
+      `<figcaption>${name} · ${Math.round(st.u)} m up · ${NAME[st.cur]}</figcaption></figure>`);
   }
 }
 ends.addEventListener("change", () => { show(); stills(); });
 dangers.addEventListener("change", () => { show(); stills(); });
 units.addEventListener("change", () => { show(); stills(); });
-for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit]) el.addEventListener("change", () => { show(); stills(); });
+for (const el of [boxRests, boxExits, boxDangers, outer, eachUnit, curSize]) el.addEventListener("change", () => { show(); stills(); });
 function drawLegend() {
   legend.innerHTML = GRADE_NAME.map((n, g) => `<span><i style="background:${grade(MAPS[map.value].c, g, false)}"></i>${n}</span>`).join("");
 }
@@ -476,5 +566,37 @@ map.addEventListener("change", () => { drawLegend(); show(); stills(); });
 drawLegend();
 stills();
 // Measure again once the web font has loaded, since the first measure may have used the fallback.
-document.fonts?.ready.then(() => { for (const k in altWidest) delete altWidest[k]; for (const k in colWidest) delete colWidest[k]; show(); stills(); });
+document.fonts?.ready.then(() => { for (const k in altWidest) delete altWidest[k]; for (const k in colWidest) delete colWidest[k]; for (const k in colRelWidest) delete colRelWidest[k]; show(); stills(); });
+</script>
+<script>
+// Grid hook: the grid crops this mock to one dial and sets its point of the climb by message.
+addEventListener("message", e => {
+  const m = e.data; if (!m || m.grid !== "ferrata") return;
+  if (!document.getElementById("grid-crop")) {
+    // The kept dial laid over the whole frame, whatever the mock's own layout.
+    document.head.insertAdjacentHTML("beforeend", `<style id="grid-crop">
+      html, body { overflow: hidden !important; background: #000 !important; }
+      #${m.svg} { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
+        display: block !important; z-index: 2147483647 !important; background: #000 !important; }
+    </style>`);
+    document.getElementById(m.svg).removeAttribute("hidden");
+  }
+  document.getElementById("pos").step = "any";
+  document.getElementById("pos").value = m.pos;
+  if (m.follow && typeof sel !== "undefined") sel = null;
+  show();
+  if (m.reply && typeof state === "function") {
+    const st = state(demoMinute(m.pos / 1000));
+    // The rest points (a rest's middle) as slider positions, by bisection, for the grid's 3 s stops.
+    const rests = [];
+    for (let i = 0; i < N; i++) if (GRADE[i] < 0) {
+      const d = (D[i] + D[i + 1]) / 2;
+      let lo = 0, hi = 1000;
+      for (let k = 0; k < 40; k++) { const c = (lo + hi) / 2; if (state(demoMinute(c / 1000)).d < d) lo = c; else hi = c; }
+      rests.push(hi);
+    }
+    parent.postMessage({ grid: "ferrata", readout: `${Math.round(st.u)} m up · ${NAME[st.cur]}`, rests }, "*");
+  }
+});
+parent.postMessage({ grid: "ferrata", ready: true }, "*");
 </script>
