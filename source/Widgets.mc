@@ -25,8 +25,8 @@ module Widgets {
     const RING_OUTER = 0.030048;
     const ASC_DOT = 0.018029;
     const NUMBER_SPACE = 0.012019;
-    // The metres climbed and left beside the ascent, on its line or a gauge: their size, as a share of
-    // the screen's width (28 px at 416).
+    // The two numbers beside the ascent, on its line or a gauge (ascentNumbers): their size, as a share
+    // of the screen's width (28 px at 416).
     const NUMBER_SIZE = 0.0673;
 
     // The difficulty widget's boxes: codes 0 to 12 are walking and the route file's half steps, A to
@@ -293,10 +293,31 @@ module Widgets {
 
     // ---------------------------------------------------------------- ascent
 
+    // The ascent widgets (this line, the ascent gauge, the ascent along the gauge's gap) show a position,
+    // not an amount (#100; owner, 2026-11-23): the climber's real (net) height on the way from the head
+    // (0) to the top's net height, so the ring pulls back down on a descent. Its share of the way, kept
+    // on the line where the route dips below the head or rises above its top before coming down to it.
+    function ascentShare(st as Climb.State) as Float {
+        var top = Climb.netAt(Climb.count());
+        // A part whose top is at or below its start (an approach going down) has no way up to show: the
+        // ring stays at the start (the review of #101), until the approach pages hide the height (#90).
+        if (top <= 0) { return 0.0; }
+        var f = st.net() / top;
+        return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
+    }
+
+    // Their numbers: the net height above the head now, to the metre, and the top's net height less it.
+    // Amounts climbed stay height gained (State.climbed): the stacks, the gauge by ascent, the totals.
+    // A part whose top is at or below its start shows none, 0 and 0, as its ring stays at the start.
+    function ascentNumbers(st as Climb.State) as [Number, Number] {
+        if (Climb.netAt(Climb.count()) <= 0) { return [0, 0]; }
+        var up = Math.round(st.net()).toNumber();
+        return [up, Climb.netAt(Climb.count()) - up];
+    }
+
     // The route's height as a line at x, from y0 (the start) up to y0 - h, with the climber on it.
     function ascent(d as Draw, st as Climb.State, x as Float, y0 as Float, h as Float, ends as Boolean) as Void {
-        var tu = Climb.totalU().toFloat();
-        var top = y0 - h, ty = y0 - st.u / tu * h, up = st.climbed();
+        var top = y0 - h, ty = y0 - ascentShare(st) * h, nums = ascentNumbers(st);
         // Back to front: the line, the ring's black inside, the end dots, the ring's outline.
         d.line(x, y0, x, top, SCALE, 0.004808);
         d.dot(x, ty, RING_R, BLACK);
@@ -309,8 +330,8 @@ module Widgets {
         if (ya > ty - gap) { ya = ty - gap; }
         if (ya < top) { ya = top; }
         var nx = x - RING_OUTER - NUMBER_SPACE;
-        d.textRight(nx, yb, d.semi(NUMBER_SIZE), up.format("%d"), WHITE);
-        d.textRight(nx, ya, d.semi(NUMBER_SIZE), (Climb.totalU() - up).format("%d"), WHITE);
+        d.textRight(nx, yb, d.semi(NUMBER_SIZE), nums[0].format("%d"), WHITE);
+        d.textRight(nx, ya, d.semi(NUMBER_SIZE), nums[1].format("%d"), WHITE);
         if (ends) {
             d.dot(x, y0, ASC_DOT, GREEN);
             d.dot(x, top, ASC_DOT, RED);
@@ -343,9 +364,17 @@ module Widgets {
     function ascentNumbersWidth(d as Draw) as Float {
         var w = ascentWidest;
         if (w == null) {
-            // The digits are tabular, so every number with as many digits is as wide: the total stands for
-            // them all. Measuring each number instead stopped the app on the watchdog (#94).
-            w = d.width(d.semi(NUMBER_SIZE), Climb.totalU().format("%d"));
+            // The digits are tabular, so every number with as many digits is as wide: the widest is one of
+            // the ends of the two numbers' ranges (ascentNumbers: the net height from the route's lowest to
+            // its highest, and the top's less that), the one with more digits or a minus sign; those four
+            // are measured. Measuring each number instead stopped the app on the watchdog (#94).
+            var font = d.semi(NUMBER_SIZE), top = Climb.netAt(Climb.count());
+            var ends = [Climb.netLow(), Climb.netHigh(), top - Climb.netLow(), top - Climb.netHigh()] as Array<Number>;
+            w = 0.0;
+            for (var i = 0; i < ends.size(); i++) {
+                var e = d.width(font, ends[i].format("%d"));
+                if (e > w) { w = e; }
+            }
             ascentWidest = w;
         }
         return w;
@@ -365,8 +394,31 @@ module Widgets {
 
     const BOX_WIDE = 0.139423;
 
-    // One box, centred on x with its bottom at yb, at size k.
-    function badge(d as Draw, x as Float, yb as Float, k as Float, code as Number) as Void {
+    // A section that loses height (Climb.descends) has its grade box drawn as a trapezium whose foot is
+    // TRAP_FOOT of its top's width (#100; owner, 2026-11-23), so a descent is not taken for a climb: the
+    // rectangle's top, height, rounded corners and colour, on every page with grade boxes.
+    const TRAP_FOOT = 0.8;
+    // The outline of an outlined box: the box in its colour with a black one this far inside it.
+    const OUTLINE = 0.007212;
+
+    // The centres of the trapezium's corners' rounding, x and y in turn, clockwise from the top left: a
+    // box centred on x with its top at top, w wide at its top and h tall, its corners rounded to r.
+    function trapeziumCorners(x as Float, top as Float, w as Float, h as Float, r as Float) as Array<Float> {
+        var t = w / 2 - r, f = w / 2 * TRAP_FOOT - r, y0 = top + r, y1 = top + h - r;
+        return [x - t, y0, x + t, y0, x + f, y1, x - f, y1] as Array<Float>;
+    }
+
+    // That trapezium in colour c, filled or outlined (a black one OUTLINE inside it).
+    function trapezium(d as Draw, x as Float, top as Float, w as Float, h as Float, r as Float, c as Number,
+            filled as Boolean) as Void {
+        var k = trapeziumCorners(x, top, w, h, r);
+        var pts = [[k[0], k[1]], [k[2], k[3]], [k[4], k[5]], [k[6], k[7]]] as Array<Array<Float>>;
+        d.roundPoly(pts, r, c);
+        if (!filled) { d.roundPoly(pts, r - OUTLINE, BLACK); }
+    }
+
+    // One box, centred on x with its bottom at yb, at size k; a trapezium for a section that descends.
+    function badge(d as Draw, x as Float, yb as Float, k as Float, code as Number, down as Boolean) as Void {
         var text = "R", colour = REST, filled = false;
         if (code >= 0) {
             text = BOX_NAME[code]; colour = d.grade(code, false); filled = true;
@@ -377,8 +429,12 @@ module Widgets {
         }
         // Whole pixels from the bottom up, so every box's bottom lands on the same row.
         var w = d.whole(boxWidth(code, k)), h = d.whole(BOX_H * k), top = yb - h;
-        d.roundRect(x - w / 2, top, w, h, 0.019231 * k, colour);
-        if (!filled) {
+        if (down) {
+            trapezium(d, x, top, w, h, 0.019231 * k, colour, filled);
+        } else {
+            d.roundRect(x - w / 2, top, w, h, 0.019231 * k, colour);
+        }
+        if (!filled && !down) {
             // The outline is the box in its colour with a black box 0.0072 of the width inside it.
             d.roundRect(x - w / 2 + 0.007212, top + 0.007212, w - 0.014423, h - 0.014423, 0.014423 * k, BLACK);
         }
@@ -393,12 +449,14 @@ module Widgets {
         var around = st.stretch(), lo = around[0], hi = around[1];
         var cur = st.cur;
         var left = NONE, right = NONE, leftDist = 1.0e9, rightDist = 1.0e9;
+        // Whether the box beside is a section that descends; a point's box never is.
+        var leftDown = false, rightDown = false;
         // The neighbouring sections; a point at the same distance wins over them.
         if (cur > 0 && Climb.dAt(cur) >= lo) {
-            left = section(cur - 1, points); leftDist = st.d - Climb.dAt(cur) + 0.01;
+            left = section(cur - 1, points); leftDist = st.d - Climb.dAt(cur) + 0.01; leftDown = Climb.descends(cur - 1);
         }
         if (cur < Climb.count() - 1 && Climb.dAt(cur + 1) <= hi) {
-            right = section(cur + 1, points); rightDist = Climb.dAt(cur + 1) - st.d + 0.01;
+            right = section(cur + 1, points); rightDist = Climb.dAt(cur + 1) - st.d + 0.01; rightDown = Climb.descends(cur + 1);
         }
         var n = points ? Climb.EXIT_AT.size() + Climb.DANGER_AT.size() : 0;
         for (var j = 0; j < n; j++) {
@@ -408,14 +466,14 @@ module Widgets {
             } else {
                 p = Climb.DANGER_AT[j - Climb.EXIT_AT.size()].toFloat(); code = CODE_DANGER;
             }
-            if (p >= lo && p <= st.d && st.d - p < leftDist) { left = code; leftDist = st.d - p; }
-            if (p > st.d && p <= hi && p - st.d < rightDist) { right = code; rightDist = p - st.d; }
+            if (p >= lo && p <= st.d && st.d - p < leftDist) { left = code; leftDist = st.d - p; leftDown = false; }
+            if (p > st.d && p <= hi && p - st.d < rightDist) { right = code; rightDist = p - st.d; rightDown = false; }
         }
         var mid = section(cur, points), half = boxWidth(mid, k) / 2, ks = SATELLITE * k;
-        badge(d, x, yt + d.whole(BOX_H * k), k, mid);
+        badge(d, x, yt + d.whole(BOX_H * k), k, mid, Climb.descends(cur));
         var yb = yt + d.whole(BOX_H * ks);
-        if (left != NONE) { badge(d, x - half - BOX_GAP - boxWidth(left, ks) / 2, yb, ks, left); }
-        if (right != NONE) { badge(d, x + half + BOX_GAP + boxWidth(right, ks) / 2, yb, ks, right); }
+        if (left != NONE) { badge(d, x - half - BOX_GAP - boxWidth(left, ks) / 2, yb, ks, left, leftDown); }
+        if (right != NONE) { badge(d, x + half + BOX_GAP + boxWidth(right, ks) / 2, yb, ks, right, rightDown); }
     }
 
     // A section's box code; a rest is walking ground when points are left out.
@@ -558,7 +616,8 @@ module Widgets {
 
     // The sections around the climber's as a column of boxes, the current one centred on (cx, cc): it
     // filled and larger, the one before below (dimmed) and three after above, outlined. Empty slots near
-    // the route's start or top stay empty. A rest shows as W.
+    // the route's start or top stay empty. A rest shows as W; a section that descends, filled or
+    // outlined, as a trapezium.
     function column(d as Draw, st as Climb.State, cx as Float, cc as Float) as Void {
         for (var k = -COL_BELOW; k <= COL_ABOVE; k++) {
             var i = st.cur + k;
@@ -569,8 +628,12 @@ module Widgets {
             var y = slotY(k, cc), top = d.whole(y - h / 2);
             var colour = d.grade(g, false);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
-            d.roundRect(cx - w / 2, top, w, h, 0.019231 * f, colour);
-            if (!big) { d.roundRect(cx - w / 2 + 0.007212, top + 0.007212, w - 0.014423, h - 0.014423, 0.014423 * f, BLACK); }
+            if (Climb.descends(i)) {
+                trapezium(d, cx, top, w, h, 0.019231 * f, colour, big);
+            } else {
+                d.roundRect(cx - w / 2, top, w, h, 0.019231 * f, colour);
+                if (!big) { d.roundRect(cx - w / 2 + 0.007212, top + 0.007212, w - 0.014423, h - 0.014423, 0.014423 * f, BLACK); }
+            }
             d.textCapCentre(cx, top + h / 2, d.bold(COL_FS * f), BOX_NAME[g], big ? BLACK : colour);
         }
     }
@@ -1055,9 +1118,14 @@ module Widgets {
     }
 
     // The difficulty g in a large filled box centred on (x, y), its letters bold at size (a share of
-    // the screen's width), centred on their capitals.
-    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Float) as Void {
-        d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
+    // the screen's width), centred on their capitals; a trapezium for a section that descends (down).
+    function bigDifficultyOf(d as Draw, g as Number, x as Float, y as Float, w as Float, h as Float, size as Float,
+            down as Boolean) as Void {
+        if (down) {
+            trapezium(d, x, y - h / 2, w, h, h / 6.5, d.grade(g, false), true);
+        } else {
+            d.roundRect(x - w / 2, y - h / 2, w, h, h / 6.5, d.grade(g, false));
+        }
         d.textCapCentre(x, y, d.bold(size), BOX_NAME[g], BLACK);
     }
 
@@ -1172,16 +1240,16 @@ module Widgets {
     }
 
     // The ascent along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top dots on
-    // the gauge's two ends, the metres climbed and left beside them, facing inwards, and between the
+    // the gauge's two ends, the ascent's two numbers beside them, facing inwards, and between the
     // numbers a line the climber's ring travels, reaching up to each number as drawn (it grows when a
     // number is short: the mocks give up the no-jitter rule here on purpose).
     function ascentGap(d as Draw, st as Climb.State) as Void {
         var p0 = d.onCircle(G_R, G_FROM), p1 = d.onCircle(G_R, G_FROM - G_SPAN), y = p0[1];
-        var gap = 0.014423, up = st.climbed(), left = Climb.totalU() - up, font = d.semi(NUMBER_SIZE);
-        var l = up.format("%d"), r = left.format("%d");
+        var gap = 0.014423, nums = ascentNumbers(st), font = d.semi(NUMBER_SIZE);
+        var l = nums[0].format("%d"), r = nums[1].format("%d");
         var tl = p0[0] + ASC_DOT + gap + d.width(font, l) + gap + RING_R;
         var tr = p1[0] - ASC_DOT - gap - d.width(font, r) - gap - RING_R;
-        var rx = tl + st.u / Climb.totalU() * (tr - tl);
+        var rx = tl + ascentShare(st) * (tr - tl);
         d.rect(tl - RING_R, y - 0.002404, tr - tl + 2 * RING_R, 0.004808, SCALE);
         d.dot(p0[0], y, ASC_DOT, GREEN);
         d.dot(p1[0], y, ASC_DOT, RED);
@@ -1195,19 +1263,19 @@ module Widgets {
     // ---------------------------------------------------------------- ascent gauge
 
     // The ascent as a gauge: a thin arc around the screen's edge from the start (lower left) over the
-    // top to the route's top (lower right), the climber's orange ring at the height climbed, the start
-    // and top as green and red dots, and in the gap at the bottom the metres climbed and left beside
-    // the arc's two ends, facing inwards.
+    // top to the route's top (lower right), the climber's orange ring at the real height (ascentShare),
+    // the start and top as green and red dots, and in the gap at the bottom the ascent's two numbers
+    // beside the arc's two ends, facing inwards.
     const AG_R = 0.461538;
     const AG_FROM = 232;
     const AG_SPAN = 284;
 
     function ascentGauge(d as Draw, st as Climb.State, ends as Boolean) as Void {
-        var tu = Climb.totalU().toFloat(), up = st.climbed();
+        var nums = ascentNumbers(st);
         d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
         d.dc.setPenWidth(d.s(0.004808));
         d.dc.drawArc(d.s(0.5), d.s(0.5), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
-        var r = d.onCircle(AG_R, AG_FROM - st.u / tu * AG_SPAN);
+        var r = d.onCircle(AG_R, AG_FROM - ascentShare(st) * AG_SPAN);
         var p0 = d.onCircle(AG_R, AG_FROM), p1 = d.onCircle(AG_R, AG_FROM - AG_SPAN);
         d.dot(r[0], r[1], RING_R, BLACK);
         if (ends) {
@@ -1216,8 +1284,8 @@ module Widgets {
         }
         d.ring(r[0], r[1], RING_R, CLIMBER, 0.007212);
         var font = d.semi(NUMBER_SIZE), dx = ASC_DOT + 0.019231;
-        d.textBase(p0[0] + dx, p0[1] + 0.35 * NUMBER_SIZE, font, up.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textBase(p1[0] - dx, p1[1] + 0.35 * NUMBER_SIZE, font, (Climb.totalU() - up).format("%d"), WHITE,
+        d.textBase(p0[0] + dx, p0[1] + 0.35 * NUMBER_SIZE, font, nums[0].format("%d"), WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+        d.textBase(p1[0] - dx, p1[1] + 0.35 * NUMBER_SIZE, font, nums[1].format("%d"), WHITE,
             Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
@@ -1553,7 +1621,7 @@ module Widgets {
     // word under the next line, centred, the top of its capitals 0.0288 below that line's baseline.
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
-        bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k);
+        bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k, Climb.descends(st.cur));
         var base = by - bh / 2 - GROUP_GAP, alt = altitudeNow(st, feet());
         if (points) {
             altitudeCentred(d, cx, base, alt, d.semi(0.0625 * k), d.semi(0.0385 * k), 0.007212 * k);

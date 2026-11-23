@@ -111,11 +111,12 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
   <section class="notes">
     <h2>To look at</h2>
     <ul>
+      <li><b>Section 5 descends</b> (owner, 2026-11-23), as in the app's demo route; on the Daubenhorn and the Sulzfluh, which climb there, it is a stand-in descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
       <li>The window is 288 px tall on the 416 px screen. At 3 px per metre (the default) it shows 96 m: 24 m below the climber and 72 m above.</li>
       <li>Flat sections (the Ledge and the Bench rests) climb nothing, so they have no height: each is a line across the column at its altitude, with its name.</li>
       <li>Letters are centred on the part of a box that is in view, and left out when that part is too short for them. Names are centred the same way and cut with an ellipsis to fit the round screen.</li>
       <li>On page 5 the ascent is a gauge: a thin arc around the edge from the start at the lower left, over the top, to the top of the route at the lower right, with the climber's orange ring at the height climbed. The metres climbed sit just past the start end, the metres left just past the top end, in the gap at the bottom. The stack is centred as a group (tick labels, column, 80 px for names); names stop inside the gauge.</li>
-      <li>By path, flat sections are real boxes, and walls are short. Altitude ticks sit where the route first reaches each altitude: they crowd on walls and spread on walks; a label is left out when it would touch the one below.</li>
+      <li>By path, flat sections are real boxes, and walls are short. Altitude ticks sit where the route rises through each altitude: they crowd on walls and spread on walks, a descent has none, and a climb after one marks again the altitudes it passes a second time; a label is left out when it would touch the one below.</li>
       <li>The boxes meet with no gap. A border between two boxes is drawn in the colour of the one closer to the current box; next to the current box, in the current box's colour.</li>
       <li>The climber is the orange ring of the ascent widget on the column's edge, left by default or right (the menu chooses); no line across the column, which hid the letters. Optionally (off by default) a tick from the ring across the current box to the other edge: in the climber's orange, or black where the box is itself near that orange (K4 in the amber map); over or near the box's letters it stops short of them on both sides, passing under them.</li>
       <li>The demo plays at a vertical pace: walks pass quickly, walls slowly, and each grade above walking 10 % slower than the one below. A flat section takes as long as 5 m of climbing, and the climber stops for 3 s at each rest point (the middle of the rest), at any speed.</li>
@@ -132,6 +133,10 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
 // The demo route, as in source/Climb.mc.
 const LEN = [120, 35, 10, 140, 25, 150, 30, 40, 45, 15, 60, 20, 70];
 const UP = [20, 90, 0, 30, 110, 10, 0, 5, 70, 85, 5, 60, 45];
+// Section 5 (index 4) descends by its height (owner, 2026-11-23), as in the app's demo route (#100);
+// the real routes climb there, and make_route_mocks.py keeps this line in their copies as a stand-in.
+const DEMO_DESCENT = 4;
+UP[DEMO_DESCENT] = -Math.abs(UP[DEMO_DESCENT]);
 const GRADE = [0, 3, -1, 2, 4, 1, -1, 1, 3, 5, 4, 4, 2];
 const MIN = [12, 20, 10, 14, 20, 15, 10, 6, 12, 15, 8, 12, 12];
 const EXIT_AT = [5, 9];
@@ -159,13 +164,23 @@ const NAME = ["Approach", "First wall", "Ledge", "Ledge traverse", "Dihedral", "
   "Band", "Slabs", "Overhang", "Bridge", "Ladders", "Exit gully"];
 
 const cum = a => a.reduce((o, v) => (o.push(o[o.length - 1] + v), o), [0]);
-const D = cum(LEN), U = cum(UP), M = cum(MIN);
+// The height each section gains (Climb.gain): its UP, or 0 for a section that loses height.
+const GAIN = UP.map(u => Math.max(u, 0));
+// Two heights at each boundary, as in the app (#56): U is the height gained, the sum of the positive UP
+// (Climb.uAt), for what counts metres climbed (the stacks by ascent, the gauge by ascent's arcs, the
+// climbed totals); NET is the real height above the head, down as well as up (Climb.netAt), for every
+// position and altitude (the profile, the ascent's ring and numbers, the altitudes).
+const D = cum(LEN), U = cum(GAIN), NET = cum(UP), M = cum(MIN);
 const N = LEN.length, TD = D[N], TU = U[N], TM = M[N];
+// The top's net height, and the lowest and highest net height at a boundary (Climb.netLow, netHigh).
+const TN = NET[N], NET_LO = Math.min(...NET), NET_HI = Math.max(...NET);
 // The demo plays the climb at a vertical pace: each section takes as long as the metres it climbs (a
 // flat one as long as 5 m), so walks pass quickly and walls slowly, and 10 % longer for each grade
 // above walking (1.1 to the power of the grade; rests count as walking). Returns the guidebook
 // minute reached at fraction f of the demo.
-const DEMO_W = UP.map((u, i) => Math.max(u, 5) * Math.pow(1.1, Math.max(GRADE[i], 0))), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
+// A descent takes as long as the metres it loses (the app weighs it as a flat 5 m; the mock keeps the
+// slider's positions as before, and section 5 visible on it).
+const DEMO_W = UP.map((u, i) => Math.max(Math.abs(u), 5) * Math.pow(1.1, Math.max(GRADE[i], 0))), DEMO_C = cum(DEMO_W), DEMO_T = DEMO_C[N];
 function demoMinute(f) {
   const t = f * DEMO_T;
   for (let i = 0; i < N; i++) if (t <= DEMO_C[i + 1]) return M[i] + (t - DEMO_C[i]) / DEMO_W[i] * MIN[i];
@@ -184,29 +199,62 @@ function grade(colours, g, dim) {
 }
 // A point's colour, dimmed once the climber has passed it.
 const mark = (c, passed) => passed ? hex(darken(parseInt(c.slice(1), 16))) : c;
+// Height gained at a distance (Climb.heightAtDistance): flat over a descent.
 function heightAt(d) {
-  for (let i = 0; i < N; i++) if (d <= D[i + 1]) return U[i] + (d - D[i]) / LEN[i] * UP[i];
+  for (let i = 0; i < N; i++) if (d <= D[i + 1]) return U[i] + (d - D[i]) / LEN[i] * GAIN[i];
   return TU;
 }
+// The real (net) height above the head at a distance (Climb.netAtDistance).
+function netAt(d) {
+  for (let i = 0; i < N; i++) if (d <= D[i + 1]) return NET[i] + (d - D[i]) / LEN[i] * UP[i];
+  return TN;
+}
+// The first and the last distance at which the height gained reaches u: monotonic, since U is.
 function firstAt(u) {
   if (u <= 0) return 0;
-  for (let i = 0; i < N; i++) if (UP[i] > 0 && U[i + 1] >= u) return D[i] + (u - U[i]) / UP[i] * LEN[i];
+  for (let i = 0; i < N; i++) if (GAIN[i] > 0 && U[i + 1] >= u) return D[i] + (u - U[i]) / GAIN[i] * LEN[i];
   return TD;
 }
 function lastAt(u) {
   if (u >= TU) return TD;
   for (let i = N - 1; i >= 0; i--) if (U[i] <= u) {
-    if (UP[i] > 0 && U[i + 1] > u) return D[i] + (u - U[i]) / UP[i] * LEN[i];
+    if (GAIN[i] > 0 && U[i + 1] > u) return D[i] + (u - U[i]) / GAIN[i] * LEN[i];
     return D[i + 1];
   }
   return 0;
+}
+// The stretch [lo, hi] around distance d the climber may be on (Climb.stretchAround): the route
+// followed back and ahead from d while its real height stays within band of d's, over flat stretches
+// too, to where it first leaves the band each way; a descent is followed down like a climb up. Without
+// descents, the stretch firstAt and lastAt give around the height gained.
+function stretch(d, band = UNCERTAINTY) {
+  d = Math.max(0, Math.min(d, TD));
+  const n = netAt(d), up = n + band, down = n - band;
+  let at = N - 1;
+  for (let i = 0; i < N; i++) if (d <= D[i + 1]) { at = i; break; }
+  const edge = (a, b, x0, x1) => x0 + ((b > up ? up : down) - a) / (b - a) * (x1 - x0);
+  let hi = TD, lo = 0;
+  for (let i = at; i < N; i++) {
+    const x0 = Math.max(d, D[i]), x1 = D[i + 1];
+    if (x1 <= x0) continue;
+    const a = netAt(x0), b = NET[i + 1];
+    if (b > up || b < down) { hi = edge(a, b, x0, x1); break; }
+  }
+  for (let i = at; i >= 0; i--) {
+    const x0 = Math.min(d, D[i + 1]), x1 = D[i];
+    if (x0 <= x1) continue;
+    const a = netAt(x0), b = NET[i];
+    if (b > up || b < down) { lo = edge(a, b, x0, x1); break; }
+  }
+  return [lo, hi];
 }
 function state(m) {
   m = Math.min(m, TM);
   let cur = N - 1;
   for (let i = 0; i < N; i++) if (m < M[i + 1]) { cur = i; break; }
   const f = Math.min(1, (m - M[cur]) / MIN[cur]);
-  return { m, cur, d: D[cur] + f * LEN[cur], u: U[cur] + f * UP[cur] };
+  // u: the height gained; n: the real height above the head (State.net).
+  return { m, cur, d: D[cur] + f * LEN[cur], u: U[cur] + f * GAIN[cur], n: NET[cur] + f * UP[cur] };
 }
 
 // The numbers sit left of the height scale, right-aligned a small space before the climber's ring.
@@ -249,50 +297,52 @@ const line = (x1, y1, x2, y2, c, w) =>
   `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
 
 // The profile alone, in the design's 416 px coordinates.
-// The ascent widget: a vertical line for the route's height, the climber's height on it as an
-// orange ring, the metres climbed below the ring and the metres left above it, and optionally the
+// The ascent widget: a vertical line for the route's height, the climber's real height on it as an
+// orange ring, the metres above the head below the ring and the metres to the top above it, and optionally the
 // start and the top as a green and a red dot. The line stands at x, from y0 (start) up to y0 - h.
 function ascent(st, x, y0, h, ends) {
-  const Y = u => y0 - u / TU * h, ty = Y(st.u), up = Math.round(st.u);
+  // A position, not an amount (owner, 2026-11-23): the ring and its numbers follow the real height,
+  // so the ring pulls back down on a descent; the line runs from the head (0) to the top's net height.
+  const Y = u => y0 - u / TN * h, ty = Y(st.n), up = Math.round(st.n);
   const num = (y, t) => `<text x="${(x - RING_OUTER - NUMBER_SPACE).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" fill="#fff" font-size="${ASC_FS}" font-weight="600" font-family="${NUMBER_FONT}" dominant-baseline="central">${t}</text>`;
   // Back to front: the line, the ring's black inside (hiding the line, not the end dots), the end
   // dots, the ring's orange outline.
-  let s = line(x, Y(0), x, Y(TU), SCALE, 2);
+  let s = line(x, Y(0), x, Y(TN), SCALE, 2);
   s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="${ASC_RING}" fill="#000"/>`;
   // Centred on their stretches, kept clear of the ring when it nears either end, but never past the end.
   const gap = 24;
   s += num(Math.min(Math.max((ty + Y(0)) / 2, ty + gap), Y(0)), up) +
-    num(Math.max(Math.min((Y(TU) + ty) / 2, ty - gap), Y(TU)), TU - up);
+    num(Math.max(Math.min((Y(TN) + ty) / 2, ty - gap), Y(TN)), TN - up);
   if (ends) {
-    s += `<circle cx="${x}" cy="${Y(0)}" r="${ASC_DOT}" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TU)}" r="${ASC_DOT}" fill="${END_RED}"/>`;
+    s += `<circle cx="${x}" cy="${Y(0)}" r="${ASC_DOT}" fill="${EXIT_GREEN}"/><circle cx="${x}" cy="${Y(TN)}" r="${ASC_DOT}" fill="${END_RED}"/>`;
   }
   // Sized to ring an end's dot when it reaches it.
   s += `<circle cx="${x}" cy="${ty.toFixed(1)}" r="${ASC_RING}" fill="none" stroke="${CLIMBER}" stroke-width="${ASC_PEN}"/>`;
   return s;
 }
 
-// The profile widget: the route seen from the side, from (x0, y0) at the start to (x0 + w, y0 - h)
-// at the top. The route's sections in their difficulty colours, climbed parts dimmed; three kinds of
+// The profile widget: the route seen from the side, in its real height, down as well as up (#56): from
+// x0 at the start to x0 + w at the top, from y0 at its lowest point to y0 - h at its highest. The route's sections in their difficulty colours, climbed parts dimmed; three kinds of
 // points as rings (rests blue, exits green, dangers red), dimmed once passed; the climber as an
 // orange outline around the stretch they could be on. Options: the difficulty colour map
 // (opt.colours, one of MAPS) and whether to show danger points (opt.dangers).
 function profile(st, x0, w, y0, h, opt) {
   const colours = opt.colours.c, dangers = opt.dangers;
   const pen = 10;
-  const X = d => x0 + d / TD * w, Y = u => y0 - u / TU * h;
+  const X = d => x0 + d / TD * w, Y = n => y0 - (NET_HI > NET_LO ? (n - NET_LO) / (NET_HI - NET_LO) : 0) * h;
   let s = "";
   // The climber: an orange outline around the stretch of route they could be on, from how sure the
   // position is. Drawn as a wide orange stroke with a narrower black one inside it.
-  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  const [lo, hi] = stretch(st.d);
   let pts = [];
-  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(1)},${Y(heightAt(dd)).toFixed(1)}`);
-  pts.push(`${X(hi).toFixed(1)},${Y(heightAt(hi)).toFixed(1)}`);
+  for (let dd = lo; dd < hi; dd += 4) pts.push(`${X(dd).toFixed(1)},${Y(netAt(dd)).toFixed(1)}`);
+  pts.push(`${X(hi).toFixed(1)},${Y(netAt(hi)).toFixed(1)}`);
   const band = (c, wd) => `<polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${wd}" stroke-linecap="round" stroke-linejoin="round"/>`;
   s += band(CLIMBER, 28) + band("#000", 22);
   // The sections.
-  const cx = X(st.d), cy = Y(st.u);
+  const cx = X(st.d), cy = Y(st.n);
   for (let i = 0; i < N; i++) {
-    const ax = X(D[i]), ay = Y(U[i]), bx = X(D[i + 1]), by = Y(U[i + 1]), g = GRADE[i];
+    const ax = X(D[i]), ay = Y(NET[i]), bx = X(D[i + 1]), by = Y(NET[i + 1]), g = GRADE[i];
     if (g < 0) { continue; }
     if (D[i + 1] <= st.d) s += line(ax, ay, bx, by, grade(colours, g, true), pen);
     else if (D[i] >= st.d) s += line(ax, ay, bx, by, grade(colours, g, false), pen);
@@ -301,15 +351,15 @@ function profile(st, x0, w, y0, h, opt) {
   // Rests: blue rings on the middle of the rest stretch, hollow like the exits.
   for (let i = 0; i < N; i++) if (GRADE[i] < 0) {
     const md = (D[i] + D[i + 1]) / 2;
-    s += `<circle cx="${X(md).toFixed(1)}" cy="${Y(heightAt(md)).toFixed(1)}" r="8" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(md).toFixed(1)}" cy="${Y(netAt(md)).toFixed(1)}" r="8" fill="#000" stroke="${mark(REST, md <= st.d)}" stroke-width="3"/>`;
   }
   // Dangers: yellow rings on the route, hollow like the exits.
   if (dangers) for (const p of DANGER_AT) {
-    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(heightAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_Y, p.d <= st.d)}" stroke-width="3"/>`;
+    s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(netAt(p.d)).toFixed(1)}" r="8" fill="#000" stroke="${mark(DANGER_Y, p.d <= st.d)}" stroke-width="3"/>`;
   }
   // Exits: green rings on the route where they leave, hollow so the route breaks inside them.
-  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(U[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
-  s += `<circle cx="${X(TD)}" cy="${Y(TU)}" r="6" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TU)}" r="3" fill="#000"/>`;
+  for (const i of EXIT_AT) s += `<circle cx="${X(D[i]).toFixed(1)}" cy="${Y(NET[i]).toFixed(1)}" r="8" fill="#000" stroke="${mark(EXIT_GREEN, D[i] <= st.d)}" stroke-width="3"/>`;
+  s += `<circle cx="${X(TD)}" cy="${Y(TN)}" r="6" fill="#fff"/><circle cx="${X(TD)}" cy="${Y(TN)}" r="3" fill="#000"/>`;
   return s;
 }
 
@@ -348,7 +398,7 @@ const DANGER_BOX = { text: "D", colour: DANGER_Y, filled: false };
 // exit or danger point) goes left, the nearest ahead goes right. Empty slots stay empty.
 function difficulty(st, x, y, opt) {
   const colours = opt.colours.c;
-  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  const [lo, hi] = stretch(st.d);
   // Which kinds of point the widget shows: its own options, and dangers only if the profile has them.
   const points = opt.boxExits ? EXIT_AT.map(i => ({ d: D[i], box: EXIT_BOX })) : [];
   if (opt.dangers && opt.boxDangers) for (const p of DANGER_AT) points.push({ d: p.d, box: DANGER_BOX });
@@ -386,14 +436,14 @@ function altBox(feet) {
   if (altWidest[feet] === undefined) {
     // Measured as the watch draws it (tabular digits, no kerning): textWidth.
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), ALT_SIZE));
+    for (let u = NET_LO; u <= NET_HI; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), ALT_SIZE));
     altWidest[feet] = w;
   }
   return altWidest[feet];
 }
 function altitude(st, x, yt, feet) {
   const y = (yt + 0.7 * ALT_SIZE).toFixed(1), right = x + altBox(feet);
-  return `<text x="${right.toFixed(1)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.u, feet)}</text>` +
+  return `<text x="${right.toFixed(1)}" y="${y}" text-anchor="end" font-family="${NUMBER_FONT}" font-size="${ALT_SIZE}" font-weight="600" fill="#fff">${altValue(st.n, feet)}</text>` +
     `<text x="${(right + 4).toFixed(1)}" y="${y}" font-family="${NUMBER_FONT}" font-size="24" font-weight="600" fill="#99aaaa">${feet ? "ft" : "m"}</text>`;
 }
 
@@ -402,7 +452,7 @@ function altitude(st, x, yt, feet) {
 // none. With several, the nearest to the climber's estimate wins; on a tie, danger before exit
 // before rest.
 function poi(st, x, yt, opt) {
-  const lo = firstAt(st.u - UNCERTAINTY), hi = lastAt(st.u + UNCERTAINTY);
+  const [lo, hi] = stretch(st.d);
   const found = [];
   for (let i = 0; i < N; i++) if (GRADE[i] < 0 && D[i] <= hi && D[i + 1] >= lo) {
     const dist = st.d < D[i] ? D[i] - st.d : st.d > D[i + 1] ? st.d - D[i + 1] : 0;
@@ -444,7 +494,7 @@ function colAltBox(feet) {
   if (colWidest[feet] === undefined) {
     // Measured as the watch draws it (tabular digits, no kerning): textWidth.
     let w = 0;
-    for (let u = 0; u <= TU; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), COL_ALT));
+    for (let u = NET_LO; u <= NET_HI; u++) w = Math.max(w, textWidth(String(altValue(u, feet)), COL_ALT));
     colWidest[feet] = w;
   }
   return colWidest[feet];
@@ -480,7 +530,7 @@ function colGroup(st, opt, left, cy) {
     if (k === 0) s += columnBox(cx, cy, COL_BIG, text, colour, true);
     else s += columnBox(cx, slotY(k), 1, text, k < 0 ? fade(colour, COL_DIM) : colour, false);
   }
-  // Altitudes where the sections change. Border b lies between sections b - 1 and b, at height U[b];
+  // Altitudes where the sections change. Border b lies between sections b - 1 and b, at its real height NET[b];
   // between two boxes it is always shown, at the column's outer edges only with the option.
   const shown = i => i >= 0 && i < N && Math.abs(i - st.cur) <= 2;
   const half = k => (k === 0 ? H : COL_H) / 2;
@@ -488,7 +538,7 @@ function colGroup(st, opt, left, cy) {
     const above = shown(b), below = shown(b - 1);
     if (!(above && below) && !((above || below) && opt.outer)) continue;
     const y = above ? slotY(b - st.cur) + half(b - st.cur) + COL_GAP / 2 : slotY(b - 1 - st.cur) - half(b - 1 - st.cur) - COL_GAP / 2;
-    s += borderAltitude(U[b], ax, y, opt.feet, opt.eachUnit);
+    s += borderAltitude(NET[b], ax, y, opt.feet, opt.eachUnit);
   }
   return s;
 }
@@ -504,7 +554,8 @@ function ascNumbersWidth() {
   if (ascWidest === undefined) {
     // Measured as the watch draws it, at the widget's size (ASC_FS).
     ascWidest = 0;
-    for (let n = 0; n <= TU; n++) ascWidest = Math.max(ascWidest, textWidth(String(n), ASC_FS));
+    // The ring's numbers are net (above the head, and to the top), so either may be any of these.
+    for (let n = NET_LO; n <= NET_HI; n++) for (const v of [n, TN - n]) ascWidest = Math.max(ascWidest, textWidth(String(v), ASC_FS));
   }
   return ascWidest;
 }
@@ -552,12 +603,32 @@ function fit(t, px, w) {
 // by "up": each box as tall as the metres its section climbs (page 4); by "path": as tall as its
 // length along the route (page 5).
 // Names stop at radius nameR from the centre: the screen's edge, or inside a gauge around it.
+// The altitude ticks in a stack's window from vLo to vHi along its axis (height gained by ascent, else
+// distance), every step in the unit k turns metres into, as [{ v, at }] from the bottom up
+// (Widgets.stackTicks, #56): a tick sits where the route rises through its altitude, so by path where a
+// climb first reaches it, and none on a descent, which is flat by ascent; a climb after a descent marks
+// again the altitudes it passes a second time. Labels are real altitudes. The start's is marked at the start.
+function stackTicks(up, vLo, vHi, step, k) {
+  const out = [], a0 = START_ALT * k, pos = i => up ? U[i] : D[i];
+  if (vLo <= 0 && Math.ceil(a0 / step) * step <= a0) out.push({ v: Math.round(a0), at: 0 });
+  for (let i = 0; i < N; i++) {
+    if (UP[i] <= 0) continue;
+    const p0 = pos(i), p1 = pos(i + 1);
+    if (p1 < vLo || p0 > vHi) continue;
+    const n0 = NET[i], top = (START_ALT + n0 + UP[i]) * k;
+    for (let a = (Math.floor((START_ALT + n0) * k / step) + 1) * step; a <= top + 1e-9; a += step) {
+      const p = p0 + (a / k - START_ALT - n0) / UP[i] * (p1 - p0);
+      if (p >= vLo && p <= vHi) out.push({ v: a, at: p });
+    }
+  }
+  return out;
+}
 function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   // The column's width, the size of its letters and its window: pages 4 and 5 take them from opt
   // (owner, 2026-11-22).
   const ST_W = opt.stW || ST_W_DEFAULT, BOX_FS = opt.boxFs || COL_FS, ST_TOP = opt.stTop || ST_TOP_DEFAULT, ST_BOTTOM = opt.stBottom || ST_BOTTOM_DEFAULT;
   const up = by === "up", colours = opt.colours.c, scale = up ? opt.scale : opt.pathScale;
-  const at = i => up ? U[i] : D[i], size = i => up ? UP[i] : LEN[i], here = up ? st.u : st.d;
+  const at = i => up ? U[i] : D[i], size = i => up ? GAIN[i] : LEN[i], here = up ? st.u : st.d;
   const cy = ST_BOTTOM - (ST_BOTTOM - ST_TOP) / 4;
   const Y = v => cy - (v - here) * scale, right = ST_LEFT + ST_W, cx = ST_LEFT + ST_W / 2;
   let s = `<defs><clipPath id="st-win-${by}-${ST_TOP}-${ST_BOTTOM}"><rect x="0" y="${ST_TOP}" width="416" height="${ST_BOTTOM - ST_TOP}"/></clipPath></defs><g clip-path="url(#st-win-${by}-${ST_TOP}-${ST_BOTTOM})">`;
@@ -727,21 +798,20 @@ function stack(st, opt, by, ST_LEFT = 164, nameR = 200) {
   // Altitude ticks on the left, every step, labelled in the chosen unit.
   const toU = opt.feet ? v => v / 3.28084 - START_ALT : v => v - START_ALT;
   const fromU = opt.feet ? u => (u + START_ALT) * 3.28084 : u => u + START_ALT;
-  // Only along the route: none below its start or above its top. By path, a tick sits where the route
-  // first reaches its altitude, so ticks crowd on walls and spread on walks; a label is left out when
-  // it would touch the one below.
+  // Only along the route, where it rises (stackTicks): by path ticks crowd on walls and spread on
+  // walks; a label is left out when it would touch the one below.
   const vLo = Math.max(0, here - (ST_BOTTOM - cy) / scale), vHi = Math.min(up ? TU : TD, here + (cy - ST_TOP) / scale);
-  const lo = fromU(up ? vLo : heightAt(vLo)), hi = fromU(up ? vHi : heightAt(vHi));
   // The label of the next altitude to reach is larger (opt.nextSize times the others); it is always
-  // shown, and the others are left out around it. By path it is the first tick above the altitude now,
-  // which may sit further along the route than the climber's line.
-  const ticks = [], now = fromU(st.u);
-  for (let v = Math.ceil(lo / opt.step) * opt.step; v <= hi; v += opt.step) {
-    const y = Y(up ? toU(v) : firstAt(toU(v)));
+  // shown, and the others are left out around it. It is the first tick above the climber on the stack:
+  // by path it may sit further along the route than the climber's line, and after a descent its
+  // altitude may be below the one now.
+  const ticks = [];
+  for (const { v, at: p } of stackTicks(up, vLo, vHi, opt.step, opt.feet ? 3.28084 : 1)) {
+    const y = Y(p);
     s += `<line x1="${ST_LEFT - 9}" y1="${y.toFixed(1)}" x2="${ST_LEFT - 3}" y2="${y.toFixed(1)}" stroke="#777" stroke-width="2"/>`;
-    ticks.push({ v, y, fs: 18 });
+    ticks.push({ v, y, at: p, fs: 18 });
   }
-  const next = ticks.findIndex(t => t.v > now);
+  const next = ticks.findIndex(t => t.at > here);
   // Its neighbours above and below are larger too (opt.nearSize).
   if (next >= 0) {
     ticks[next].fs = 18 * opt.nextSize;
@@ -798,7 +868,7 @@ function page4(st, opt) {
 const AG_R = 192, AG_FROM = 232, AG_SPAN = 284;
 function ascentGauge(st, opt) {
   const at = f => { const a = (AG_FROM - f * AG_SPAN) * Math.PI / 180; return [208 + AG_R * Math.cos(a), 208 - AG_R * Math.sin(a)]; };
-  const [sx, sy] = at(0), [ex, ey] = at(1), [rx, ry] = at(st.u / TU);
+  const [sx, sy] = at(0), [ex, ey] = at(1), [rx, ry] = at(st.n / TN);
   let s = `<path d="M${sx.toFixed(1)} ${sy.toFixed(1)} A${AG_R} ${AG_R} 0 1 1 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${SCALE}" stroke-width="2"/>`;
   s += `<circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="${ASC_RING}" fill="#000"/>`;
   if (opt.ends) s += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${ASC_DOT}" fill="${EXIT_GREEN}"/><circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="${ASC_DOT}" fill="${END_RED}"/>`;
@@ -807,8 +877,9 @@ function ascentGauge(st, opt) {
   // left beside the top), so the larger ascent numbers stay on the screen and clear of the stack.
   const past = (f, t) => { const [x, y] = f ? [ex, ey] : [sx, sy], dx = (ASC_DOT + 8) * (f ? -1 : 1);
     return `<text x="${(x + dx).toFixed(1)}" y="${(y + 0.35 * ASC_FS).toFixed(1)}" text-anchor="${f ? "end" : "start"}" fill="#fff" font-size="${ASC_FS}" font-weight="600" font-family="${NUMBER_FONT}">${t}</text>`; };
-  const up = Math.round(st.u);
-  return s + past(0, up) + past(1, TU - up);
+  // A position (owner, 2026-11-23): the ring and its numbers follow the real height, back down on a descent.
+  const up = Math.round(st.n);
+  return s + past(0, up) + past(1, TN - up);
 }
 
 // Page 5: the stack by path, centred as a group (its tick labels, its column and room for names),
@@ -819,7 +890,7 @@ function ascentGauge(st, opt) {
 // the rest bare ticks. The labels and the column centred as a group.
 const P5_W = 90, P5_BOX_FS = 36, P5_NEXT = 52, P5_NEAR = 36;
 const STACK_NEW = { names: false, stW: P5_W, boxFs: P5_BOX_FS, p5Next: P5_NEXT, p5Near: P5_NEAR };
-const stackLabels = opt => textWidth(String(Math.round(opt.feet ? (START_ALT + TU) * 3.28084 : START_ALT + TU)), P5_NEXT) + 14;
+const stackLabels = opt => textWidth(String(Math.round(opt.feet ? (START_ALT + NET_HI) * 3.28084 : START_ALT + NET_HI)), P5_NEXT) + 14;
 // Page 5: far too dense (owner): no ascent gauge around the edge, and the window grown to fill the
 // screen (from y 36 to 380, was 64 to 352).
 // Page 9a's point symbols (page-9.html's symbol()): a danger a yellow triangle, a rest blue pause
@@ -892,7 +963,7 @@ function show() {
   document.getElementById("live4g").innerHTML = page4g(st, opts());
   document.getElementById("live5g").innerHTML = page5g(st, opts());
   const g = GRADE[st.cur];
-  readout.textContent = `${Math.round(st.u)} of ${TU} m up · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
+  readout.textContent = `${Math.round(st.u)} of ${TU} m climbed · ${START_ALT + Math.round(st.n)} m · ${NAME[st.cur]}, ${g < 0 ? "rest" : GRADE_NAME[g]}`;
 }
 pos.addEventListener("input", show);
 let timer = null;

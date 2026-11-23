@@ -47,17 +47,30 @@ module WidthTest {
         return true;
     }
 
-    (:test)
-    function ascentWidthIsTheWidestNumber(logger as Logger) as Boolean {
-        // The small route: measuring every number of the demo's ascent is what tripped the watchdog.
-        Climb.use(belowZero(), :ferrata);
-        var d = draw(), font = d.semi(Widgets.NUMBER_SIZE), w = 0.0;
-        for (var n = 0; n <= Climb.totalU(); n++) {
-            var nw = d.width(font, n.format("%d"));
-            if (nw > w) { w = nw; }
+    // The ascent's numbers (#100: net height): the net height above the head now, from the route's
+    // lowest to its highest, and the top's net height less that, every one measured.
+    function ascentMatches(r as Route) as Boolean {
+        Climb.use(r, :ferrata);
+        var d = draw(), font = d.semi(Widgets.NUMBER_SIZE), w = 0.0, top = Climb.netAt(Climb.count());
+        for (var n = Climb.netLow(); n <= Climb.netHigh(); n++) {
+            var a = d.width(font, n.format("%d")), b = d.width(font, (top - n).format("%d"));
+            if (a > w) { w = a; }
+            if (b > w) { w = b; }
         }
         Test.assertEqual(Widgets.ascentNumbersWidth(d), w);
         return true;
+    }
+
+    (:test)
+    function ascentWidthIsTheWidestNumber(logger as Logger) as Boolean {
+        // The small route: measuring every number of the demo's ascent is what tripped the watchdog.
+        return ascentMatches(belowZero());
+    }
+
+    // Below the head and above the top: the minus signs count.
+    (:test)
+    function ascentWidthCountsTheMinus(logger as Logger) as Boolean {
+        return ascentMatches(DescentTest.dipRoute());
     }
 
     (:test)

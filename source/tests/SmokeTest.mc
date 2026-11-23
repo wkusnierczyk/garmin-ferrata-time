@@ -8,7 +8,7 @@ import Toybox.Test;
 (:test)
 function climbTotalsAreConsistent(logger as Logger) as Boolean {
     Climb.use(Route.fromJson(WatchUi.loadResource(Rez.JsonData.route) as Dictionary) as Route, :ferrata);
-    Test.assertEqualMessage(Climb.totalU(), 510, "total ascent");
+    Test.assertEqualMessage(Climb.totalU(), 400, "total ascent: gained, the Dihedral goes down (#100)");
     Test.assertEqualMessage(Climb.totalD(), 640, "total distance");
     return true;
 }
