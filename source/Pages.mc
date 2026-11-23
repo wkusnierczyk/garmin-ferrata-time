@@ -2,14 +2,14 @@ using Toybox.Graphics;
 
 import Toybox.Lang;
 
-// The pages, as the mocks draw them (the Daubenhorn grid: pages 1, 1a, 2, 3, 4, 4a, 5, 5a, 6a, 6b, 7,
-// 7a, 8 and 9, in that order), laid out in shares of the screen's width. Pages 10 to 19 follow, one
+// The pages, as the mocks draw them (the Daubenhorn grid: pages 1, 1a, 2, 2a, 3, 4, 4a, 5, 5a, 6a, 6b,
+// 7, 7a, 8 and 9, in that order), laid out in shares of the screen's width. Pages 10 to 19 follow, one
 // issue each (#67 on).
 module Pages {
 
-    const COUNT = 14;
+    const COUNT = 15;
     // Page 9, the section preview, and the section it shows (-1: the climber's).
-    const SECTION_PAGE = 13;
+    const SECTION_PAGE = 14;
     // Page 9's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
@@ -23,19 +23,21 @@ module Pages {
         switch (page) {
             case 0: { profilePage(d, st, false); break; }
             case 1: { profilePage(d, st, true); break; }
-            case 2: { columnPage(d, st); break; }
-            case 3: { sideBySide(d, st); break; }
+            // Page 2a: page 2 with the altitudes relative to the current section's bottom.
+            case 2: { columnPage(d, st, false); break; }
+            case 3: { columnPage(d, st, true); break; }
+            case 4: { sideBySide(d, st); break; }
             // Pages 4 and 4a by ascent, 5 and 5a by path; 4a and 5a inside the ascent gauge.
-            case 4: { stackPage(d, st, true, false); break; }
-            case 5: { stackPage(d, st, true, true); break; }
-            case 6: { stackPage(d, st, false, false); break; }
-            case 7: { stackPage(d, st, false, true); break; }
+            case 5: { stackPage(d, st, true, false); break; }
+            case 6: { stackPage(d, st, true, true); break; }
+            case 7: { stackPage(d, st, false, false); break; }
+            case 8: { stackPage(d, st, false, true); break; }
             // Pages 6a and 6b: the gauge by length along the route, and by ascent.
-            case 8: { gaugePage(d, st, false); break; }
-            case 9: { gaugePage(d, st, true); break; }
-            case 10: { frontPage(d, st, false); break; }
-            case 11: { frontPage(d, st, true); break; }
-            case 12: { centrePage(d, st); break; }
+            case 9: { gaugePage(d, st, false); break; }
+            case 10: { gaugePage(d, st, true); break; }
+            case 11: { frontPage(d, st, false); break; }
+            case 12: { frontPage(d, st, true); break; }
+            case 13: { centrePage(d, st); break; }
             default: { sectionPage(d, st); break; }
         }
     }
@@ -69,11 +71,12 @@ module Pages {
         Widgets.altitudeGroup(d, st, x0 + Widgets.RING_OUTER + 0.019231, altTop);
     }
 
-    // ---------------------------------------------------------------- page 2: the difficulty column
+    // ---------------------------------------------------------------- pages 2 and 2a: the difficulty column
 
-    // design/page-2.md: the difficulty column group, centred, with altitudes at the outer edges too.
-    function columnPage(d as Draw, st as Climb.State) as Void {
-        Widgets.columnGroup(d, st, 0.5, true);
+    // design/page-2.md: the difficulty column group, centred, with an altitude at the column's top edge
+    // too; page 2a (relative) the altitudes relative to the current section's bottom.
+    function columnPage(d as Draw, st as Climb.State, relative as Boolean) as Void {
+        Widgets.columnGroup(d, st, 0.5, true, relative);
     }
 
     // ---------------------------------------------------------------- page 3: side by side
@@ -87,11 +90,11 @@ module Pages {
         var left = 0.134615, right = 0.865385, cy = 0.548077;
         var ascLeft = Widgets.ascentLeft(d), ascW = ascLeft + Widgets.RING_OUTER;
         // Never negative: with wider fonts the widgets would touch rather than overlap.
-        var gap = (right - left - ascW - Widgets.columnGroupWidth(d)) / 3;
+        var gap = (right - left - ascW - Widgets.columnGroupWidth(d, false)) / 3;
         if (gap < 0) { gap = 0.0; }
         var lx = left + gap + ascLeft, reach = Widgets.columnReach();
         Widgets.ascent(d, st, lx, cy + reach, 2 * reach, true);
-        Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true);
+        Widgets.columnGroupAt(d, st, lx + Widgets.RING_OUTER + gap, cy, true, false);
         var ft = Widgets.feet(), font = d.semi(Widgets.ALT_SIZE), nowW = d.width(font, "NOW"), nowGap = 0.028846;
         var lineW = nowW + nowGap + Widgets.altitudeBox(d, ft) + 0.009615 + d.width(d.semi(Widgets.ALT_UNIT), ft ? "ft" : "m");
         var x = 0.5 - d.half(lineW), yt = 0.096154, g = Climb.GRADE[st.cur];

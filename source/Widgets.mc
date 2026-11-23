@@ -309,6 +309,7 @@ module Widgets {
         zoomNext = -1;
         stackSideWidest = null;
         groupPlaced = null;
+        relativeWidest = null;
     }
 
     // The widest number the ascent widget can show, measured once per part.
@@ -502,32 +503,45 @@ module Widgets {
     const COL_ALT = 0.0721;
     const COL_UNIT = 0.0433;
 
-    // The centre of slot k (0 the climber's, positive above), and the half height of its box.
-    function slotY(k as Number, cy as Float) as Float {
-        if (k == 0) { return cy; }
+    // The column's slots around the current one (owner, 2026-11-23): one section before it below, three
+    // after it above. The column keeps its height and is centred on the group's height; the current box
+    // sits one slot step below its middle.
+    const COL_BELOW = 1;
+    const COL_ABOVE = 3;
+
+    // The centre of slot k (0 the climber's, positive above), the current box's centre at cc, and the
+    // half height of its box.
+    function slotY(k as Number, cc as Float) as Float {
+        if (k == 0) { return cc; }
         var off = COL_H * COL_BIG / 2 + COL_GAP + COL_H / 2.0 + (k.abs() - 1) * (COL_H + COL_GAP);
-        return k > 0 ? cy - off : cy + off;
+        return k > 0 ? cc - off : cc + off;
     }
 
     function slotHalf(k as Number) as Float {
         return (k == 0 ? COL_H * COL_BIG : COL_H.toFloat()) / 2;
     }
 
-    // Whether section i has a box in the column around section cur.
-    function inColumn(i as Number, cur as Number) as Boolean {
-        return i >= 0 && i < Climb.count() && (i - cur).abs() <= 2;
+    // The current box's centre in a column centred on cy.
+    function columnCurrentY(cy as Float) as Float {
+        return cy + columnReach() - COL_BELOW * (COL_GAP + COL_H) - COL_H * COL_BIG / 2;
     }
 
-    // The sections around the climber's as a column of boxes centred on (cx, cy): the current one
-    // filled and larger, two before below (dimmed) and two after above, outlined. A rest shows as W.
-    function column(d as Draw, st as Climb.State, cx as Float, cy as Float) as Void {
-        for (var k = -2; k <= 2; k++) {
+    // Whether section i has a box in the column around section cur.
+    function inColumn(i as Number, cur as Number) as Boolean {
+        return i >= 0 && i < Climb.count() && i - cur >= -COL_BELOW && i - cur <= COL_ABOVE;
+    }
+
+    // The sections around the climber's as a column of boxes, the current one centred on (cx, cc): it
+    // filled and larger, the one before below (dimmed) and three after above, outlined. Empty slots near
+    // the route's start or top stay empty. A rest shows as W.
+    function column(d as Draw, st as Climb.State, cx as Float, cc as Float) as Void {
+        for (var k = -COL_BELOW; k <= COL_ABOVE; k++) {
             var i = st.cur + k;
             if (!inColumn(i, st.cur)) { continue; }
             var g = section(i, false);
             var big = k == 0, f = big ? COL_BIG : 1.0;
             var w = d.whole(COL_W * f), h = d.whole(COL_H * f);
-            var y = slotY(k, cy), top = d.whole(y - h / 2);
+            var y = slotY(k, cc), top = d.whole(y - h / 2);
             var colour = d.grade(g, false);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
             d.roundRect(cx - w / 2, top, w, h, 0.019231 * f, colour);
@@ -541,41 +555,84 @@ module Widgets {
         return widestAltitude(d, ft, d.semi(COL_ALT), 1);
     }
 
-    // The difficulty column group's width: the larger box, the space, the altitudes and the unit shown.
-    function columnGroupWidth(d as Draw) as Float {
-        var ft = feet();
-        return COL_W * COL_BIG + COL_SPACE + columnAltitudeBox(d, ft) + 0.007212 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
+    // Page 2a: border b's height above the bottom of section cur, signed ("+137", "0", "-20"): the
+    // route's own heights, not the climber's estimate, so to the metre, or to 5 ft.
+    function relativeValue(b as Number, cur as Number, ft as Boolean) as Number {
+        var du = (Climb.netAt(b) - Climb.netAt(cur)).toFloat();
+        return (ft ? Math.round(du * 3.28084 / 5) * 5 : Math.round(du)).toNumber();
     }
 
-    // How far the column reaches above and below its centre.
+    function relativeText(v as Number) as String {
+        return v > 0 ? "+" + v.format("%d") : v.format("%d");
+    }
+
+    // The widest relative altitude the column can show on the route, per unit, measured once: the
+    // differences from each section's bottom to the borders shown above it. Tabular digits: the widest
+    // is the largest rise or the deepest fall (its minus sign), or 0; at most three numbers measured.
+    var relativeWidest as Float? = null;
+    var relativeFeet as Boolean = false;
+
+    function columnRelativeBox(d as Draw, ft as Boolean) as Float {
+        var w = relativeWidest;
+        if (w == null || relativeFeet != ft) {
+            var hi = 0, lo = 0, n = Climb.count();
+            for (var c = 0; c < n; c++) {
+                for (var b = c; b <= n && b <= c + COL_ABOVE + 1; b++) {
+                    var v = relativeValue(b, c, ft);
+                    if (v > hi) { hi = v; }
+                    if (v < lo) { lo = v; }
+                }
+            }
+            var font = d.semi(COL_ALT);
+            w = d.width(font, "0");
+            var wh = d.width(font, relativeText(hi)), wl = d.width(font, relativeText(lo));
+            if (wh > w) { w = wh; }
+            if (wl > w) { w = wl; }
+            relativeWidest = w;
+            relativeFeet = ft;
+        }
+        return w;
+    }
+
+    // The difficulty column group's width: the larger box, the space, the altitudes (relative on page
+    // 2a) and the unit shown.
+    function columnGroupWidth(d as Draw, relative as Boolean) as Float {
+        var ft = feet(), altW = relative ? columnRelativeBox(d, ft) : columnAltitudeBox(d, ft);
+        return COL_W * COL_BIG + COL_SPACE + altW + 0.007212 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
+    }
+
+    // How far the column reaches above and below its centre: half its height.
     function columnReach() as Float {
-        return COL_H * COL_BIG / 2 + 2 * (COL_GAP + COL_H);
+        return (COL_H * COL_BIG + (COL_BELOW + COL_ABOVE) * (COL_GAP + COL_H)) / 2;
     }
 
-    // The difficulty column group, centred on the screen as one group, at height cy.
-    function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean) as Void {
-        columnGroupAt(d, st, 0.5 - columnGroupWidth(d) / 2, cy, outer);
+    // The difficulty column group, centred on the screen as one group, the column centred at height cy.
+    function columnGroup(d as Draw, st as Climb.State, cy as Float, outer as Boolean, relative as Boolean) as Void {
+        columnGroupAt(d, st, 0.5 - columnGroupWidth(d, relative) / 2, cy, outer, relative);
     }
 
     // The difficulty column group: the column, with the altitudes where the difficulty changes to its
-    // right, each level with a border between two boxes (and at the column's outer edges if outer),
-    // right-aligned in a box as wide as the route's widest, its unit after it. Its left edge at left,
-    // centred vertically on cy.
-    function columnGroupAt(d as Draw, st as Climb.State, left as Float, cy as Float, outer as Boolean) as Void {
+    // right, from the current section's bottom up (owner, 2026-11-23: no longer the bottom of the one
+    // before): the current's bottom always, even with no box below it; the others level with a border
+    // between two boxes, and at the column's top edge if outer. Right-aligned in a box as wide as the
+    // route's widest, its unit after it. Page 2a (relative): each the height above the current section's
+    // bottom. Its left edge at left, the column centred vertically on cy.
+    function columnGroupAt(d as Draw, st as Climb.State, left as Float, cy as Float, outer as Boolean,
+            relative as Boolean) as Void {
         var ft = feet(), unit = ft ? "ft" : "m", font = d.semi(COL_ALT), small = d.semi(COL_UNIT);
-        var bw = COL_W * COL_BIG, altW = columnAltitudeBox(d, ft);
-        var cx = left + bw / 2;
+        var bw = COL_W * COL_BIG, altW = relative ? columnRelativeBox(d, ft) : columnAltitudeBox(d, ft);
+        var cx = left + bw / 2, cc = columnCurrentY(cy);
         var ax = cx + bw / 2 + COL_SPACE + altW;
-        column(d, st, cx, cy);
+        column(d, st, cx, cc);
         // Border b lies between sections b - 1 and b, at its real altitude.
-        for (var b = st.cur - 2; b <= st.cur + 3; b++) {
+        for (var b = st.cur; b <= st.cur + COL_ABOVE + 1; b++) {
             var above = inColumn(b, st.cur), below = inColumn(b - 1, st.cur);
-            if (!(above && below) && !(outer && (above || below))) { continue; }
+            if (b != st.cur && !(above && below) && !(outer && (above || below))) { continue; }
             var y = above
-                ? slotY(b - st.cur, cy) + slotHalf(b - st.cur) + COL_GAP / 2.0
-                : slotY(b - 1 - st.cur, cy) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
-            var v = borderAltitude(b, ft);
-            d.textCapMiddle(ax, y, font, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+                ? slotY(b - st.cur, cc) + slotHalf(b - st.cur) + COL_GAP / 2.0
+                : slotY(b - 1 - st.cur, cc) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
+            var text = relative ? relativeText(relativeValue(b, st.cur, ft)) : borderAltitude(b, ft).format("%d");
+            d.textCapMiddle(ax, y, font, text, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
             var baseline = y + d.capHeight(font) / 2;
             d.textTop(ax + 0.007212, baseline - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);

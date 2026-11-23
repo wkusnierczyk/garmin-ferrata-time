@@ -88,7 +88,7 @@ Options: dangers follow the profile's danger setting.
 
 The difficulty widget turned upright: the sections around the climber.
 
-- Five slots in a column, centred vertically: the current section in the middle, the two before it below, the two after it above. Missing slots, near the start or the top, stay empty; the current box does not move.
+- Five slots in a column, centred vertically: the current section second from the bottom, the one before it below, the three after it above (owner, 2026-11-23; it was in the middle, two and two). Missing slots, near the start or the top, stay empty; the current box does not move.
 - All boxes the same size (0.1538 by 0.0962 of the screen), whatever their letters. The current one is 35 % larger (owner, 2026-11-23; it was 8 %) and filled in its colour with black letters, Bold 0.0865.
 - The others are outlined, letters in the outline's colour: before the climber at 55 % of their colour, after it at full colour.
 - Letters `W` and `A` to `F/G`. A rest shows as `W`; the mock can show it as `R`.
@@ -173,8 +173,9 @@ Widgets that are placed together, as one reusable unit.
 ### difficulty column group
 
 - The **difficulty column**, with the altitudes where the difficulty changes to its right.
-- Each altitude is level with a border between two boxes, and is the altitude where the route passes from the lower box's section to the upper one's; optionally also at the column's outer edges.
+- Each altitude is level with a border between two boxes, and is the altitude where the route passes from the lower box's section to the upper one's; from the current section's bottom up (always shown, even with no box below it), and optionally also at the column's top edge. The bottom of the section before the current one is not shown (owner, 2026-11-23).
 - Rounded like the altitude widget (10 m or 50 ft), right-aligned in a box as wide as the widest the route can show, 0.0240 of the screen right of the column, the unit after each.
+- Relative (page 2a): each the height above the current section's bottom, signed ("+137", "0", "-20"), to the metre or 5 ft, from the route's own heights; the box as wide as the widest difference the column can show on the route.
 - Placed by its left edge and vertical centre; page 2 centres column and altitudes on the screen as one group, page 3 places it by the side of the ascent.
 
 Options: the altitudes at the outer edges; metres or feet; the unit after every altitude or only the last (the mock's switch; the app shows it after each).

@@ -167,6 +167,6 @@ module DescentTest {
 
     (:test, :noreplay)
     function frontPagesDrawWithoutSidewaysTravel(logger as Logger) as Boolean {
-        return drawsEverywhere(downRoute(), 10, 11);
+        return drawsEverywhere(downRoute(), 11, 12);
     }
 }
