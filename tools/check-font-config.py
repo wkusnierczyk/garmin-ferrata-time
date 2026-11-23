@@ -333,7 +333,10 @@ def literals(text):
 
 measured = set(''.join(''.join(literals(line.split('d.width(', 1)[1]))
                        for line in source.splitlines() if 'd.width(' in line))
-measured |= set(''.join(re.findall(r'"([^"]*)"', re.search(r'function fitIn.*?\n    }', source, re.S).group(0))))
+# A name cut to fit (fitIn, while a page has one) measures its ellipsis.
+fit_in = re.search(r'function fitIn.*?\n    }', source, re.S)
+if fit_in:
+    measured |= set(''.join(re.findall(r'"([^"]*)"', fit_in.group(0))))
 ok(measured <= set(TEXT), f"every literal the pages measure is a text glyph ({''.join(sorted(measured))!r})")
 drawn = set(''.join(literals(source)))
 ok(drawn <= set(TEXT), "every string literal in source/ is in the text fonts"
