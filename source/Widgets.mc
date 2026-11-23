@@ -1010,16 +1010,15 @@ module Widgets {
         }
     }
 
-    // A point on the selection gauge as a short arc along its inside, round-ended (owner, 2026-11-23:
-    // the rings were small and hard to read): two thirds of the gauge's pen thick, twice its pen long,
-    // SEL_GAP clear of the sections; a point that would come within SEL_GAP of one already placed moves
-    // one lane further in, so each stays on its own angle.
-    const SEL_PEN = 0.019231;
-    const SEL_LEN = 0.057692;
+    // A point on the selection gauge as a filled disk just inside it (owner, 2026-11-23: the rings were
+    // small and hard to read, and short arcs read as sections), SEL_DISK across, SEL_GAP clear of the
+    // sections; a point that would come within SEL_GAP of one already placed moves one lane further
+    // in, so each stays on its own angle.
+    const SEL_DISK = 0.043269;
     const SEL_GAP = 0.009615;
 
     function selectionLane(k as Number) as Float {
-        return G_R - G_PEN / 2 - SEL_GAP - SEL_PEN / 2 - k * (SEL_PEN + SEL_GAP);
+        return G_R - G_PEN / 2 - SEL_GAP - SEL_DISK / 2 - k * (SEL_DISK + SEL_GAP);
     }
 
     function selectionMark(d as Draw, lanes as Array<Array<Float>>, dist as Float, c as Number, lit as Boolean) as Void {
@@ -1027,23 +1026,15 @@ module Widgets {
         while (k < lanes.size()) {
             var clear = true, lane = lanes[k];
             for (var j = 0; j < lane.size(); j++) {
-                if ((lane[j] - a).abs() * Math.PI / 180 * selectionLane(k) < SEL_LEN + SEL_GAP) { clear = false; break; }
+                if ((lane[j] - a).abs() * Math.PI / 180 * selectionLane(k) < SEL_DISK + SEL_GAP) { clear = false; break; }
             }
             if (clear) { break; }
             k++;
         }
         if (k == lanes.size()) { lanes.add([] as Array<Float>); }
         lanes[k].add(a);
-        var r = selectionLane(k), colour = lit ? c : d.darken(c, 0.33);
-        // The arc's own span is the length less the pen; the round ends add half a pen each. On whole
-        // degrees, as the watch draws arcs, so the ends' dots sit on its ends.
-        var half = (SEL_LEN - SEL_PEN) / 2 / r * 180 / Math.PI;
-        var a0 = Math.round(a + half), a1 = Math.round(a - half);
-        if (a0 - a1 < 1) { a0 = a1 + 1; }
-        d.arc(r, a0, a1, colour, SEL_PEN);
-        var p0 = d.onCircle(r, a0), p1 = d.onCircle(r, a1);
-        d.dot(p0[0], p0[1], SEL_PEN / 2, colour);
-        d.dot(p1[0], p1[1], SEL_PEN / 2, colour);
+        var p = d.onCircle(selectionLane(k), a);
+        d.dot(p[0], p[1], SEL_DISK / 2, lit ? c : d.darken(c, 0.33));
     }
 
     // The points section i includes or is next to, as poiSymbol kinds, danger first, then exit, rest,

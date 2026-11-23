@@ -192,7 +192,7 @@ Options: the altitudes at the outer edges; metres or feet; the unit after every 
 
 ## selection gauge (page 9)
 
-Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as short round-ended arcs just inside the gauge (0.0192 of the screen thick, 0.0577 long), 0.0096 clear of the sections and of each other, a point moving one lane further in where it would touch one already placed (dangers first, then exits, then rests); an arc is lit where the selected section shows the point (*section points*), dimmed elsewhere.
+Page 6b's gauge by ascent showing a selected section, not the climber: the selected section at full colour, all others dimmed, no climber line. The points as filled disks just inside the gauge (0.0433 of the screen across), 0.0096 clear of the sections and of each other, a point moving one lane further in where it would touch one already placed (dangers first, then exits, then rests); a disk is lit where the selected section shows the point (*section points*), dimmed elsewhere.
 
 ## chevron (page 9)
 
