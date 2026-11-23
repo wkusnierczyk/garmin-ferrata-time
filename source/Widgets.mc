@@ -160,14 +160,9 @@ module Widgets {
     function ascentNumbersWidth(d as Draw) as Float {
         var w = ascentWidest;
         if (w == null) {
-            // The widest is among those with the most digits, from the first such number up.
-            w = 0.0;
-            var from = 1;
-            while (from * 10 <= Climb.totalU()) { from *= 10; }
-            for (var n = from; n <= Climb.totalU(); n++) {
-                var nw = d.width(d.semi(NUMBER_SIZE), n.format("%d"));
-                if (nw > w) { w = nw; }
-            }
+            // The digits are tabular, so every number with as many digits is as wide: the total stands for
+            // them all. Measuring each number instead stopped the app on the watchdog (#94).
+            w = d.width(d.semi(NUMBER_SIZE), Climb.totalU().format("%d"));
             ascentWidest = w;
         }
         return w;
@@ -287,13 +282,9 @@ module Widgets {
     function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Float {
         var w = widest[slot];
         if (w == null || widestFeet[slot] != ft) {
-            w = 0.0;
-            var step = ft ? 50 : 10;
-            var last = altitudeValue(Climb.netHigh().toFloat(), ft);
-            for (var v = altitudeValue(Climb.netLow().toFloat(), ft); v <= last; v += step) {
-                var vw = d.width(font, v.format("%d"));
-                if (vw > w) { w = vw; }
-            }
+            // Tabular digits: the altitude with the most digits is the widest, the end farther from zero.
+            var low = altitudeValue(Climb.netLow().toFloat(), ft), high = altitudeValue(Climb.netHigh().toFloat(), ft);
+            w = d.width(font, (high.abs() > low.abs() ? high : low).format("%d"));
             widest[slot] = w;
             widestFeet[slot] = ft;
         }
