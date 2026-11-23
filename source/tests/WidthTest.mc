@@ -1,0 +1,73 @@
+using Toybox.Graphics;
+using Toybox.System;
+
+import Toybox.Lang;
+import Toybox.Test;
+
+// The number widths (#94): measured once per route from one or two strings, since the digits are tabular.
+// Each must equal the widest of every number the pages can show, measured one by one.
+module WidthTest {
+
+    // Down 20 m, then up 100 m, from a head at 0 m: altitudes from -20 to 80 m, a minus sign at the low end.
+    function belowZero() as Route {
+        return Route.fromJson({"format" => 1, "id" => "z", "name" => "Zero", "short" => "Zero",
+            "sections" => [
+                {"len" => 50, "up" => -20, "grade" => 1, "min" => 10, "name" => "S0", "side" => 0.0},
+                {"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S1", "side" => 0.0}],
+            "points" => [
+                {"kind" => "head", "at" => 0, "alt" => 0, "name" => "Head"},
+                {"kind" => "top", "at" => 150, "name" => "Top"}]}) as Route;
+    }
+
+    function draw() as Draw {
+        var w = System.getDeviceSettings().screenWidth;
+        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w}).get() as Graphics.BufferedBitmap;
+        return new Draw(bitmap.getDc());
+    }
+
+    // The widest altitude, every step from the low end to the high end measured.
+    function widestByHand(d as Draw, ft as Boolean, font as Graphics.FontType) as Float {
+        var w = 0.0;
+        var last = Widgets.altitudeValue(Climb.netHigh().toFloat(), ft);
+        for (var v = Widgets.altitudeValue(Climb.netLow().toFloat(), ft); v <= last; v += ft ? 50 : 10) {
+            var vw = d.width(font, v.format("%d"));
+            if (vw > w) { w = vw; }
+        }
+        return w;
+    }
+
+    function altitudesMatch(r as Route) as Boolean {
+        Climb.use(r, :ferrata);
+        var d = draw();
+        for (var f = 0; f < 2; f++) {
+            var ft = f == 1;
+            Test.assertEqualMessage(Widgets.altitudeBox(d, ft), widestByHand(d, ft, d.semi(Widgets.ALT_SIZE)), "altitude box");
+            Test.assertEqualMessage(Widgets.columnAltitudeBox(d, ft), widestByHand(d, ft, d.semi(Widgets.COL_ALT)), "column box");
+        }
+        return true;
+    }
+
+    (:test)
+    function ascentWidthIsTheWidestNumber(logger as Logger) as Boolean {
+        // The small route: measuring every number of the demo's ascent is what tripped the watchdog.
+        Climb.use(belowZero(), :ferrata);
+        var d = draw(), font = d.semi(Widgets.NUMBER_SIZE), w = 0.0;
+        for (var n = 0; n <= Climb.totalU(); n++) {
+            var nw = d.width(font, n.format("%d"));
+            if (nw > w) { w = nw; }
+        }
+        Test.assertEqual(Widgets.ascentNumbersWidth(d), w);
+        return true;
+    }
+
+    (:test)
+    function altitudeWidthsAreTheWidest(logger as Logger) as Boolean {
+        return altitudesMatch(RouteTest.demo());
+    }
+
+    // The minus sign: -20 is wider than 80 though both have two digits.
+    (:test)
+    function altitudeWidthsCountTheMinus(logger as Logger) as Boolean {
+        return altitudesMatch(belowZero());
+    }
+}
