@@ -287,7 +287,12 @@ module Climb {
     //   trough between two readings, and the search goes on from there (#100: the demo's readings step
     //   over the top of the Dihedral and over its foot, and the place stayed before each for good).
     // - u equal: lo is fromD.
-    // hi extends lo over a flat stretch at lo's height (a traverse), else it is lo.
+    // hi extends lo over a flat stretch at lo's height (a traverse), and then over a crest or trough of
+    // at most CREST just ahead, to where the route is back at lo's height: the climber may have passed
+    // it since the reading, which reads the same either side, and time moves the place over it (#100:
+    // at the Dihedral's foot, the Band after it rising a metre in 15, the whole-metre readings read the
+    // same on the last metre down and the first 15 m of the Band, and the place stayed before the foot).
+    // Else hi is lo.
     // (Coordinator's definition, replacing the plan's, after the review of #88: the plan's searched
     // the whole route ahead, so a reading a few metres off jumped past a dip or to the top.)
     // A crest or trough no more than this from the place may have been passed between two readings:
@@ -323,15 +328,47 @@ module Climb {
             }
             lo = turn;
         }
-        // Over the flat stretch lo is on, if any.
-        var hi = lo;
-        for (var i = sectionAt(lo); i < count(); i++) {
-            var d0 = lo > dAt(i) ? lo : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
+        // Over the flat stretch lo is on, if any, then over a turn just ahead back to lo's height, and
+        // over a flat stretch there.
+        var hi = flatAhead(lo);
+        var back = turnAhead(hi);
+        if (back > hi) { hi = flatAhead(back); }
+        return [lo, hi];
+    }
+
+    // The end of the flat stretch from d, or d when the route does not run flat there.
+    function flatAhead(d as Float) as Float {
+        var end = d;
+        for (var i = sectionAt(d); i < count(); i++) {
+            var d0 = d > dAt(i) ? d : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
             if (d1 <= d0) { continue; }
             if (UP[i] != 0) { break; }
-            hi = d1;
+            end = d1;
         }
-        return [lo, hi];
+        return end;
+    }
+
+    // Where the route ahead of d is back at d's height after a crest or trough at most CREST from it
+    // (over any flats), or d when it has none: it goes further first, or never comes back.
+    function turnAhead(d as Float) as Float {
+        var h = netAtDistance(d);
+        // dir: the way the route goes first, 0 until known.
+        var dir = 0;
+        for (var i = sectionAt(d); i < count(); i++) {
+            var d0 = d > dAt(i) ? d : dAt(i).toFloat(), d1 = dAt(i + 1).toFloat();
+            if (d1 <= d0 || UP[i] == 0) { continue; }
+            var slope = UP[i] > 0 ? 1 : -1;
+            if (dir == 0) { dir = slope; }
+            if (slope == dir) {
+                if (dir * (netAt(i + 1) - h) > CREST) { break; }
+                continue;
+            }
+            // Turned back: d's height again in this section, else the route turns short of it.
+            var a = netAtDistance(d0), b = netAt(i + 1).toFloat();
+            if (dir < 0 ? b >= h : b <= h) { return d0 + crossing(-dir * a, -dir * b, -dir * h) * (d1 - d0); }
+            break;
+        }
+        return d;
     }
 
     // The stretch around distance d the climber may be on when the altitude is sure to band metres up

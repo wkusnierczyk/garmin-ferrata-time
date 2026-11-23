@@ -225,6 +225,33 @@ module RouteTest {
         return true;
     }
 
+    // A reading that reads the same either side of a trough or crest just ahead: the stretch runs over
+    // it to where the route is back at that height, so time moves the place past it (#100: the demo's
+    // whole-metre readings read 11 m on the Dihedral's last metre down and on the Band's first 15 m, a
+    // metre in 15, and the place stayed a metre above the foot while the demo went 17 m up the Band).
+    // A deeper turn, or one the route never comes back from, keeps it.
+    (:test)
+    function stretchAheadOverATurnAtTheSameHeight(logger as Logger) as Boolean {
+        // Down 64 m in 64, then up 10 m in 160, a metre in 16.
+        Climb.use(made([[64, 64], [64, -64], [160, 10]]), :ferrata);
+        // A metre above the foot, reading the same: up to a metre up the climb after it, 16 m on.
+        stretch(127.0, 1.0, 127.0, 144.0);
+        // Followed down to 2 m above the foot: on to 2 m up the climb.
+        stretch(64.0, 2.0, 126.0, 160.0);
+        // 6 m above the foot: more than CREST, the place stays.
+        stretch(122.0, 6.0, 122.0, 122.0);
+        // A crest 2 m above, over a flat top, down to the same height.
+        Climb.use(made([[64, 64], [16, 0], [64, -64]]), :ferrata);
+        stretch(62.0, 62.0, 62.0, 82.0);
+        // No way down after the crest: the place stays.
+        Climb.use(made([[64, 64], [64, 0]]), :ferrata);
+        stretch(62.0, 62.0, 62.0, 62.0);
+        // Back at the height onto a flat stretch: over it too.
+        Climb.use(made([[32, -2], [32, 2], [64, 0], [64, 64]]), :ferrata);
+        stretch(0.0, 0.0, 0.0, 128.0);
+        return true;
+    }
+
     // On a real descent the place follows the reading down, and no further than the low point.
     (:test)
     function stretchAheadFollowsDescent(logger as Logger) as Boolean {
