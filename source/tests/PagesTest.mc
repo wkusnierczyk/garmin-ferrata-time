@@ -53,6 +53,55 @@ module PagesTest {
         return true;
     }
 
+    // Page 1a draws each window at the largest scale that fits the rectangle, centred in it (#102: no
+    // search for a place clear of the widgets).
+    (:test, :noreplay)
+    function zoomLargestCentred(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        var d = draw(), x0 = Pages.PROFILE_X0, w = Pages.PROFILE_W, y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
+        var places = [0.0, 100.0, 250.0, 400.0, Climb.totalD().toFloat()] as Array<Float>;
+        for (var p = 0; p < places.size(); p++) {
+            Pages.draw(1, d, at(places[p]));
+            var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2];
+            var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k, at = "at " + places[p] + ": ";
+            Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, at + "fits, " + W + " by " + H);
+            Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), at + "as large as fits, " + W + " by " + H);
+            Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), at + "centred across");
+            Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), at + "centred up");
+        }
+        return true;
+    }
+
+    // Page 1a frame by frame as the demo plays the route at its pace, the whole climb: it draws every
+    // frame, within the watchdog.
+    (:test, :noreplay)
+    function zoomDrawsTheDemoFrameByFrame(logger as Logger) as Boolean {
+        var f = new TestFeed(RouteTest.demo(), true, false), d = draw();
+        for (var frame = 0; frame < DemoInput.LOOP_MS / Feed.DEMO_TICK_MS; frame++) {
+            f.tick();
+            Pages.draw(1, d, f.tracker.state());
+        }
+        return true;
+    }
+
+    // Page 1a's half-transparent box under the altitude group (#102): as wide as the widest altitude
+    // with its unit; as tall as the digits, and with a poi word as tall as the digits, the gap and the
+    // word.
+    (:test)
+    function altitudeGroundFitsTheGroup(logger as Logger) as Boolean {
+        Climb.use(route([[100, 100, 3], [20, 0, -1], [100, 100, 5]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
+        var d = draw(), ft = Widgets.feet(), digits = d.capHeight(d.semi(Widgets.ALT_SIZE));
+        var rest = at(100.0), none = at(220.0);
+        Test.assertEqualMessage(Widgets.poiNear(rest, false), 2, "the rest's word at 100 m");
+        Test.assertEqualMessage(Widgets.poiNear(none, false), -1, "no word at 220 m");
+        var wide = Widgets.altitudeBox(d, ft) + 0.009615 + d.width(d.semi(Widgets.ALT_UNIT), ft ? "ft" : "m");
+        var a = Widgets.altitudeGroupSize(d, none), b = Widgets.altitudeGroupSize(d, rest);
+        Test.assertMessage(RouteTest.near(a[0], wide) && RouteTest.near(b[0], wide), "as wide as the altitude and its unit");
+        Test.assertMessage(RouteTest.near(a[1], digits), "the digits alone: " + a[1]);
+        Test.assertMessage(RouteTest.near(b[1], digits + 0.028846 + 0.7 * Widgets.POI_SIZE), "with the word: " + b[1]);
+        return true;
+    }
+
     // A long flat stretch, as the Daubenhorn's 600 m traverse at its start: pages 1a and 7a draw only what
     // can be on the screen (review of #99, finding 2), and draw everywhere on it.
     (:test, :noreplay)

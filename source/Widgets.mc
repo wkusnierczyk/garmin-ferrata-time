@@ -124,48 +124,24 @@ module Widgets {
 
     // ---------------------------------------------------------------- profile, zoomed (page 1a)
 
-    // The zoom window (zoomWindow) drawn at one scale across and up, as large as it goes while the
-    // route (with the climber's outline) keeps 0.0385 of the width clear of the widgets around it
-    // (avoid: boxes [x0, y0, x1, y1, ...]). The mocks' search: the largest scale first, then 0.92 of it,
-    // up to 16 times, each at the box's middle, quarters and edges across and up; the first placement
-    // touching nothing wins, failing that the one touching least. The whole search in one frame would
-    // trip the watchdog, so on the watch the placement found is kept by its place in that order, and
-    // each new window is drawn at once at that placement, made for the window; one check of it, and
-    // only if it touches a widget a search across frames (ZOOM_TRIES placements a frame, on the window
-    // of each frame). Every ZOOM_AGAIN metres along the route the search starts again from the
-    // largest, so the profile grows back where it can. A rest is drawn as walking here (its stretch is
-    // too long to leave out), its ring kept.
-    const ZOOM_TRIES = 3;
-    const ZOOM_AGAIN = 20.0;
-    const ZOOM_CLEAR = 0.038462;
-    // The window's start, and its [from, to, lowest net height, highest, the largest scale].
+    // The zoom window (zoomWindow) drawn at one scale across and up, the largest that fits the box,
+    // centred in it. No search for a place clear of the widgets around it (owner, 2026-11-23: too much
+    // computation on the watch, #102): where the route runs under the altitude, the altitude's
+    // half-transparent box dims it (altitudeGround). Worked out once per window. A rest is drawn as
+    // walking here (its stretch is too long to leave out), its ring kept.
+    // The window's start, and its [from, to, lowest net height, highest, the scale].
     var zoomKey as Float = -1.0;
     var zoomArgs as Array<Float> = [0.0, 0.0, 0.0, 0.0, 0.0] as Array<Float>;
     // The placement drawn, [x, y, scale, distance, net height]: the screen point of that place on the
-    // route, and the scale in shares of the width per metre; and its place in the search's order.
+    // route, and the scale in shares of the width per metre.
     var zoomFit as Array<Float>? = null;
-    var zoomIndex as Number = 0;
-    // The search: the next placement to try (-1: none running), where it started, the best so far.
-    var zoomNext as Number = -1;
-    var zoomFrom as Float = 0.0;
-    var zoomBestIndex as Number = 0;
-    var zoomBestHits as Number = 0;
 
-    function profileZoom(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float,
-            avoid as Array<Float>) as Void {
+    function profileZoom(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float) as Void {
         var win = zoomWindow(st);
         if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5) {
             zoomStart(win[0], win[1], w, h);
-            zoomFit = zoomCandidate(zoomIndex, x0, w, y0, h);
-            if (zoomNext < 0 && (zoomIndex > 0 && (win[0] - zoomFrom).abs() >= ZOOM_AGAIN
-                    || zoomHits(zoomFit as Array<Float>, x0, w, y0, h, avoid) > 0)) {
-                zoomNext = 0;
-                zoomFrom = win[0];
-                zoomBestIndex = zoomIndex;
-                zoomBestHits = 1000000;
-            }
+            zoomFit = zoomCentred(x0, w, y0, h);
         }
-        zoomStep(x0, w, y0, h, avoid);
         var f = zoomFit;
         if (f == null) { return; }
         // Cut just right of the ascent widget on the left edge, so the route never runs over its ring.
@@ -175,7 +151,7 @@ module Widgets {
         d.unclip();
     }
 
-    // A new window: its heights and the largest scale.
+    // A new window: its heights and the largest scale that fits the box.
     function zoomStart(d0 as Float, d1 as Float, w as Float, h as Float) as Void {
         zoomKey = d0;
         var n0 = 1.0e9, n1 = -1.0e9;
@@ -188,53 +164,11 @@ module Widgets {
         zoomArgs = [d0, d1, n0, n1, ka < kb ? ka : kb] as Array<Float>;
     }
 
-    // Placement t of the search's 400 on the current window: the scale 0.92 to the power t / 25, then
-    // across and up.
-    const ZOOM_PLACES = [0.5, 0.25, 0.75, 0.0, 1.0];
-
-    function zoomCandidate(t as Number, x0 as Float, w as Float, y0 as Float, h as Float) as Array<Float> {
-        var a = zoomArgs, k = (a[4] * Math.pow(0.92, t / 25)).toFloat();
+    // The window at that scale, centred in the box.
+    function zoomCentred(x0 as Float, w as Float, y0 as Float, h as Float) as Array<Float> {
+        var a = zoomArgs, k = a[4];
         var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k;
-        return [x0 + (w - W) * ZOOM_PLACES[(t % 25) / 5], y0 - (h - H) * ZOOM_PLACES[t % 5], k, a[0], a[2]] as Array<Float>;
-    }
-
-    // ZOOM_TRIES more placements of a running search; the first touching nothing is kept, and after the
-    // last the one touching least.
-    function zoomStep(x0 as Float, w as Float, y0 as Float, h as Float, avoid as Array<Float>) as Void {
-        if (zoomNext < 0) { return; }
-        for (var c = 0; c < ZOOM_TRIES && zoomNext < 400; c++) {
-            var t = zoomNext, cand = zoomCandidate(t, x0, w, y0, h);
-            zoomNext++;
-            var n = zoomHits(cand, x0, w, y0, h, avoid);
-            if (n == 0) { zoomIndex = t; zoomFit = cand; zoomNext = -1; return; }
-            if (n < zoomBestHits) { zoomBestHits = n; zoomBestIndex = t; }
-        }
-        if (zoomNext >= 400) {
-            zoomIndex = zoomBestIndex;
-            zoomFit = zoomCandidate(zoomIndex, x0, w, y0, h);
-            zoomNext = -1;
-        }
-    }
-
-    // How many points of the route in view, every 0.0072 of the width, fall near a widget.
-    function zoomHits(f as Array<Float>, x0 as Float, w as Float, y0 as Float, h as Float, avoid as Array<Float>) as Number {
-        var k = f[2], m = ZOOM_CLEAR, hits = 0;
-        var lo = f[3] - w / k, hi = zoomArgs[1] + w / k, step = 0.007212 / k;
-        if (lo < 0) { lo = 0.0; }
-        if (hi > Climb.totalD()) { hi = Climb.totalD().toFloat(); }
-        // The net height section by section, not looked up afresh for every point.
-        var i = Climb.sectionAt(lo), last = Climb.count() - 1;
-        for (var dd = lo; dd <= hi; dd += step) {
-            while (i < last && dd > Climb.dAt(i + 1)) { i++; }
-            var l = Climb.LEN[i];
-            var net = Climb.netAt(i) + (l > 0 ? (dd - Climb.dAt(i)) / l * Climb.UP[i] : 0.0);
-            var x = f[0] + (dd - f[3]) * k, y = f[1] - (net - f[4]) * k;
-            if (x < x0 - m || x > x0 + w + m || y < y0 - h - m || y > y0 + m) { continue; }
-            for (var r = 0; r < avoid.size(); r += 4) {
-                if (x > avoid[r] - m && x < avoid[r + 2] + m && y > avoid[r + 1] - m && y < avoid[r + 3] + m) { hits++; break; }
-            }
-        }
-        return hits;
+        return [x0 + (w - W) / 2, y0 - (h - H) / 2, k, a[0], a[2]] as Array<Float>;
     }
 
     // The profile through a placement, as the profile widget draws it, the sections whose ends lie
@@ -351,8 +285,6 @@ module Widgets {
         pathCum = null;
         zoomKey = -1.0;
         zoomFit = null;
-        zoomIndex = 0;
-        zoomNext = -1;
         stackSideWidest = null;
         groupPlaced = null;
         relativeWidest = null;
@@ -568,6 +500,26 @@ module Widgets {
     function altitudeGroup(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         altitude(d, st, x, yt);
         poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(d.semi(ALT_SIZE)) + 0.028846);
+    }
+
+    // The altitude group's extent from x and yt as altitudeGroup draws it: across, the widest altitude
+    // with its unit; down, the digits' capitals and, with a poi word, the gap and the word's capitals.
+    function altitudeGroupSize(d as Draw, st as Climb.State) as [Float, Float] {
+        var ft = feet();
+        var w = altitudeBox(d, ft) + 0.009615 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
+        var h = d.capHeight(d.semi(ALT_SIZE));
+        if (poiNear(st, false) >= 0) { h += 0.028846 + 0.7 * POI_SIZE; }
+        return [w, h];
+    }
+
+    // Page 1a: a half-transparent black box under the altitude group at x and yt (owner, 2026-11-23,
+    // #102), ALT_PAD round it and rounded by as much, so the zoomed route running under the group shows
+    // through half-dimmed. Drawn after the profile, before the group.
+    const ALT_PAD = 0.014423;
+
+    function altitudeGround(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
+        var size = altitudeGroupSize(d, st);
+        d.shade(x - ALT_PAD, yt - ALT_PAD, size[0] + 2 * ALT_PAD, size[1] + 2 * ALT_PAD, ALT_PAD, 0x80);
     }
 
     // ---------------------------------------------------------------- difficulty column
