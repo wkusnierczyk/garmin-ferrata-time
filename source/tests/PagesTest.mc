@@ -84,21 +84,38 @@ module PagesTest {
         return true;
     }
 
-    // Page 1a's half-transparent box under the altitude group (#102): as wide as the widest altitude
-    // with its unit; as tall as the digits, and with a poi word as tall as the digits, the gap and the
-    // word.
+    // Page 1a's half-transparent box under the altitude group (#102), in metres and in feet: it spans
+    // the number's box and its unit; with a poi word it reaches down over the word, and left to the
+    // word's start when the word is wider than the number, as "DANGER" is over three-digit altitudes
+    // (the review of #103); without one it stops at the digits.
     (:test)
     function altitudeGroundFitsTheGroup(logger as Logger) as Boolean {
-        Climb.use(route([[100, 100, 3], [20, 0, -1], [100, 100, 5]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
-        var d = draw(), ft = Widgets.feet(), digits = d.capHeight(d.semi(Widgets.ALT_SIZE));
-        var rest = at(100.0), none = at(220.0);
-        Test.assertEqualMessage(Widgets.poiNear(rest, false), 2, "the rest's word at 100 m");
-        Test.assertEqualMessage(Widgets.poiNear(none, false), -1, "no word at 220 m");
-        var wide = Widgets.altitudeBox(d, ft) + 0.009615 + d.width(d.semi(Widgets.ALT_UNIT), ft ? "ft" : "m");
-        var a = Widgets.altitudeGroupSize(d, none), b = Widgets.altitudeGroupSize(d, rest);
-        Test.assertMessage(RouteTest.near(a[0], wide) && RouteTest.near(b[0], wide), "as wide as the altitude and its unit");
-        Test.assertMessage(RouteTest.near(a[1], digits), "the digits alone: " + a[1]);
-        Test.assertMessage(RouteTest.near(b[1], digits + 0.028846 + 0.7 * Widgets.POI_SIZE), "with the word: " + b[1]);
+        var sections = [] as Array<Dictionary>;
+        for (var i = 0; i < 2; i++) {
+            sections.add({"len" => 100, "up" => 100, "grade" => 3, "min" => 10, "name" => "S" + i, "side" => 0.0});
+        }
+        Climb.use(Route.fromJson({"format" => 1, "id" => "low", "name" => "Low", "short" => "Low",
+            "sections" => sections, "points" => [
+                {"kind" => "head", "at" => 0, "alt" => 500, "name" => "Head"},
+                {"kind" => "danger", "at" => 100, "name" => "Danger"},
+                {"kind" => "top", "at" => 200, "name" => "Top"}]}) as Route, :ferrata);
+        var d = draw(), digits = d.capHeight(d.semi(Widgets.ALT_SIZE));
+        var word = d.spacedWidth(Widgets.poiFont(d), "DANGER"), danger = at(100.0), none = at(200.0);
+        Test.assertEqualMessage(Widgets.poiNear(danger, false), 0, "DANGER at 100 m");
+        Test.assertEqualMessage(Widgets.poiNear(none, false), -1, "no word at 200 m");
+        Test.assertMessage(word > Widgets.altitudeBox(d, false), "DANGER wider than three digits");
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1, unit = ft ? "ft: " : "m: ", box = Widgets.altitudeBox(d, ft);
+            var right = box + 0.009615 + d.width(d.semi(Widgets.ALT_UNIT), ft ? "ft" : "m");
+            var a = Widgets.altitudeGroupExtent(d, none, ft), b = Widgets.altitudeGroupExtent(d, danger, ft);
+            Test.assertMessage(RouteTest.near(a[1], right) && RouteTest.near(b[1], right), unit + "to the unit's end");
+            Test.assertMessage(RouteTest.near(a[0], 0.0), unit + "from the number's box without a word: " + a[0]);
+            Test.assertMessage(RouteTest.near(a[2], digits), unit + "the digits alone: " + a[2]);
+            var start = box - word;
+            Test.assertMessage(RouteTest.near(b[0], start < 0 ? start : 0.0), unit + "from the word's start or the box's: " + b[0]);
+            Test.assertMessage(RouteTest.near(b[2], digits + 0.028846 + 0.7 * Widgets.POI_SIZE), unit + "down over the word: " + b[2]);
+        }
+        Test.assertMessage(Widgets.altitudeGroupExtent(d, danger, false)[0] < 0, "m: left of the number, over DANGER");
         return true;
     }
 

@@ -496,14 +496,20 @@ module Widgets {
         poi(d, st, x + altitudeBox(d, feet()), yt + d.capHeight(d.semi(ALT_SIZE)) + 0.028846);
     }
 
-    // The altitude group's extent from x and yt as altitudeGroup draws it: across, the widest altitude
-    // with its unit; down, the digits' capitals and, with a poi word, the gap and the word's capitals.
-    function altitudeGroupSize(d as Draw, st as Climb.State) as [Float, Float] {
-        var ft = feet();
-        var w = altitudeBox(d, ft) + 0.009615 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
-        var h = d.capHeight(d.semi(ALT_SIZE));
-        if (poiNear(st, false) >= 0) { h += 0.028846 + 0.7 * POI_SIZE; }
-        return [w, h];
+    // The altitude group's extent as altitudeGroup draws it at x and yt, in units ft: [left, right, down]
+    // from x and yt. Across, from the number's box, or the poi word's start when it is wider (the word
+    // is right-aligned with the number: on a route of three-digit altitudes "DANGER" runs past them),
+    // to the unit's end; down, the digits' capitals and, with a poi word, the gap and its capitals.
+    function altitudeGroupExtent(d as Draw, st as Climb.State, ft as Boolean) as [Float, Float, Float] {
+        var box = altitudeBox(d, ft), left = 0.0;
+        var right = box + 0.009615 + d.width(d.semi(ALT_UNIT), ft ? "ft" : "m");
+        var down = d.capHeight(d.semi(ALT_SIZE)), kind = poiNear(st, false);
+        if (kind >= 0) {
+            down += 0.028846 + 0.7 * POI_SIZE;
+            var start = box - d.spacedWidth(poiFont(d), POI_WORD[kind]);
+            if (start < left) { left = start; }
+        }
+        return [left, right, down];
     }
 
     // Page 1a: a half-transparent black box under the altitude group at x and yt (owner, 2026-11-23,
@@ -512,8 +518,8 @@ module Widgets {
     const ALT_PAD = 0.014423;
 
     function altitudeGround(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
-        var size = altitudeGroupSize(d, st);
-        d.shade(x - ALT_PAD, yt - ALT_PAD, size[0] + 2 * ALT_PAD, size[1] + 2 * ALT_PAD, ALT_PAD, 0x80);
+        var e = altitudeGroupExtent(d, st, feet());
+        d.shade(x + e[0] - ALT_PAD, yt - ALT_PAD, e[1] - e[0] + 2 * ALT_PAD, e[2] + 2 * ALT_PAD, ALT_PAD, 0x80);
     }
 
     // ---------------------------------------------------------------- difficulty column
