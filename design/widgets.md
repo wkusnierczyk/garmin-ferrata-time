@@ -20,8 +20,9 @@ Shared colours:
 
 ## profile
 
-The route seen from the side, from its start at the lower left to its top at the upper right.
+The route seen from the side, from its start at the left to its end at the right.
 
+- The route's real height, down as well as up (#56): a section that loses height goes down. The drawing spans the route's lowest point to its highest; without descents those are the start and the top.
 - The sections in their difficulty colours, drawn as thick lines with round ends. Climbed parts are dimmed.
 - No inclination degrees, no text, no exit lines, no marks beneath the route.
 - Points on the route as hollow rings, black inside so the route breaks there, dimmed once the climber has passed them:
@@ -39,7 +40,7 @@ The route's height as a vertical line, with the climber on it.
 
 - A thin grey line from the start (bottom) to the top.
 - The start and the top as a green and a red dot at the line's ends. On by default; an option turns them off.
-- The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot.
+- The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot. The height is height gained, as Garmin counts ascent: a descent does not lower it (#56).
 - Stacking, back to front: the line; the ring's black inside, hiding the line; the end dots; the ring's orange outline.
 - Two numbers left of the line, right-aligned a small space before the ring:
   - below the ring, the metres climbed; above it, the metres left;
@@ -94,7 +95,7 @@ Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app sho
 
 The difficulty column to scale: the sections as boxes in a window that moves with the climber. Two variants:
 
-- **ascent stack:** each box as tall as the metres its section climbs (0.0072 of the screen per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour.
+- **ascent stack:** each box as tall as the metres its section climbs (0.0072 of the screen per metre on page 4: 96 m in view). A flat section has no height: it is a line across the column at its altitude, in its own colour. So is a section that loses height: the stack counts height gained (#56).
 - **path stack:** each box as tall as its section's length along the route (0.0024 of the screen per metre on page 5). Flat sections are boxes; walls are short.
 
 In the app, ascent or path is a setting.
@@ -103,7 +104,7 @@ In the app, ascent or path is a setting.
 - The boxes meet with no gap. The current one is filled, letters black and larger; the others are black with their sides in their colour, letters in it; those behind the climber at 55 % of their colour.
 - A border between two boxes takes the colour of the one closer to the current section, the current one's own next to it. The route's start and top close the column in the end box's colour.
 - Letters are centred on the part of a box in view, left out when it is too short for them.
-- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. In the path stack a tick sits where the route first reaches its altitude, so ticks crowd on walls and spread on walks; a label that would touch the one below is left out. The label of the next altitude to reach (by path, the first tick above the altitude now, which may sit further along the route than the climber), is twice the other labels' height and always shown, and the labels just above and below it one and a half times (a scalable Roboto Condensed Bold sized from the extra-tiny system font); the other labels make room around them.
+- Altitude ticks on the left, at a step the page sets (page 4: 20 m or 100 ft; page 5: 10 m or 50 ft), only along the route, labelled right-aligned. A tick sits where the route rises through its altitude (#56): in the path stack where it first reaches it, so ticks crowd on walls and spread on walks; on a descent none, and a climb after a descent marks again the altitudes it passes a second time. The labels are real altitudes. A label that would touch the one below is left out. The label of the next altitude to reach (the first tick above the climber on the stack: by path it may sit further along the route than the climber, and after a descent its altitude may be below the one now), is twice the other labels' height and always shown, and the labels just above and below it one and a half times (a scalable Roboto Condensed Bold sized from the extra-tiny system font); the other labels make room around them.
 - Section names on the right, centred on the part in view, greyed behind the climber, cut with an ellipsis to fit the round screen.
 - Points of interest as rings on the column's edge opposite the climber (the right), at their place on the column, in the colours of the other pages: danger yellow, exit green, rest blue (the middle of the rest), the top red; dimmed once passed. The names sit a little further right to clear them.
 - A point's name beside its ring, in its colour ("Danger", "Exit", "Rest", "Top"; a rest's section keeps its own name in white), while the climber is in range: from one tick step before the point to half a step after it, along the stack's axis (page 4 at 20 m ticks: 20 m below to 10 m above). A section name it would touch gives way.
@@ -129,7 +130,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 - Sections a hair apart; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
 - The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
-- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart.
+- By length (page 6a) or by ascent (page 6b): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart. By ascent a section that loses height climbs none, and takes 3° as a flat one does (#56).
 
 ## flat ascent
 
@@ -141,7 +142,7 @@ The next section of a different difficulty (a rest counts as walking) and the di
 
 ## front view
 
-The route seen from the front, as on a topo photo of the face: up is height, across is sideways travel; traverses and walks run nearly flat, walls go nearly straight up.
+The route seen from the front, as on a topo photo of the face: up is height, across is sideways travel; traverses and walks run nearly flat, walls go nearly straight up. The height is the real one, so a descent goes down (#56).
 
 - The sections in their difficulty colours, climbed parts dimmed, round joints.
 - Rests, exits and dangers as hollow rings, dimmed once passed; the start and the top as a green and a red dot.

@@ -38,22 +38,23 @@ module Widgets {
 
     // ---------------------------------------------------------------- profile
 
-    // The route from the side, from (x0, y0) at the start to (x0 + w, y0 - h) at the top.
+    // The route from the side, from x0 at the start to x0 + w at the top, in its real height, down as
+    // well as up (net): from y0 at its lowest point to y0 - h at its highest. Without descents those are
+    // the start and the top.
     function profile(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float) as Void {
-        var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
+        var td = Climb.totalD().toFloat();
         // The climber: an orange outline around the stretch they could be on, a wide orange line
         // with a narrower black one inside it, under the sections.
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         stretch(d, lo, hi, x0, w, y0, h, CLIMBER, 0.033654);
         stretch(d, lo, hi, x0, w, y0, h, BLACK, 0.026442);
         // The sections, round-ended, climbed parts dimmed; rests are left as gaps for their rings.
-        var cx = x0 + st.d / td * w, cy = y0 - st.u / tu * h;
+        var cx = x0 + st.d / td * w, cy = profileY(st.d, y0, h);
         for (var i = 0; i < Climb.count(); i++) {
             var g = Climb.GRADE[i];
             if (g < 0) { continue; }
-            var ax = x0 + Climb.dAt(i) / td * w, ay = y0 - Climb.uAt(i) / tu * h;
-            var bx = x0 + Climb.dAt(i + 1) / td * w, by = y0 - Climb.uAt(i + 1) / tu * h;
+            var ax = x0 + Climb.dAt(i) / td * w, ay = profileNetY(Climb.netAt(i).toFloat(), y0, h);
+            var bx = x0 + Climb.dAt(i + 1) / td * w, by = profileNetY(Climb.netAt(i + 1).toFloat(), y0, h);
             if (Climb.dAt(i + 1) <= st.d) {
                 d.brush(ax, ay, bx, by, 0.012019, d.grade(g, true));
             } else if (Climb.dAt(i) >= st.d) {
@@ -67,31 +68,44 @@ module Widgets {
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0) {
                 var md = (Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0;
-                point(d, x0 + md / td * w, y0 - Climb.heightAtDistance(md) / tu * h, REST, md <= st.d);
+                point(d, x0 + md / td * w, profileY(md, y0, h), REST, md <= st.d);
             }
         }
         for (var e = 0; e < Climb.DANGER_AT.size(); e++) {
             var dd = Climb.DANGER_AT[e].toFloat();
-            point(d, x0 + dd / td * w, y0 - Climb.heightAtDistance(dd) / tu * h, WARNING, dd <= st.d);
+            point(d, x0 + dd / td * w, profileY(dd, y0, h), WARNING, dd <= st.d);
         }
         for (var e = 0; e < Climb.EXIT_AT.size(); e++) {
             var i = Climb.EXIT_AT[e];
-            point(d, x0 + Climb.dAt(i) / td * w, y0 - Climb.uAt(i) / tu * h, GREEN, Climb.dAt(i) <= st.d);
+            point(d, x0 + Climb.dAt(i) / td * w, profileNetY(Climb.netAt(i).toFloat(), y0, h), GREEN, Climb.dAt(i) <= st.d);
         }
-        d.top(x0 + w, y0 - h);
+        d.top(x0 + w, profileNetY(Climb.netAt(Climb.count()).toFloat(), y0, h));
+    }
+
+    // The profile's y at a distance along the route, in the box from y0 (the route's lowest point) up
+    // to y0 - h (its highest).
+    function profileY(dist as Float, y0 as Float, h as Float) as Float {
+        return profileNetY(Climb.netAtDistance(dist), y0, h);
+    }
+
+    // The same for a net height.
+    function profileNetY(net as Float, y0 as Float, h as Float) as Float {
+        var lo = Climb.netLow(), span = Climb.netHigh() - lo;
+        // A part that neither rises nor falls draws level along the bottom.
+        return y0 - (span > 0 ? (net - lo) / span : 0.0) * h;
     }
 
     // The route between two distances, painted with a round brush of radius r.
     function stretch(d as Draw, lo as Float, hi as Float, x0 as Float, w as Float, y0 as Float, h as Float,
             c as Number, r as Float) as Void {
-        var td = Climb.totalD().toFloat(), tu = Climb.totalU().toFloat();
-        var px = x0 + lo / td * w, py = y0 - Climb.heightAtDistance(lo) / tu * h;
+        var td = Climb.totalD().toFloat();
+        var px = x0 + lo / td * w, py = profileY(lo, y0, h);
         var dd = lo;
         // Every 8 m: smooth at this scale, and half the circles of every 4 m.
         while (dd < hi) {
             dd += 8;
             if (dd > hi) { dd = hi; }
-            var nx = x0 + dd / td * w, ny = y0 - Climb.heightAtDistance(dd) / tu * h;
+            var nx = x0 + dd / td * w, ny = profileY(dd, y0, h);
             d.brush(px, py, nx, ny, r, c);
             px = nx; py = ny;
         }
@@ -194,8 +208,7 @@ module Widgets {
     // and ahead within the uncertainty stretch in smaller boxes beside it. All share the bottom yb.
     // Without points, only sections count, and a rest shows as walking ground (W).
     function difficulty(d as Draw, st as Climb.State, x as Float, yb as Float, points as Boolean) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var cur = st.cur;
         var left = NONE, right = NONE, leftDist = 1.0e9, rightDist = 1.0e9;
         // The neighbouring sections; a point at the same distance wins over them.
@@ -252,11 +265,23 @@ module Widgets {
         return System.getDeviceSettings().elevationUnits == System.UNIT_STATUTE;
     }
 
-    // Rounded to 10 m or 50 ft: the position is known only to within 25 m.
+    // The altitude at net height u above the part's start (Climb.netAt, State.net: the real height, not
+    // the height gained), rounded to 10 m or 50 ft: the position is known only to within 25 m.
     function altitudeValue(u as Float, ft as Boolean) as Number {
         var m = Climb.START_ALT + u;
         if (ft) { return (Math.round(m * 3.28084 / 50) * 50).toNumber(); }
         return (Math.round(m / 10) * 10).toNumber();
+    }
+
+    // The altitudes the pages show: the climber's, and border b's (between sections b - 1 and b).
+    function altitudeNow(st as Climb.State, ft as Boolean) as Number { return altitudeValue(st.net(), ft); }
+    function borderAltitude(b as Number, ft as Boolean) as Number { return altitudeValue(Climb.netAt(b).toFloat(), ft); }
+
+    // Section i's altitudes at its foot and its top, to the metre or foot (page 9).
+    function sectionAltitudes(i as Number, ft as Boolean) as [Number, Number] {
+        var k = ft ? 3.28084 : 1.0;
+        return [Math.round((Climb.START_ALT + Climb.netAt(i)) * k).toNumber(),
+            Math.round((Climb.START_ALT + Climb.netAt(i + 1)) * k).toNumber()];
     }
 
     function widestAltitude(d as Draw, ft as Boolean, font as Graphics.FontType, slot as Number) as Float {
@@ -264,8 +289,8 @@ module Widgets {
         if (w == null || widestFeet[slot] != ft) {
             w = 0.0;
             var step = ft ? 50 : 10;
-            var last = altitudeValue(Climb.totalU().toFloat(), ft);
-            for (var v = altitudeValue(0.0, ft); v <= last; v += step) {
+            var last = altitudeValue(Climb.netHigh().toFloat(), ft);
+            for (var v = altitudeValue(Climb.netLow().toFloat(), ft); v <= last; v += step) {
                 var vw = d.width(font, v.format("%d"));
                 if (vw > w) { w = vw; }
             }
@@ -284,7 +309,7 @@ module Widgets {
     function altitude(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
         var ft = feet();
         var right = x + altitudeBox(d, ft), font = d.semi(ALT_SIZE), unit = d.semi(ALT_UNIT);
-        d.textCapTop(right, yt, font, altitudeValue(st.u, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
+        d.textCapTop(right, yt, font, altitudeNow(st, ft).format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         // The unit on the number's baseline.
         var baseline = yt + d.capHeight(font);
         d.textTop(right + 0.009615, baseline - d.ascent(unit), unit, ft ? "ft" : "m", d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
@@ -293,8 +318,7 @@ module Widgets {
     // One word for the point of interest the uncertainty stretch covers, right-aligned at x, its top
     // at yt. The nearest wins; on a tie, danger before exit before rest.
     function poi(d as Draw, st as Climb.State, x as Float, yt as Float) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, rank = 9, word = "", colour = WHITE;
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
@@ -412,14 +436,14 @@ module Widgets {
         var cx = left + bw / 2;
         var ax = cx + bw / 2 + COL_SPACE + altW;
         column(d, st, cx, cy);
-        // Border b lies between sections b - 1 and b, at height U[b].
+        // Border b lies between sections b - 1 and b, at its real altitude.
         for (var b = st.cur - 2; b <= st.cur + 3; b++) {
             var above = inColumn(b, st.cur), below = inColumn(b - 1, st.cur);
             if (!(above && below) && !(outer && (above || below))) { continue; }
             var y = above
                 ? slotY(b - st.cur, cy) + slotHalf(b - st.cur) + COL_GAP / 2.0
                 : slotY(b - 1 - st.cur, cy) - slotHalf(b - 1 - st.cur) - COL_GAP / 2.0;
-            var v = altitudeValue(Climb.uAt(b).toFloat(), ft);
+            var v = borderAltitude(b, ft);
             d.textCapMiddle(ax, y, font, v.format("%d"), WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
             var baseline = y + d.capHeight(font) / 2;
@@ -443,7 +467,7 @@ module Widgets {
 
     // The tick labels' width, as wide as the larger label of the next altitude can be.
     function stackLabels(d as Draw) as Float {
-        var top = altitudeValue(Climb.totalU().toFloat(), feet()) + 50;
+        var top = altitudeValue(Climb.netHigh().toFloat(), feet()) + 50;
         return d.width(d.semi(TICK_SIZE * BIG_SCALE[0]), top.format("%d")) + 0.033654;
     }
 
@@ -524,13 +548,39 @@ module Widgets {
         return named;
     }
 
-    // Where boundary i sits along the stack's axis, and section i's size on it.
+    // Where boundary i sits along the stack's axis, and section i's size on it: by ascent the height
+    // it gains, so a section that loses height is flat there.
     function stackAt(i as Number, byUp as Boolean) as Float {
         return (byUp ? Climb.uAt(i) : Climb.dAt(i)).toFloat();
     }
 
     function stackSize(i as Number, byUp as Boolean) as Number {
-        return byUp ? Climb.UP[i] : Climb.LEN[i];
+        return byUp ? Climb.gain(i) : Climb.LEN[i];
+    }
+
+    // The altitude ticks in the stack's window from vLo to vHi along its axis (height gained byUp, else
+    // distance), every step in the unit k turns metres into, as [altitudes, places on the axis], from
+    // the bottom up. A tick sits where the route rises through its altitude: by path where it first
+    // reaches it on a climb, and none on a descent, which is flat by ascent; a climb after a descent
+    // marks again the altitudes it passes a second time. The start's altitude is marked at the start.
+    function stackTicks(byUp as Boolean, vLo as Float, vHi as Float, step as Number, k as Float) as [Array<Number>, Array<Float>] {
+        var alts = [] as Array<Number>, at = [] as Array<Float>;
+        var a0 = Climb.START_ALT * k;
+        if (vLo <= 0 && Math.ceil(a0 / step) * step <= a0) { alts.add(a0.toNumber()); at.add(0.0); }
+        for (var i = 0; i < Climb.count(); i++) {
+            var up = Climb.UP[i];
+            if (up <= 0) { continue; }
+            var p0 = stackAt(i, byUp), p1 = stackAt(i + 1, byUp);
+            if (p1 < vLo || p0 > vHi) { continue; }
+            var n0 = Climb.netAt(i);
+            // The altitudes above the section's foot, up to its top.
+            var top = (Climb.START_ALT + n0 + up) * k;
+            for (var a = ((Math.floor((Climb.START_ALT + n0) * k / step) + 1) * step).toNumber(); a <= top; a += step) {
+                var p = p0 + (a / k - Climb.START_ALT - n0) / up * (p1 - p0);
+                if (p >= vLo && p <= vHi) { alts.add(a); at.add(p); }
+            }
+        }
+        return [alts, at];
     }
 
     function stackColour(d as Draw, st as Climb.State, i as Number) as Number {
@@ -636,31 +686,29 @@ module Widgets {
                     i < st.cur ? 0x7d8a8a : WHITE, Graphics.TEXT_JUSTIFY_LEFT);
             }
         }
-        // Altitude ticks on the left, every step, only along the route. By path a tick sits
-        // where the route first reaches its altitude; a label touching the one below is left out.
+        // Altitude ticks on the left, every step, only along the route, where it rises (stackTicks); a
+        // label touching the one below is left out.
         var vLo = here - (bottom - cy) / scale, vHi = here + (cy - top) / scale;
         if (vLo < 0) { vLo = 0.0; }
         var vMax = (byUp ? Climb.totalU() : Climb.totalD()).toFloat();
         if (vHi > vMax) { vHi = vMax; }
-        var uLo = byUp ? vLo : Climb.heightAtDistance(vLo), uHi = byUp ? vHi : Climb.heightAtDistance(vHi);
-        var k = ft ? 3.28084 : 1.0;
-        var aLo = (Climb.START_ALT + uLo) * k, aHi = (Climb.START_ALT + uHi) * k;
-        var ticks = [] as Array<Number>, ys = [] as Array<Float>;
-        for (var a = (Math.ceil(aLo / step) * step).toNumber(); a <= aHi; a += step) {
-            var u = a / k - Climb.START_ALT;
-            var y = cy - ((byUp ? u : Climb.firstDistanceAt(u)) - here) * scale;
-            // By path a flat stretch at this altitude may be reached before the window's bottom.
+        var marks = stackTicks(byUp, vLo, vHi, step, ft ? 3.28084 : 1.0);
+        var ticks = [] as Array<Number>, ys = [] as Array<Float>, places = [] as Array<Float>;
+        for (var t = 0; t < marks[0].size(); t++) {
+            var y = cy - (marks[1][t] - here) * scale;
             if (y < top || y > bottom) { continue; }
             d.rect(left - 0.021635, y - 0.002404, 0.014423, 0.004808, SCALE);
-            ticks.add(a);
+            ticks.add(marks[0][t]);
             ys.add(y);
+            places.add(marks[1][t]);
         }
         // The label of the next altitude to reach is twice as large and always shown, the ones just
         // above and below it one and a half times; the others are left out around it, each kept clear
-        // of the last one shown. By path it is the first tick above the altitude now, which may sit
-        // further along the route than the climber.
-        var next = -1, now = (Climb.START_ALT + st.u) * k;
-        for (var t = 0; t < ticks.size() && next < 0; t++) { if (ticks[t] > now) { next = t; } }
+        // of the last one shown. It is the first tick above the climber on the stack: by path it may
+        // sit further along the route than the climber, and after a descent its altitude may be below
+        // the one now.
+        var next = -1;
+        for (var t = 0; t < ticks.size() && next < 0; t++) { if (places[t] > here) { next = t; } }
         var from = next >= 0 ? next : 0;
         for (var dir = 1; dir >= -1; dir -= 2) {
             var last = dir < 0 && next >= 0 ? next : -1;
@@ -712,12 +760,13 @@ module Widgets {
             changed = false;
             var count = 0, total = 0.0;
             for (var i = 0; i < n; i++) {
-                if (fixed[i]) { count++; } else { total += byUp ? Climb.UP[i] : Climb.LEN[i]; }
+                if (fixed[i]) { count++; } else { total += byUp ? Climb.gain(i) : Climb.LEN[i]; }
             }
             var free = G_SPAN - count * G_MIN;
             for (var i = 0; i < n; i++) {
-                // An entirely flat route by ascent: what is left is shared evenly.
-                var share = total > 0 ? (byUp ? Climb.UP[i] : Climb.LEN[i]) / total : 1.0 / (n - count);
+                // An entirely flat route by ascent: what is left is shared evenly. By ascent a section that
+                // loses height gains none, so it takes the least, as a flat one.
+                var share = total > 0 ? (byUp ? Climb.gain(i) : Climb.LEN[i]) / total : 1.0 / (n - count);
                 span[i] = fixed[i] ? G_MIN : share * free;
                 if (!fixed[i] && span[i] < G_MIN) { fixed[i] = true; changed = true; }
             }
@@ -746,8 +795,7 @@ module Widgets {
     }
 
     function gauge(d as Draw, st as Climb.State, byUp as Boolean) as Void {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
         var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
         // The climber: an orange line inside the gauge, with round ends.
@@ -954,7 +1002,8 @@ module Widgets {
                     // A wall wanders a few metres either way as it climbs.
                     var wander = up > len ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
                     x += Climb.SIDE[i] * len / steps + wander;
-                    pts.add([x, Climb.uAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
+                    // The real height, down as well as up, as a photo shows it.
+                    pts.add([x, Climb.netAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
                 }
             }
             front = pts;
@@ -977,8 +1026,18 @@ module Widgets {
                 if (pts[j][1] < minY) { minY = pts[j][1]; }
                 if (pts[j][1] > maxY) { maxY = pts[j][1]; }
             }
-            var kx = (x1 - x0) / (maxX - minX), ky = (y1 - y0) / (maxY - minY);
-            var k = kx < ky ? kx : ky;
+            // One scale across and up, the smaller. A route with no sideways travel (every SIDE 0) has
+            // no width and a level one no height: the other way alone sets it, and with neither the
+            // points sit in the box's middle.
+            var spanX = maxX - minX, spanY = maxY - minY, k = 0.0;
+            if (spanX > 0 && spanY > 0) {
+                var kx = (x1 - x0) / spanX, ky = (y1 - y0) / spanY;
+                k = kx < ky ? kx : ky;
+            } else if (spanX > 0) {
+                k = (x1 - x0) / spanX;
+            } else if (spanY > 0) {
+                k = (y1 - y0) / spanY;
+            }
             var ox = (x0 + x1) / 2 - k * (minX + maxX) / 2, oy = (y0 + y1) / 2 + k * (minY + maxY) / 2;
             out = [] as Array<Array<Float>>;
             for (var j = 0; j < pts.size(); j++) {
@@ -1033,8 +1092,7 @@ module Widgets {
     // and a red dot; the climber as the orange outline of the stretch they could be on.
     function frontView(d as Draw, st as Climb.State, x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Void {
         var pts = frontOnScreen(x0, x1, y0, y1);
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
         frontBrush(d, pts, lo, hi, 0.026442, CLIMBER);
         frontBrush(d, pts, lo, hi, 0.019231, BLACK);
@@ -1087,8 +1145,7 @@ module Widgets {
     const POI_START = 4;
 
     function poiKind(st as Climb.State, ends as Boolean) as Number {
-        var lo = Climb.firstDistanceAt(st.u - st.band);
-        var hi = Climb.lastDistanceAt(st.u + st.band);
+        var around = st.stretch(), lo = around[0], hi = around[1];
         var best = 1.0e9, kind = -1;
         for (var i = 0; i < Climb.count(); i++) {
             if (Climb.GRADE[i] < 0 && Climb.dAt(i) <= hi && Climb.dAt(i + 1) >= lo) {
@@ -1161,7 +1218,7 @@ module Widgets {
         var bw = fit && need > 0.211538 * k ? need : 0.211538 * k;
         bigDifficulty(d, st, cx, by, bw, bh, 0.1106 * k);
         var base = by - bh / 2 - 0.028846 * k;
-        var alt = altitudeValue(st.u, ft).format("%d"), unit = ft ? "ft" : "m";
+        var alt = altitudeNow(st, ft).format("%d"), unit = ft ? "ft" : "m";
         var right = cx + bw / 2 - d.width(small, unit) - 0.007212;
         d.textCapTop(right, base - d.capHeight(font), font, alt, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
         d.textTop(right + 0.007212, base - d.ascent(small), small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
