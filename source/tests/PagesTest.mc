@@ -60,4 +60,25 @@ module PagesTest {
         DescentTest.drawsEverywhere(r, 1, 1);
         return DescentTest.drawsEverywhere(r, 12, 12);
     }
+
+    // Page 9's words, measured once, are as wide as measured each time.
+    (:test)
+    function pageNineWordsMeasuredOnce(logger as Logger) as Boolean {
+        var d = draw(), font = d.bold(0.0673);
+        for (var k = 0; k < Widgets.POI_WORD.size(); k++) {
+            Test.assertEqualMessage(Pages.wordWidth(d, font, k), d.spacedWidth(font, Widgets.POI_WORD[k]), Widgets.POI_WORD[k]);
+        }
+        Test.assertEqualMessage(Pages.wordWidth(d, font, Pages.SEPARATOR), d.spacedWidth(font, " · "), "the dot");
+        return true;
+    }
+
+    // Page 7's group placement is worked out per size and height, not one for all.
+    (:test)
+    function groupPlaceFollowsItsSize(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        var d = draw(), big = Widgets.groupPlace(d, 0.5, 1.5)[1], small = Widgets.groupPlace(d, 0.5, 1.0)[1];
+        Test.assertMessage(small != big, "a smaller group is placed anew: " + small + " against " + big);
+        Test.assertEqualMessage(Widgets.groupPlace(d, 0.5, 1.5)[1], big, "the same again");
+        return true;
+    }
 }

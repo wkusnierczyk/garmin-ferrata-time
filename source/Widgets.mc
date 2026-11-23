@@ -1583,10 +1583,11 @@ module Widgets {
     const GROUP_MARGIN = 0.019231;
     var groupPlaced as Array<Float>? = null;
     var groupFeet as Boolean = false;
+    var groupAt as Array<Float> = [0.0, 0.0] as Array<Float>;
 
     function groupPlace(d as Draw, by as Float, k as Float) as Array<Float> {
         var ft = feet(), placed = groupPlaced;
-        if (placed != null && groupFeet == ft) { return placed; }
+        if (placed != null && groupFeet == ft && groupAt[0] == by && groupAt[1] == k) { return placed; }
         var bw = 0.211538 * k, bh = 0.149038 * k, rx = 0.024038 * k, r = 0.5 - GROUP_MARGIN;
         // The altitude: the top of its digits, and half its width at the route's widest end.
         var font = d.semi(0.0962), aTop = by - bh / 2 - GROUP_GAP - 0.7 * 0.0962;
@@ -1608,6 +1609,7 @@ module Widgets {
         placed = [cx.toFloat(), (cx + half).toFloat()] as Array<Float>;
         groupPlaced = placed;
         groupFeet = ft;
+        groupAt = [by, k] as Array<Float>;
         return placed;
     }
 
