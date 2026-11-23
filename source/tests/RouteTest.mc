@@ -335,6 +335,13 @@ module RouteTest {
         data = source(); data["points"] = [1]; Test.assertMessage(Route.fromJson(data) == null, "a point not a dictionary");
         data = source(); data["sections"] = [1]; Test.assertMessage(Route.fromJson(data) == null, "a section not a dictionary");
         data = source(); data["sections"] = []; Test.assertMessage(Route.fromJson(data) == null, "no sections");
+        var grades = [13, -2, 12] as Array<Number>;
+        for (var g = 0; g < grades.size(); g++) {
+            data = source();
+            var first = (data["sections"] as Array<Dictionary>)[0];
+            first["grade"] = grades[g];
+            Test.assertMessage((Route.fromJson(data) == null) == (g < 2), "grade " + grades[g] + ": only -1 to 12");
+        }
         data = source(); data["approach"] = 1; Test.assertMessage(Route.fromJson(data) == null, "approach not a list");
         data = source(); ((data["sections"] as Array<Dictionary>)[0]).remove("grade");
         Test.assertMessage(Route.fromJson(data) == null, "a section without grade");
