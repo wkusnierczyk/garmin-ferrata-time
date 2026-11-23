@@ -110,7 +110,7 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li><b>Section 5 is a stand-in descent</b> (owner, 2026-11-23): the route climbs there; the mock turns it into a descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
+      <li><b>Section 5 descends</b> (owner, 2026-11-23), as in the app's demo route; on the Daubenhorn and the Sulzfluh, which climb there, it is a stand-in descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
       <li>The page opens on the section the climber is in; the chevrons step one section back or on, the left one dimmed on the first section and the right one on the last. Moving the climber does not change the selection; the button goes back to the climber's section.</li>
       <li>Above the box, the altitude at the section's top; below it, the altitude at its foot; each number with its unit centred on the screen together (owner, 2026-11-23; the numbers were right-aligned with the box's right edge). A flat section reads the same altitude twice.</li>
       <li>Under the foot's altitude, the points the section holds as words (DANGER, EXIT, REST, TOP), each in its colour, joined by a dim dot, centred. A section shows the points it includes or is next to: a point in it or at its foot or top, and a rest that is the section itself or comes right before or after it.</li>
@@ -125,8 +125,8 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
 // The demo route, as in source/Climb.mc.
 const LEN = [120, 35, 10, 140, 25, 150, 30, 40, 45, 15, 60, 20, 70];
 const UP = [20, 90, 0, 30, 110, 10, 0, 5, 70, 85, 5, 60, 45];
-// Section 5 (index 4) is a stand-in descent of its own height (owner, 2026-11-23): the route climbs
-// there, but has no descent to show. make_route_mocks.py keeps this line in every route's copy.
+// Section 5 (index 4) descends by its height (owner, 2026-11-23), as in the app's demo route (#100);
+// the real routes climb there, and make_route_mocks.py keeps this line in their copies as a stand-in.
 const DEMO_DESCENT = 4;
 UP[DEMO_DESCENT] = -Math.abs(UP[DEMO_DESCENT]);
 const GRADE = [0, 3, -1, 2, 4, 1, -1, 1, 3, 5, 4, 4, 2];

@@ -82,7 +82,7 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li><b>Section 5 is a stand-in descent</b> (owner, 2026-11-23): the route climbs there; the mock turns it into a descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
+      <li><b>Section 5 descends</b> (owner, 2026-11-23), as in the app's demo route; on the Daubenhorn and the Sulzfluh, which climb there, it is a stand-in descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
       <li>Rests are blue rings at the middle of each rest stretch, hollow like the exit rings, in a deeper blue than before so they don't read as green. The two rests in the demo are short (10 and 30 m along), so each ring covers its whole stretch.</li>
       <li>Danger points are red rings on the route, hollow like the others; the demo has two made up, rockfall below the Dihedral and the exposed Bridge. Their red is the top dot's red, close to K4 in the heat map.</li>
       <li>Difficulty indicators below the profile, centred on the screen, their tops on one line just below the climber's ring at the start, at 140 % of the other pages' boxes (letters Bold 36 in the middle box, 26 in the others): three slots. The larger middle box is the section the climber is estimated in. When the uncertainty stretch reaches past it, the nearest thing behind goes left and the nearest ahead goes right: the neighbouring section, or an exit or danger point inside the stretch. Grades (W, K1 to K5) are filled in the colour map's colours with black letters; rest (R), exit (E) and danger (D) are outlined in their own colours.</li>
@@ -100,8 +100,8 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
 // The demo route, as in source/Climb.mc.
 const LEN = [120, 35, 10, 140, 25, 150, 30, 40, 45, 15, 60, 20, 70];
 const UP = [20, 90, 0, 30, 110, 10, 0, 5, 70, 85, 5, 60, 45];
-// Section 5 (index 4) is a stand-in descent of its own height (owner, 2026-11-23): the route climbs
-// there, but has no descent to show. make_route_mocks.py keeps this line in every route's copy.
+// Section 5 (index 4) descends by its height (owner, 2026-11-23), as in the app's demo route (#100);
+// the real routes climb there, and make_route_mocks.py keeps this line in their copies as a stand-in.
 const DEMO_DESCENT = 4;
 UP[DEMO_DESCENT] = -Math.abs(UP[DEMO_DESCENT]);
 const GRADE = [0, 3, -1, 2, 4, 1, -1, 1, 3, 5, 4, 4, 2];

@@ -113,7 +113,7 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
   <section class="notes">
     <h2>To look at</h2>
     <ul>
-      <li><b>Section 5 is a stand-in descent</b> (owner, 2026-11-23): the route climbs there; the mock turns it into a descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
+      <li><b>Section 5 descends</b> (owner, 2026-11-23), as in the app's demo route; on the Daubenhorn and the Sulzfluh, which climb there, it is a stand-in descent of its own height, to show how the pages draw one. Every altitude, the profile, the front view and the ascent's ring and numbers follow the real height (down there, and the next section starts lower); the stacks, the gauge by ascent's arcs and the climbed totals count height gained (flat there).</li>
       <li>The group is drawn 50 % larger than its base size, centred on the screen; a menu tries other sizes. Its altitude, number and unit together, is centred on the screen, as the lines below the box are (owner, 2026-11-23; it ended at the box's right edge).</li>
       <li>The ascent gauge runs 284° from the lower left over the top to the lower right; the metres climbed sit past its start end, the metres left past its top end, in the gap at the bottom.</li>
       <li>Point symbols on this page: danger a triangle, exit an arrow pointing down to the right (a way off the route; it was a cross), rest a pause (two blue bars), and two more while the uncertainty reaches them: the route's start as play (a green triangle pointing right) and its top as stop (a red square). The nearest point wins; on a tie, danger, exit, top, rest, start.</li>
@@ -126,8 +126,8 @@ svg text { font-kerning: none; font-variant-numeric: tabular-nums; font-variant-
 // The demo route, as in source/Climb.mc.
 const LEN = [120, 35, 10, 140, 25, 150, 30, 40, 45, 15, 60, 20, 70];
 const UP = [20, 90, 0, 30, 110, 10, 0, 5, 70, 85, 5, 60, 45];
-// Section 5 (index 4) is a stand-in descent of its own height (owner, 2026-11-23): the route climbs
-// there, but has no descent to show. make_route_mocks.py keeps this line in every route's copy.
+// Section 5 (index 4) descends by its height (owner, 2026-11-23), as in the app's demo route (#100);
+// the real routes climb there, and make_route_mocks.py keeps this line in their copies as a stand-in.
 const DEMO_DESCENT = 4;
 UP[DEMO_DESCENT] = -Math.abs(UP[DEMO_DESCENT]);
 const GRADE = [0, 3, -1, 2, 4, 1, -1, 1, 3, 5, 4, 4, 2];
