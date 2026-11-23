@@ -5,7 +5,7 @@ Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner
 Reference mock: `design/demo/page-3.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
-Two upright widgets side by side, composed from existing widgets. The app's fourth page, after pages 1, 1a and 2.
+Two upright widgets side by side, composed from existing widgets. The app's fifth page, after pages 1, 1a, 2 and 2a.
 
 ## Layout
 
