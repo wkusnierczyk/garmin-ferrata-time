@@ -618,6 +618,25 @@ module FlowTest {
         return true;
     }
 
+    // Each climb plays a replay from its start: Save or Discard rewinds it, so the next climb does not
+    // go on from where the last one ended (Codex on PR #114).
+    (:test)
+    function nextClimbRewindsReplay(logger as Logger) as Boolean {
+        var feed = new ReplayFeed(RouteTest.demo());
+        var input = feed.input as ReplayInput;
+        for (var k = 0; k < 2; k++) {
+            feed.start(:head);
+            input.startMs = (input.startMs as Number) - 20000;
+            feed.tick();
+            Test.assertMessage(input.at == 1, "the recording played to its end");
+            feed.pause();
+            feed.end(-1);
+            if (k == 0) { feed.save(); } else { feed.discard(); }
+            Test.assertMessage(input.startMs == null && input.at == 0, "rewound for the next climb");
+        }
+        return true;
+    }
+
     // A landmark the GPS prompted stays suggested within its reach, 50 m, though out of the band.
     (:test)
     function promptedLandmarkWithinGps(logger as Logger) as Boolean {
