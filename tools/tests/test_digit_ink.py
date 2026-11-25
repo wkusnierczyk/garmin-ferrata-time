@@ -10,6 +10,10 @@ pytest.importorskip("fontTools")
 
 REPO = Path(__file__).resolve().parents[2]
 TTF = REPO / "resources" / "fonts" / "BarlowSemiCondensedTabular-SemiBold.ttf"
+# The TTF is an LFS object: CI's routes job checks out without LFS, leaving a pointer file in its
+# place, so it skips these; the build and unit-test jobs, and a local clone, have the font.
+if TTF.read_bytes()[:24] == b"version https://git-lfs.":
+    pytest.skip("the TTF is an LFS pointer here (checked out without LFS)", allow_module_level=True)
 _spec = importlib.util.spec_from_file_location("digit_ink", REPO / "tools" / "digit-ink.py")
 digit_ink = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(digit_ink)
