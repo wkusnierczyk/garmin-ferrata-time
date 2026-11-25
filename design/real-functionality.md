@@ -1,6 +1,6 @@
 # Real functionality (0.2.0)
 
-Status: agreed with the owner 2026-11-21, not yet built
+Status: agreed with the owner 2026-11-21; the climb flow and the approach on the pages 2026-11-25; not yet built
 Builds on: the 0.1.0 prototype (pages 1 to 9 as revised for 0.1.0 in #16 to #28, and the demo clock)
 
 0.1.0 is a demo: one made-up route in `source/Climb.mc`, and a clock that walks the climber up it. 0.2.0 makes the app usable on a real via ferrata: a real route on the watch, the climber's real progress, and the climb saved as a Garmin activity.
@@ -39,7 +39,7 @@ Goals:
 - A route file format that also serves the later library and route builder (section 10) unchanged.
 - Start, pause, continue and end a climb on the watch, with the approach optional.
 - Altitude calibrated at the route's known points, by the app's own offset.
-- The pages 1 to 9 driven by the real estimate, unchanged in look.
+- The pages driven by the real estimate. Their look has moved on since 0.1.0 (#95, #100, #109); page numbers here are the pages mock's 1 to 37 (#112 renumbers the design pages).
 - The climb saved as a Garmin activity: mountaineering, named after the route, approach and ascent as laps.
 - The demo still runs, in the simulator and on the watch, through the same code path.
 - Lite only, on the epix Pro (Gen 2) 47 mm, as today (owner). Other watches come once the app's memory, processing and storage needs are known, chosen by hardware, capabilities and screen resolution. A fēnix 7X Solar sideload (MIP, 280 px, 64 colours) is a look-only check of the pages, not a supported device. Its first look (owner, 2026-11-21): readable and stable, no crashes; the amber heat scale is poor in 64 colours, so a MIP palette is needed before MIP watches are supported.
@@ -48,7 +48,7 @@ Non-goals for 0.2.0:
 
 - The route library and the route builder (designed later, section 10).
 - A companion phone app.
-- GPS matched to the track as a position signal.
+- GPS matched to the track as a position signal on the ferrata. On the approach, open terrain, GPS gives the distance to the head (#113).
 - More than one route, or choosing a route on the watch.
 - Premium, and the Lite/Premium split.
 - Other watches (above).
@@ -66,7 +66,7 @@ Anti-goals (a failure even if it works):
 | Decision | Options | Picked |
 |---|---|---|
 | Route in | (a) compiled into the app from a `tools/` script; (b) fetched from GitHub Pages | (a) for 0.2.0. (b) is the later library and reuses the format |
-| Position | (a) climbed height, time across flat stretches, forward-only; (b) height blended with GPS matched to the track | (a). GPS strays on walls (`sensing.md`); (b) only if the recordings show it helps |
+| Position | (a) climbed height, time across flat stretches, forward-only; (b) height blended with GPS matched to the track | (a) on the ferrata. GPS strays on walls (`sensing.md`); (b) only if the recordings show it helps. The approach uses GPS for the distance to the head (#113) |
 | Demo and real | (a) one tracker, two inputs: real sensors or simulated; (b) replace the demo | (a). The simulator and the demo keep exercising every page |
 | Route builder (later) | (a) a web page; (b) a companion phone app with a desktop mirror over Wi-Fi | (a) first, (b) considered later (owner). The page is cheaper: no two phone platforms, no local server |
 | Activity sport | mountaineering, rock climbing (sub-sport bouldering) | Mountaineering: a long effort with position and altitude. Bouldering records short attempts on problems |
@@ -106,8 +106,8 @@ It carries what the pages read today from `Climb.mc`, plus the known points:
 
 The numbers above are placeholders, not the Daubenhorn's.
 
-- `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. Each list replaces `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE` while the climber is on that part, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the start of the part shown: from the head during the ascent. `grade` is the topo's grade as written, in half steps (owner, 2026-11-21: keep, do not round): 1 A, 2 A/B, 3 B, 4 B/C, 5 C, 6 C/D, 7 D, 8 D/E, 9 E, 10 E/F, 11 F, 12 F/G; 0 walking, -1 rest. Rests are encoded only this way; there is no `rest` point kind. A variant section carries the normal line's grade, the harder one in its name.
-- `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres from the head: negative on the approach, so the `approach` point sits at minus the approach's length. Exits and landmarks lie on section boundaries (the script checks), since the pages index exits by section. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point** and can sync altitude; a point with `lat` and `lon` can prompt by GPS.
+- `sections` are the ferrata, from the head to the top; `approach` (optional) are the sections before the head. The pages always show the ferrata: `sections` replace `LEN`, `UP`, `GRADE`, `MIN`, `NAME` and `SIDE`, so the pages' helpers (`dAt`, `uAt`, `totalU` and the rest) count from the head. On the approach the ferrata reads not started, and the `approach` sections serve only the distance and time to the head (section 7, *On the approach*). `grade` is the topo's grade as written, in half steps (owner, 2026-11-21: keep, do not round): 1 A, 2 A/B, 3 B, 4 B/C, 5 C, 6 C/D, 7 D, 8 D/E, 9 E, 10 E/F, 11 F, 12 F/G; 0 walking (W), -1 rest. Walking is the approach's: the head is the boundary, so a flat walk after it takes a ferrata grade (owner, 2026-11-25), and the script rejects 0 in `sections`. Rests are encoded only this way; there is no `rest` point kind. A variant section carries the normal line's grade, the harder one in its name.
+- `points` replace `EXIT_AT`, `EXIT_NAME`, `DANGER_AT` and `START_ALT`. `at` is metres from the head: negative on the approach, so the `approach` point sits at minus the approach's length. Exits and landmarks lie on section boundaries (the script checks), since the pages index exits by section. `alt`, `lat` and `lon` are optional: a point with `alt` is a **known point**, where the climber can calibrate; a point with `lat` and `lon` can prompt by GPS.
 - Kinds: `approach`, `head`, `landmark` (a point partway with a known altitude, for a mid-climb calibration: a bench, a ladder base, a bridge), `danger`, `exit`, `top`. The app ignores kinds it does not know, so later kinds do not break older apps (my call).
 - `up` may be negative, for down-climbs, traverses and clefts that lose height: the Daubenhorn loses height on its approach (Gemmi 2348 to 2070) and twice on the ferrata (owner's recording). **Climbed** is height gained: the sum of the positive `up`, as Garmin reports ascent, and the route's total is the same sum. The pages that stack sections by height (the difficulty columns, the stack, the gauge by ascent) stack by gained height, so a section that loses height draws as flat there; the profile (page 1) draws the real height, down as well as up. The position estimate maps the **net** height measured since the head onto the route ahead (section 7).
 - `head` and `top` are required; `approach`, landmarks and exits are optional.
@@ -125,7 +125,7 @@ Ready screen ─ Start ─┬─ Ferrata head at <alt> ────────�
                       └─ At altitude ─▶ altitude entry ─▶ APPROACH  (calibrated: the altitude entered)
                                          │
                             Start button │  or GPS within about 50 m of the head:
-                                         │  vibrate and offer the first two, without pausing
+                                         │  vibrate and offer the first two, without pausing (once)
                                          ▼
                                   ┌─ Continue approach
                                   ├─ Start ferrata ─▶ ASCENT (calibrated: head)
@@ -136,33 +136,34 @@ ASCENT ─ Start button ─▶ PAUSED ─┬─ Continue
                                  │             ├─ At landmark ─▶ list, nearest first
                                  │             └─ At altitude ─▶ altitude entry
                                  └─ End ───────┬─ End at top    ─▶ summary   (check: top)
-                                               ├─ End at exit   ─▶ summary   (check: exit; while one is ahead or in the band)
+                                               ├─ End at <exit> ─▶ summary   (check: exit; one row per exit ahead or in the band)
                                                └─ End here      ─▶ summary   (no check)
 
 Back during APPROACH or ASCENT ─▶ PAUSED, the same menu as Start
+GPS within about 50 m of a landmark ahead ─▶ PAUSED, Calibrate selected
 summary ─▶ Save, Resume or Discard
 ```
 
-- **Before Start**, a ready screen: the route's name, length, ascent, guidebook time and hardest grade, and a prompt beside the Start button. Back there leaves the app.
-- **Start** offers the ferrata head and the approach's start point, each with its altitude (the second only when the route knows that point's altitude), and At altitude. The first two calibrate to their altitude. At altitude opens the altitude entry at the barometer's reading, so Start at once starts on the approach without a change.
+- **Before Start**, a ready screen: the route's name, length, ascent, guidebook time and hardest grade, and a prompt beside the Start button. Back there leaves the app; Back in the Start menu returns to it.
+- **Start** offers the ferrata head and the approach's start point, each with its altitude (the second only when the route knows that point's altitude), and At altitude. The first two calibrate to their altitude. At altitude opens the altitude entry at the barometer's reading, so Start at once starts on the approach without a change; Back there returns to the Start menu. On a route with no approach, At altitude starts the ascent at the point at that altitude nearest the head (my call).
 - **The font**, menus and pages alike, is Barlow Semi Condensed (owner, 2026-11-25; #109).
-- **The menus** are drawn by the app in the pages' colours and font: exits green, the top red, the ascent orange, calibration blue. The selected row is an outlined pill in its colour, two lines of the same size. A landmark's pill is white with its kind in colour on the second line, as "REST at 2250 m in 60 m" with REST blue (HEAD orange, EXIT green, TOP red; a bridge or a sign, with no colour on the pages, grey). A list longer than four rows scrolls with the selected row in the middle.
-- **On the approach**, Start pauses and offers Continue approach, Start ferrata and End here. Within about 50 m of the head (GPS) the watch vibrates and offers the first two without pausing; nothing happens until the climber chooses.
-- **On the ferrata**, Start pauses and offers Continue, Calibrate and End. End opens End at top, End at exit and End here. End at exit shows only while an exit is ahead or within the uncertainty band, and lists the exits nearest first, so an estimate that ran ahead does not hide the exit the climber is at.
-- **Calibrate** is there at any place on the ferrata. It opens with the most likely first: near a landmark (within the band, or about 50 m by GPS) that landmark by name, then At landmark, then At altitude; elsewhere only the last two. A landmark already calibrated at is not suggested again. The head and the top count as landmarks.
+- **The menus** are drawn by the app in the pages' colours and font: exits green, the top red, the ascent orange, calibration light blue (grade A's). The selected row is an outlined pill in its colour, two lines of the same size. A landmark's pill is white with its kind in colour on the second line, as "REST at 2250 m in 60 m" with REST blue (HEAD orange, EXIT green, TOP red; a bridge or a sign, with no colour on the pages, grey). A list longer than four rows scrolls with the selected row in the middle.
+- **On the approach**, Start pauses and offers Continue approach, Start ferrata and End here. Within about 50 m of the head (GPS) the watch vibrates and offers the first two without pausing, once; nothing happens until the climber chooses, and Back closes the offer and the approach goes on.
+- **On the ferrata**, Start pauses and offers Continue, Calibrate and End. End opens End at top, one End at {exit} row per exit, and End here. An exit's row shows only while the exit is ahead or within the uncertainty band behind, nearest first, so an estimate that ran ahead does not hide the exit the climber is at.
+- **Calibrate** is there at any place on the ferrata. It opens with the most likely first: near a landmark (within the band, or about 50 m by GPS) that landmark by name, then At landmark, then At altitude; elsewhere only the last two. A landmark already calibrated at is not suggested again. For the suggestion and the At landmark list, the head and the top count as landmarks; only `landmark` points prompt by GPS.
 - **At landmark** lists the head, the landmarks, the exits and the top, nearest to the estimated place first, each with its altitude and how far ahead or back it is. Picking one calibrates there however far off the estimate is.
-- **At altitude** starts at the estimated altitude. The first Up or Down rounds it to the next 10 m mark up or down; later presses step 10 m. It stays within the route's lowest and highest altitude. The screen shows where on the route that altitude is: the point at that altitude nearest the estimate. Start sets it; Back returns to Calibrate.
+- **At altitude** starts at the estimated altitude. The first Up or Down rounds it to the next 10 m mark up or down; later presses step 10 m. It stays within the route's lowest and highest altitude, approach included; a barometer reading outside that range shows as it is, and the first press brings it in (my call). The screen shows where on the route that altitude is: the point at that altitude nearest the estimate. Start sets it; Back returns to the menu it came from (Calibrate, or Start).
 - **After a calibration** the place and the drift change, and a confirmation, CALIBRATED with where ("at {landmark} {altitude}", or "at {altitude}"), stays until Start or Back; the climb goes on behind it.
-- **Passing a landmark** vibrates and opens the pause menu once, with Calibrate selected, which then offers that landmark first. No such prompt within about 50 m after a calibration.
-- **Back** never leaves a climb: it pauses and opens the same menu. Back in a submenu returns to its menu; in the pause menu it closes the menu and leaves the climb paused (PAUSED at the top of the pages).
-- **The summary** follows every end and offers Save, Resume and Discard, in that order, so Discard is last. Resume returns to the paused climb as it was before the end, the end's check undone. Discard asks once more.
-- GPS proximity never acts on its own: it vibrates and opens or offers a menu; the climber chooses.
+- **Nearing a landmark**: GPS within about 50 m of a `landmark` point ahead (it needs `lat` and `lon`, section 4) vibrates and opens the pause menu once, with Calibrate selected, which then offers that landmark first. This pauses the climb, as the Start button would; the owner accepted it (#51). No such prompt within about 50 m after a calibration.
+- **Back** never leaves a climb: it pauses and opens the same menu. Back in a submenu returns to its menu; in the pause menu it closes the menu and leaves the climb paused (PAUSED at the top of the pages). While paused with the menu closed, Start or Back reopens the menu; only Continue resumes. Back on the summary does nothing.
+- **The summary** follows every end: the route's name, the height climbed, the time and the drift, then Save, Resume and Discard, in that order, so Discard is last. Resume returns to the paused climb as it was before the end, the end's check undone. Discard asks once more. After Save or Discard, the ready screen.
+- GPS proximity never acts on its own: it vibrates and opens or offers a menu; the climber chooses. The one effect it has is the landmark prompt's pause.
 - The Start button pauses, as in Garmin's own activities; an approach-only activity may be saved.
 - The approach and the ascent are separate laps.
 
 ### Grades on the watch
 
-- The watch shows grades on the topos' scale, A to F with half steps ("C/D"), by default. A setting, changeable on the watch, switches to the K scale (A K1, B K2, C K3, D K4, E K5, F K6, half steps as "K3/4"); the owner is indifferent, so A to F is the default.
+- The watch shows grades on the topos' scale, A to F with half steps ("C/D"), by default; walking, the approach, is W. A setting, changeable on the watch, switches to the K scale (A K1, B K2, C K3, D K4, E K5, F K6, half steps as "K3/4"); the owner is indifferent, so A to F is the default.
 - The pages' colours follow the half steps: each half step sits between its two neighbours on the existing scale.
 - "Hard" (the pages' next hard section, the hardest ahead) is D and above, as K4 and above was in the demo (my call).
 
@@ -171,9 +172,10 @@ summary ─▶ Save, Resume or Discard
 The climber's action is **Calibrate** (owner, 2026-11-23: Garmin's own word for the altimeter, and every option corrects the altitude), not Sync.
 
 - The app reads the watch's altitude and adds its own **offset**. The watch's own calibration is not touched.
-- At a known point the climber calibrates (section 5), and the offset becomes `known altitude − watch altitude`. At altitude sets it from the altitude the climber enters.
-- Calibrating at a landmark also sets the place to the landmark's `at`, which may move it back once, because the climber said where they are, and resets the uncertainty band (my call, after review: a confirmed landmark is the strongest position fix there is, `sensing.md` section 3). At altitude moves the place to the point at that altitude nearest the estimate.
-- The change in offset at each calibration after the first is **drift** since the previous one. It is kept and saved with the activity: approach drift at the head, climb drift at the top or exit.
+- Every start calibrates: at the head or the approach's start point to its altitude, or At altitude to the altitude entered (unchanged, the offset is 0). There is no uncalibrated state any more (the 0.2.0 plan's "unsynced" altitude went with the Elsewhere start).
+- At a known point the offset becomes `known altitude − watch altitude`; At altitude sets it from the altitude the climber enters.
+- Calibrating at a landmark also sets the place to the landmark's `at`, which may move it back, because the climber said where they are, and resets the uncertainty band (my call, after review: a confirmed landmark is the strongest position fix there is, `sensing.md` section 3). At altitude moves the place to the point at that altitude nearest the estimate.
+- The change in offset at each calibration at a known point, after the first, is **drift** since the previous one; an entered altitude is a guess, so it resets the offset without counting as drift (my call). It is kept and saved with the activity: approach drift at the head, climb drift at the top or exit.
 - At the end, the check against the top's or exit's known altitude is recorded, not applied to the climb already done.
 - A calibration can move the shown altitude by a few metres at once. That is expected; apart from a calibration, progress stays forward-only.
 
@@ -181,16 +183,16 @@ The climber's action is **Calibrate** (owner, 2026-11-23: Garmin's own word for 
 
 Inputs: climbed height since the head (calibrated altitude minus the head's), elapsed time, and the route.
 
-**Counting from the head** (owner): "climbed", the route's total and the pages' bars count from the ferrata head, matching the published total. The approach is shown only while the climber is on it, as its own stretch before the head; once the ascent starts, the pages show the ferrata.
+**Counting from the head** (owner): "climbed", the route's total and the pages' bars count from the ferrata head, matching the published total. The pages show the ferrata only; on the approach it reads not started (*On the approach* below).
 
 - **Height to place.** Height maps to a stretch of the route: from the first distance at or ahead of the current place reaching that height to the last before the route next leaves it (`firstDistanceAt` and `lastDistanceAt` exist but assume a rising route; with descents they search only ahead of the current place). On a climb the stretch is short; on a traverse it is long.
 - **Time across flats.** Within that stretch, the place advances with elapsed time at the climber's pace against the guidebook minutes.
-- **Forward-only.** The place never moves back.
+- **Forward-only.** The place never moves back on its own; only a calibration the climber makes may move it back (section 6).
 - **Uncertainty.** The band shown on the pages is the width of the stretch plus a drift allowance that grows with time since the last calibration, replacing the demo's fixed `UNCERTAINTY`.
 - **Pace.** Elapsed time so far against the guidebook minutes for the part done. **Paused time counts as climbing time** for pace and time left, because guidebook times include rests. The recorded activity still pauses as Garmin does (section 8). This is to be tried on a real climb (owner, 2026-11-21).
 - **Time left** is the guidebook minutes still ahead, scaled by that pace.
 
-During the approach, progress along the approach sections uses the same rule; if the climber started elsewhere, the approach progress is time-based only until the head.
+During the approach, the distance and time to the head come from GPS where it can, else from time at the climber's pace against the approach's guidebook minutes (*On the approach* below).
 
 ### On the approach (#90)
 
@@ -202,7 +204,9 @@ Owner's decisions, 2026-11-22 to 2026-11-25, mocked in the pages mock (https://c
 - **No climber outline** on the route drawings: they draw the ferrata only, so there is no place for it until the head. Drawing the approach, with the outline on it, is parked (#111).
 - **The head as the next point**, its distance and the time to it at the climber's pace, on pages 1–7 and 12–15 only: on pages 5–7 as one line, "HEAD in {distance} {time}". Pages 16 and later show no head. Pages 20 and 21 have no row for the head: they show the grades, and the approach is not one.
 - **The activity covers everything**, the approach included: pages 35 and 36 count the walk-in as moving time.
-- The distance to the head comes from GPS where it can (#113): along the route's GPX track, else straight to the head, else by time alone.
+- The distance to the head comes from GPS where it can (#113): along the route's GPX track, else straight to the head, else by time alone. Its open points are in section 12.
+- The approach's guidebook time and length come from the route data (`approach`), as the route's author gives them.
+- The forecasts (arrival, margin to the last departure, daylight, battery) include the rest of the approach, so they move with the estimates as the climber walks it.
 
 ## 8. Recording
 
@@ -222,7 +226,7 @@ Owner's decisions, 2026-11-22 to 2026-11-25, mocked in the pages mock (https://c
   - the **demo input**: the 0.1.0 simulated climb on the bundled route, producing the same readings. The demo goes through the same menus but never records a Garmin activity, so demo runs do not reach Garmin Connect (my call).
   - the **replay input** (simulator only): a recorded climb's barometric altitude, position and timestamps, played back faster than real time, never recorded. The recording is converted on the computer into a compact resource by a `tools/` script; it is not shipped in release builds.
 - **Recorder.** Wraps the session, laps and custom fields; driven by the tracker's state changes.
-- **Menus.** The start menu, the approach menu, the pause menu and the end summary, in the app's existing delegate.
+- **Menus.** Views the app draws (not `Menu2`), in the pages' style: the ready screen, the Start menu, the altitude entry, the approach's pause menu and the head offer, the pause menu with its End and Calibrate submenus, the At landmark list, the CALIBRATED confirmation, the summary and Discard's confirmation, driven from the app's existing delegate.
 
 ## 10. Later: library and route builder
 
@@ -245,3 +249,4 @@ Not in 0.2.0, but the route file is designed for them.
 - The Daubenhorn's section list: about 60 graded pitches from the topo, grouped into sections with heights from the owner's recording; how to mark variants (Grosser Spalt E, Via Konst bypass) until the format has them.
 - Whether a recorded mountaineering activity shows in Garmin Connect with the expected icon and our name: one sideloaded test recording.
 - The GPS prompt radius (about 50 m proposed) on the real wall.
+- The distance to the head from GPS (#113): how stale a fix may be, and whether the distance may grow (walking the wrong way) or only shrink.
