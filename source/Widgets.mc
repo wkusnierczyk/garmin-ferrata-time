@@ -1249,23 +1249,37 @@ module Widgets {
     // ---------------------------------------------------------------- front view, page 7
 
     // The route seen from the front, as on a topo photo of the face (Climb.SIDE): up is height, across
-    // is sideways travel. Points every few metres as [x across, y up, distance along], built once,
-    // and fitted once into a box keeping one scale across and up.
+    // is sideways travel. Points as [x across, y up, distance along], every few metres of height on a
+    // wall and at the ends of any other section, built once, and fitted once into a box keeping one scale
+    // across and up.
     var front as Array<Array<Float>>? = null;
+
+    // The most points the walls get together: page 11 draws every point each frame, and about 460 tripped
+    // the watchdog (#105).
+    const FRONT_BUDGET = 200;
 
     function frontPoints() as Array<Array<Float>> {
         var pts = front;
         if (pts == null) {
             pts = [[0.0, 0.0, 0.0] as Array<Float>] as Array<Array<Float>>;
+            // A wall (more height than length) wanders, so it takes a point every 4 m of height, or more
+            // metres apart when the route's walls together would pass FRONT_BUDGET; any other section is
+            // a straight line, one step. A point every 4 m along the whole route tripped the watchdog on
+            // the Daubenhorn's 1545 m, whose first section alone is a 600 m traverse (#105).
+            var walls = 0;
+            for (var i = 0; i < Climb.count(); i++) {
+                if (Climb.UP[i] > Climb.LEN[i]) { walls += Climb.UP[i]; }
+            }
+            var step = walls / FRONT_BUDGET.toFloat() > 4 ? walls / FRONT_BUDGET.toFloat() : 4.0;
             var x = 0.0;
             for (var i = 0; i < Climb.count(); i++) {
-                var len = Climb.LEN[i], up = Climb.UP[i];
-                var steps = ((len > up ? len : up) / 4.0 + 0.5).toNumber();
-                if (steps < 2) { steps = 2; }
+                var len = Climb.LEN[i], up = Climb.UP[i], wall = up > len;
+                var steps = wall ? (up / step + 0.5).toNumber() : 1;
+                if (steps < 1) { steps = 1; }
                 for (var k = 1; k <= steps; k++) {
                     var t = k.toFloat() / steps, t0 = (k - 1).toFloat() / steps;
                     // A wall wanders a few metres either way as it climbs.
-                    var wander = up > len ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
+                    var wander = wall ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
                     x += Climb.SIDE[i] * len / steps + wander;
                     // The real height, down as well as up, as a photo shows it.
                     pts.add([x, Climb.netAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
