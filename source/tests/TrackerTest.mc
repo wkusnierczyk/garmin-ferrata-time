@@ -479,15 +479,19 @@ module TrackerTest {
         return true;
     }
 
+    // A calibration at a point while the watch has no altitude: the place is the point's at once, and
+    // the band starts again with it, as the climber said where they are; the offset waits for the next
+    // reading with an altitude. (Before #51 the head moved no place, so the band waited too.)
     (:test)
-    function syncWithoutAltitudeKeepsBand(logger as Logger) as Boolean {
+    function syncWithoutAltitudeWaitsForOffset(logger as Logger) as Boolean {
         var t = new Tracker(RouteTest.demo());
         t.start(:head, at(0, 1290.0));
         t.update(at(65, 1300.0));
-        var b = t.band();
+        Test.assertMessage(t.band() > 10, "the band has grown, " + t.band());
         t.syncAt(HEAD, at(65, null));
-        Test.assertEqualMessage(t.band(), b, "no sync, no reset");
-        // The sync is applied at the next reading with an altitude, and the band starts again.
+        Test.assertMessage(near(t.offset as Float, 0.0), "the offset waits, " + t.offset);
+        Test.assertMessage(near(t.d, 0.0), "at the head, d " + t.d);
+        Test.assertEqualMessage(t.band(), 10, "the place fixed");
         t.update(at(66, 1300.0));
         Test.assertMessage(near(t.offset as Float, -10.0), "offset " + t.offset);
         Test.assertEqualMessage(t.band(), 10, "synced");

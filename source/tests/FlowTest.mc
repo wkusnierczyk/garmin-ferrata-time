@@ -411,9 +411,10 @@ module FlowTest {
 
     (:test)
     function endShowsSummaryResumeRestores(logger as Logger) as Boolean {
+        // The watch reads the head's 1290 m as it pauses, so the place holds at 600 m; 1560 m at the end.
         var f = ascentAt(600.0);
-        watchReads(f, 1560.0);
         f.press(:start);
+        watchReads(f, 1560.0);
         choose(f, :end);
         choose(f, :endAt);
         Test.assertEqualMessage(f.phase(), Tracker.ENDED, "ended");
