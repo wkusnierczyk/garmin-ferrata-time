@@ -202,55 +202,70 @@ module PagesTest {
         return RouteTest.made(steps);
     }
 
-    // How far the ascent's numbers reach past the round screen's edge at most, with its line at x from
-    // y0 up to y0 - h, the climber at every net height of the route (either side of each metre): a box
-    // per number from its digits' top to their baseline, the font's line centred on the number's y, as
-    // wide as the number measured.
-    function ascentPastEdge(d as Draw, x as Float, y0 as Float, h as Float) as Float {
-        var font = d.semi(Widgets.NUMBER_SIZE), widths = {} as Dictionary<Number, Float>;
-        var a = d.ascent(font), lineTop = Graphics.getFontHeight(font) / 2.0 / d.w;
-        var right = x - Widgets.RING_OUTER - Widgets.NUMBER_SPACE, worst = -1.0;
-        for (var i = Climb.netLow(); i <= Climb.netHigh(); i++) {
+    // How far, in pixels across, the ink of the ascent's numbers reaches past the round screen's edge at
+    // most (below 0: how near it comes), with the line at x from y0 up to y0 - h and the climber at every
+    // net height of the route, either side of each metre, the line's ends included; each number's ink
+    // as the watch draws it (Widgets.inkPastEdge). A number whose box, as wide as its advances and from
+    // the digits' highest ink to their lowest, is inside the screen has its ink inside too: only the
+    // others are traced, or the brute force trips the watchdog.
+    function inkPastEdge(d as Draw, x as Float, y0 as Float, h as Float) as Float {
+        var font = d.semi(Widgets.NUMBER_SIZE), nx = x - Widgets.RING_OUTER - Widgets.NUMBER_SPACE;
+        var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2, lo = Climb.netLow(), hi = Climb.netHigh();
+        var worst = -d.w, inkTop = 0, inkFoot = 0;
+        for (var g = 0; g < DigitInk.LEFT.size(); g++) {
+            for (var j = 1; j < DigitInk.LEFT[g].size(); j += 2) {
+                var v = DigitInk.LEFT[g][j];
+                if (v > inkTop) { inkTop = v; }
+                if (v < inkFoot) { inkFoot = v; }
+            }
+        }
+        for (var i = lo; i <= hi; i++) {
             for (var side = -1; side <= 1; side += 2) {
                 var n = i + side * 0.49;
-                if (n < Climb.netLow() || n > Climb.netHigh()) { continue; }
+                if (n < lo) { n = lo.toFloat(); }
+                if (n > hi) { n = hi.toFloat(); }
                 var nums = Widgets.numbersAt(n), ys = Widgets.numberYs(y0 - Widgets.shareAt(n) * h, y0, h);
                 for (var k = 0; k < 2; k++) {
-                    // One width per length and sign: the digits are tabular (measuring each number trips
-                    // the watchdog, #94).
-                    var t = nums[k].format("%d"), key = t.length() * 2 + (nums[k] < 0 ? 1 : 0), w = widths[key];
-                    if (w == null) { w = d.width(font, t); widths[key] = w; }
-                    var rows = [ys[k] + a - d.capHeight(font) - lineTop, ys[k] + a - lineTop] as Array<Float>;
-                    for (var r = 0; r < 2; r++) {
-                        var dy = rows[r] - 0.5, q = 0.25 - dy * dy;
-                        var over = (0.5 - Math.sqrt(q > 0 ? q : 0.0) - (right - w)).toFloat();
-                        if (over > worst) { worst = over; }
+                    var t = nums[k].format("%d"), w = (t.length() - (nums[k] < 0 ? 1 : 0)) * digit + (nums[k] < 0 ? minus : 0);
+                    var base = d.s(ys[k]) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
+                    var box = -d.w, rows = [base - inkTop * em, base - inkFoot * em] as Array<Float>;
+                    for (var b = 0; b < 2; b++) {
+                        var dy = rows[b] - r, q = r * r - dy * dy;
+                        var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (d.s(nx) - w)).toFloat();
+                        if (over > box) { box = over; }
                     }
+                    var over = box <= 0 ? box : Widgets.inkPastEdge(d, font, nx, ys[k], t, digit, minus);
+                    if (over > worst) { worst = over; }
                 }
             }
         }
         return worst;
     }
 
-    // Pages 1 and 1a place the ascent from its widest number (#109): on the demo route where the mock
-    // has it, its numbers on the screen; on the Daubenhorn, in Barlow Semi Condensed, moved right just
-    // enough that they stay on it, the profile's right end where it was.
+    // Pages 1 and 1a place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
+    // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
+    // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
+    // just until it does not, the profile's right end where it was.
     (:test, :noreplay)
     function ascentNumbersStayOnTheScreen(logger as Logger) as Boolean {
-        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w, e = 0.0001;
-        Climb.use(RouteTest.demo(), :ferrata);
-        Test.assertEqualMessage(Pages.profileLeft(d), Pages.PROFILE_X0, "the demo: where the mock has it");
-        Test.assertMessage(ascentPastEdge(d, Pages.PROFILE_X0, y0, h) <= e, "the demo: on the screen");
-        var routes = [daubenhorn(false), daubenhorn(true)] as Array<Route>;
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w;
+        var routes = [RouteTest.demo(), daubenhorn(true)] as Array<Route>, names = ["the demo: ", "the mock's Daubenhorn: "];
         for (var r = 0; r < routes.size(); r++) {
             Climb.use(routes[r], :ferrata);
-            var x = Pages.profileLeft(d), where = r == 0 ? "the Daubenhorn: " : "the mock's Daubenhorn: ";
-            Test.assertMessage(ascentPastEdge(d, Pages.PROFILE_X0, y0, h) > e, where + "past the edge where the mock has it");
-            Test.assertMessage(ascentPastEdge(d, x, y0, h) <= e, where + "on the screen at " + x);
-            Test.assertMessage(ascentPastEdge(d, x - px, y0, h) > e, where + "moved no further than it needs, " + (x - Pages.PROFILE_X0) * d.w + " px");
-            logger.debug(where + "moved " + (x - Pages.PROFILE_X0) * d.w + " px");
-            for (var p = 0; p < 2; p++) { Pages.draw(p, d, at(Climb.totalD() / 2.0)); }
+            Test.assertEqualMessage(Pages.profileLeft(d), Pages.PROFILE_X0, names[r] + "the profile's left where the mock has it");
+            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h);
+            logger.debug(names[r] + "the ink comes within " + (-at0) + " px of the edge");
+            Test.assertMessage(at0 <= 0, names[r] + "the ink past the edge by " + at0 + " px");
         }
+        Climb.use(daubenhorn(false), :ferrata);
+        var x = Pages.profileLeft(d), moved = (x - Pages.PROFILE_X0) * d.w, where = "the Daubenhorn: ";
+        var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h), atX = inkPastEdge(d, x, y0, h), less = inkPastEdge(d, x - px, y0, h);
+        logger.debug(where + "the ink " + at0 + " px past the edge where the mock has the line; moved " + moved + " px");
+        Test.assertMessage(at0 > 0, where + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
+        Test.assertMessage(atX <= 0, where + "moved " + moved + " px, the ink still past the edge by " + atX + " px");
+        Test.assertMessage(less > 0, where + "moved " + moved + " px, one fewer would do: the ink " + less + " px past the edge");
+        for (var p = 0; p < 2; p++) { Pages.draw(p, d, at(Climb.totalD() / 2.0)); }
         return true;
     }
 

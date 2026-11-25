@@ -339,26 +339,22 @@ module Widgets {
         return ascentNumbersWidth(d) + NUMBER_SPACE + RING_OUTER;
     }
 
-    // How far right of x the ascent's line from y0 up to y0 - h must stand for each of its numbers,
-    // wherever the climber is, to stay on the round screen: 0 where they all fit (#109). Barlow Semi
-    // Condensed's numbers are wider than Condensed's, and on the Daubenhorn a three-digit number near
-    // the line's top end reached past the edge. In whole pixels, worked out once per part.
+    // How far right of x the ascent's line from y0 up to y0 - h must stand for the ink of each of its
+    // numbers, wherever the climber is, to stay on the round screen: 0 where it all fits (#109). Barlow
+    // Semi Condensed's numbers are wider than Condensed's, and on the Daubenhorn a 100 near the line's
+    // top end reached past the edge. In whole pixels, worked out once per part.
     var ascentInsetFor as Array<Float>? = null;
 
     function ascentInset(d as Draw, x as Float, y0 as Float, h as Float) as Float {
         var c = ascentInsetFor;
         if (c != null && c[0] == x && c[1] == y0 && c[2] == h) { return c[3]; }
-        // A number's box, right-aligned left of the ring and centred vertically on its y (the font's
-        // line height centred, as the watch draws it): from its digits' top to their baseline, as wide
-        // as its digits (tabular) and its minus sign.
-        var font = d.semi(NUMBER_SIZE), digit = d.width(font, "0"), minus = d.width(font, "-");
-        var a = d.ascent(font), lineTop = Graphics.getFontHeight(font) / 2.0 / d.w;
-        var capTop = a - d.capHeight(font) - lineTop, base = a - lineTop, right = x - RING_OUTER - NUMBER_SPACE;
-        // Each number's y falls as the climber rises, and its width changes only where it gains a digit
-        // or a sign; the screen's edge is convex, so a box of one width reaches furthest past it at an
-        // end of the stretch of heights it is drawn over. The heights checked: the route's lowest and
-        // highest, and either side of each change of width (0, 1, 9, 10, 99, 100 ... above the head and
-        // below it, and as far from the top's height).
+        var font = d.semi(NUMBER_SIZE), nx = x - RING_OUTER - NUMBER_SPACE;
+        var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
+        // Each number's y falls as the climber rises, and it changes glyphs only where it gains a digit
+        // or a sign, its first glyph a 1 or a minus there; the screen's edge is convex, so the ink of a
+        // number of one width reaches furthest past it at an end of the stretch of heights it is drawn
+        // over. The heights checked: the route's lowest and highest, and either side of each change of
+        // width (0, 1, 9, 10, 99, 100 ... above the head and below it, and as far from the top's height).
         var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh();
         var anchors = [lo, hi] as Array<Number>;
         for (var t = 1; t <= 10000; t *= 10) {
@@ -373,19 +369,41 @@ module Widgets {
                 if (n > hi) { n = hi.toFloat(); }
                 var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
                 for (var k = 0; k < 2; k++) {
-                    var v = nums[k], left = right - v.abs().toString().length() * digit - (v < 0 ? minus : 0.0);
-                    var rows = [ys[k] + capTop, ys[k] + base] as Array<Float>;
-                    for (var r = 0; r < 2; r++) {
-                        var dy = rows[r] - 0.5, q = 0.25 - dy * dy;
-                        var over = (0.5 - Math.sqrt(q > 0 ? q : 0.0) - left).toFloat();
-                        if (over > need) { need = over; }
-                    }
+                    var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus);
+                    if (over > need) { need = over; }
                 }
             }
         }
-        need = (Math.ceil(need * d.w - 0.0001) / d.w).toFloat();
-        ascentInsetFor = [x, y0, h, need] as Array<Float>;
-        return need;
+        var inset = (Math.ceil(need - 0.0001) / d.w).toFloat();
+        ascentInsetFor = [x, y0, h, inset] as Array<Float>;
+        return inset;
+    }
+
+    // How far the ink of a number reaches past the round screen's left edge, in pixels across (below
+    // 0: inside), drawn as Draw.textRight draws it at (nx, y): its right end on the pixel Draw.s(nx),
+    // the font's line height centred on the pixel Draw.s(y), each glyph one advance (digit, minus, in
+    // pixels) after the one before. The ink is each glyph's left side (DigitInk, from the font's
+    // outlines), in ems: the bitmap's base, its ascent, is one em.
+    function inkPastEdge(d as Draw, font as Graphics.FontType, nx as Float, y as Float, text as String,
+            digit as Number, minus as Number) as Float {
+        var cs = text.toCharArray(), width = 0;
+        for (var i = 0; i < cs.size(); i++) { width += cs[i] == '-' ? minus : digit; }
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2;
+        var pen = d.s(nx) - width, base = d.s(y) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
+        var worst = -d.w;
+        for (var i = 0; i < cs.size(); i++) {
+            var k = DigitInk.CHARS.find(cs[i].toString());
+            if (k != null) {
+                var p = DigitInk.LEFT[k];
+                for (var j = 0; j < p.size(); j += 2) {
+                    var dy = base - p[j + 1] * em - r, q = r * r - dy * dy;
+                    var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (pen + p[j] * em)).toFloat();
+                    if (over > worst) { worst = over; }
+                }
+            }
+            pen += cs[i] == '-' ? minus : digit;
+        }
+        return worst;
     }
 
     // ---------------------------------------------------------------- difficulty

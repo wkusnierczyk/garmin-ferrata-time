@@ -70,9 +70,10 @@ module Pages {
     const PROFILE_Y0 = 0.764423;
     const PROFILE_H = 0.543269;
 
-    // The rectangle's left on this route: PROFILE_X0, as in the mock, unless an ascent number would
-    // reach past the screen's edge from there (Widgets.ascentInset; the Daubenhorn's, #109); then the
-    // line and the profile's start move right by what they lack, the profile's right end staying.
+    // The rectangle's left on this route: PROFILE_X0, as in the mock, unless an ascent number's ink would
+    // cross the screen's edge from there (Widgets.ascentInset; the Daubenhorn's, #109); then the line,
+    // the profile's start and the altitude group move right by whole pixels until it does not, the
+    // profile's right end staying (design/page-1.md).
     function profileLeft(d as Draw) as Float {
         return PROFILE_X0 + Widgets.ascentInset(d, PROFILE_X0, PROFILE_Y0, PROFILE_H);
     }

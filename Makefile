@@ -224,7 +224,8 @@ check-fonts:
 # google/fonts (ofl/barlowsemicondensed/), fetched at the commit below and held to their SHA-256,
 # then given tabular figures by tools/tabular-figures.py, which needs fontTools (pip install
 # fonttools) in FONTTOOLS_PYTHON. Writes resources/fonts/BarlowSemiCondensedTabular-*.ttf and the
-# licence beside them; make fonts then makes the bitmaps from them.
+# licence beside them, and source/DigitInk.mc, the number glyphs' ink (tools/digit-ink.py, #109);
+# make fonts then makes the bitmaps from them.
 GOOGLE_FONTS_COMMIT := 60824dce48f7dd28fe7d65559f2da1f6e04e585b
 GOOGLE_FONTS_RAW := https://raw.githubusercontent.com/google/fonts/$(GOOGLE_FONTS_COMMIT)/ofl/barlowsemicondensed
 BARLOW_SHA256 := \
@@ -256,7 +257,8 @@ font-sources:
 	  "$(FONTTOOLS_PYTHON)" tools/tabular-figures.py "$$tmp/BarlowSemiCondensed-$$w.ttf" \
 	    "resources/fonts/BarlowSemiCondensedTabular-$$w.ttf" || exit 1; \
 	done; \
-	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowSemiCondensed.txt
+	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowSemiCondensed.txt; \
+	"$(FONTTOOLS_PYTHON)" tools/digit-ink.py resources/fonts/BarlowSemiCondensedTabular-SemiBold.ttf source/DigitInk.mc
 
 ## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
 ## runs them in the replay build, on resources-replay/replay.json
