@@ -191,6 +191,69 @@ module PagesTest {
         return true;
     }
 
+    // The Daubenhorn's ferrata, its sections' lengths and heights from the pages mock (make_route_mocks.py),
+    // and the mock's stand-in with its fifth section a descent of its own height: three-digit numbers
+    // high up the ascent's line (#109).
+    function daubenhorn(standIn as Boolean) as Route {
+        var len = [600, 60, 40, 60, 30, 25, 80, 60, 120, 40, 100, 200, 120, 10] as Array<Number>;
+        var up = [0, 40, 97, 10, standIn ? -85 : 85, 67, 0, 140, 80, 105, 30, 142, 15, 30] as Array<Number>;
+        var steps = [] as Array<Array<Number> >;
+        for (var i = 0; i < len.size(); i++) { steps.add([len[i], up[i]] as Array<Number>); }
+        return RouteTest.made(steps);
+    }
+
+    // How far the ascent's numbers reach past the round screen's edge at most, with its line at x from
+    // y0 up to y0 - h, the climber at every net height of the route (either side of each metre): a box
+    // per number from its digits' top to their baseline, the font's line centred on the number's y, as
+    // wide as the number measured.
+    function ascentPastEdge(d as Draw, x as Float, y0 as Float, h as Float) as Float {
+        var font = d.semi(Widgets.NUMBER_SIZE), widths = {} as Dictionary<Number, Float>;
+        var a = d.ascent(font), lineTop = Graphics.getFontHeight(font) / 2.0 / d.w;
+        var right = x - Widgets.RING_OUTER - Widgets.NUMBER_SPACE, worst = -1.0;
+        for (var i = Climb.netLow(); i <= Climb.netHigh(); i++) {
+            for (var side = -1; side <= 1; side += 2) {
+                var n = i + side * 0.49;
+                if (n < Climb.netLow() || n > Climb.netHigh()) { continue; }
+                var nums = Widgets.numbersAt(n), ys = Widgets.numberYs(y0 - Widgets.shareAt(n) * h, y0, h);
+                for (var k = 0; k < 2; k++) {
+                    // One width per length and sign: the digits are tabular (measuring each number trips
+                    // the watchdog, #94).
+                    var t = nums[k].format("%d"), key = t.length() * 2 + (nums[k] < 0 ? 1 : 0), w = widths[key];
+                    if (w == null) { w = d.width(font, t); widths[key] = w; }
+                    var rows = [ys[k] + a - d.capHeight(font) - lineTop, ys[k] + a - lineTop] as Array<Float>;
+                    for (var r = 0; r < 2; r++) {
+                        var dy = rows[r] - 0.5, q = 0.25 - dy * dy;
+                        var over = (0.5 - Math.sqrt(q > 0 ? q : 0.0) - (right - w)).toFloat();
+                        if (over > worst) { worst = over; }
+                    }
+                }
+            }
+        }
+        return worst;
+    }
+
+    // Pages 1 and 1a place the ascent from its widest number (#109): on the demo route where the mock
+    // has it, its numbers on the screen; on the Daubenhorn, in Barlow Semi Condensed, moved right just
+    // enough that they stay on it, the profile's right end where it was.
+    (:test, :noreplay)
+    function ascentNumbersStayOnTheScreen(logger as Logger) as Boolean {
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w, e = 0.0001;
+        Climb.use(RouteTest.demo(), :ferrata);
+        Test.assertEqualMessage(Pages.profileLeft(d), Pages.PROFILE_X0, "the demo: where the mock has it");
+        Test.assertMessage(ascentPastEdge(d, Pages.PROFILE_X0, y0, h) <= e, "the demo: on the screen");
+        var routes = [daubenhorn(false), daubenhorn(true)] as Array<Route>;
+        for (var r = 0; r < routes.size(); r++) {
+            Climb.use(routes[r], :ferrata);
+            var x = Pages.profileLeft(d), where = r == 0 ? "the Daubenhorn: " : "the mock's Daubenhorn: ";
+            Test.assertMessage(ascentPastEdge(d, Pages.PROFILE_X0, y0, h) > e, where + "past the edge where the mock has it");
+            Test.assertMessage(ascentPastEdge(d, x, y0, h) <= e, where + "on the screen at " + x);
+            Test.assertMessage(ascentPastEdge(d, x - px, y0, h) > e, where + "moved no further than it needs, " + (x - Pages.PROFILE_X0) * d.w + " px");
+            logger.debug(where + "moved " + (x - Pages.PROFILE_X0) * d.w + " px");
+            for (var p = 0; p < 2; p++) { Pages.draw(p, d, at(Climb.totalD() / 2.0)); }
+        }
+        return true;
+    }
+
     // A route of sections [len, up, grade], from a head at 1000 m, with the points given.
     function route(steps as Array<Array<Number> >, points as Array<Dictionary>) as Route {
         var sections = [] as Array<Dictionary>, len = 0;

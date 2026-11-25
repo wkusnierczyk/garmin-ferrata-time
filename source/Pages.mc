@@ -70,8 +70,15 @@ module Pages {
     const PROFILE_Y0 = 0.764423;
     const PROFILE_H = 0.543269;
 
+    // The rectangle's left on this route: PROFILE_X0, as in the mock, unless an ascent number would
+    // reach past the screen's edge from there (Widgets.ascentInset; the Daubenhorn's, #109); then the
+    // line and the profile's start move right by what they lack, the profile's right end staying.
+    function profileLeft(d as Draw) as Float {
+        return PROFILE_X0 + Widgets.ascentInset(d, PROFILE_X0, PROFILE_Y0, PROFILE_H);
+    }
+
     function profilePage(d as Draw, st as Climb.State, zoom as Boolean) as Void {
-        var x0 = PROFILE_X0, w = PROFILE_W, y0 = PROFILE_Y0, h = PROFILE_H;
+        var x0 = profileLeft(d), w = PROFILE_X0 + PROFILE_W - x0, y0 = PROFILE_Y0, h = PROFILE_H;
         var boxTop = y0 + Widgets.RING_OUTER + Widgets.BOX_GAP;
         var altTop = y0 - h - 0.31 * Widgets.NUMBER_SIZE, ax = x0 + Widgets.RING_OUTER + 0.019231;
         if (zoom) {
