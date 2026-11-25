@@ -270,4 +270,41 @@ module PagesTest {
         Test.assertMessage(RouteTest.near(t[1][0], 3300 / 3.28084 - 1000), "3300 ft about 5.8 m up");
         return true;
     }
+
+    // The front view on a long route like the Daubenhorn's 1545 m (#105): a point every 4 m of height on
+    // the walls and one step on every other section, not a point every 4 m along the route, which
+    // tripped the watchdog on page 11's first frame. Pages 11 and 12 draw it.
+    (:test, :noreplay)
+    function frontViewLight(logger as Logger) as Boolean {
+        var steps = [[600, 0], [60, 40], [40, 97], [60, 10], [30, 85], [25, 67], [80, 0], [60, 140], [120, 80],
+            [40, 105], [100, 30], [200, 142], [120, 15], [10, -30]] as Array<Array<Number> >;
+        var sections = [] as Array<Dictionary>, len = 0, wallPoints = 0;
+        for (var i = 0; i < steps.size(); i++) {
+            sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => 3, "min" => 10, "name" => "S" + i,
+                "side" => i % 2 == 0 ? -0.6 : 0.4});
+            len += steps[i][0];
+            var rise = steps[i][1].abs();
+            if (rise > steps[i][0]) { wallPoints += (rise / 4.0 + 0.5).toNumber(); }
+        }
+        Climb.use(Route.fromJson({"format" => 1, "id" => "long", "name" => "Long", "short" => "Long",
+            "sections" => sections, "points" => [
+                {"kind" => "head", "at" => 0, "alt" => 2100, "name" => "Head"},
+                {"kind" => "top", "at" => len, "name" => "Top"}]}) as Route, :ferrata);
+        var pts = Widgets.frontPoints(), n = Climb.count();
+        // The start, every wall's points, and one for each other section; the last section, a wall
+        // climbed down, wanders too.
+        var walls = 0;
+        for (var i = 0; i < n; i++) { if (Climb.UP[i].abs() > Climb.LEN[i]) { walls++; } }
+        Test.assertEqualMessage(pts.size(), 1 + wallPoints + n - walls, "points");
+        Test.assertMessage(pts.size() < len / 8, pts.size() + " points, not one every 4 m of " + len + " m");
+        // The points follow the route: distance never goes back, and the last is at the top's height.
+        for (var j = 1; j < pts.size(); j++) { Test.assertMessage(pts[j][2] >= pts[j - 1][2], "distance at point " + j); }
+        Test.assertMessage(RouteTest.near(pts[pts.size() - 1][1], Climb.netAt(n).toFloat()), "the top's height");
+        var d = draw(), places = [0.0, 300.0, 700.0, len.toFloat()] as Array<Float>;
+        for (var p = 0; p < places.size(); p++) {
+            Pages.draw(11, d, at(places[p]));
+            Pages.draw(12, d, at(places[p]));
+        }
+        return true;
+    }
 }

@@ -1249,8 +1249,9 @@ module Widgets {
     // ---------------------------------------------------------------- front view, page 7
 
     // The route seen from the front, as on a topo photo of the face (Climb.SIDE): up is height, across
-    // is sideways travel. Points every few metres as [x across, y up, distance along], built once,
-    // and fitted once into a box keeping one scale across and up.
+    // is sideways travel. Points as [x across, y up, distance along], every 4 m of height on a wall and
+    // at the ends of any other section, built once, and fitted once into a box keeping one scale across
+    // and up.
     var front as Array<Array<Float>>? = null;
 
     function frontPoints() as Array<Array<Float>> {
@@ -1259,13 +1260,16 @@ module Widgets {
             pts = [[0.0, 0.0, 0.0] as Array<Float>] as Array<Array<Float>>;
             var x = 0.0;
             for (var i = 0; i < Climb.count(); i++) {
-                var len = Climb.LEN[i], up = Climb.UP[i];
-                var steps = ((len > up ? len : up) / 4.0 + 0.5).toNumber();
-                if (steps < 2) { steps = 2; }
+                var len = Climb.LEN[i], up = Climb.UP[i], rise = up < 0 ? -up : up, wall = rise > len;
+                // A wall wanders, so it takes a point every 4 m of height; any other section is a
+                // straight line, one step. A point every 4 m along the whole route tripped the watchdog
+                // on the Daubenhorn's 1545 m, whose first section alone is a 600 m traverse (#105).
+                var steps = wall ? (rise / 4.0 + 0.5).toNumber() : 1;
+                if (steps < 1) { steps = 1; }
                 for (var k = 1; k <= steps; k++) {
                     var t = k.toFloat() / steps, t0 = (k - 1).toFloat() / steps;
-                    // A wall wanders a few metres either way as it climbs.
-                    var wander = up > len ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
+                    // A wall wanders a few metres either way as it climbs, or as it is climbed down.
+                    var wander = wall ? 4 * (Math.sin(t * up / 9) - Math.sin(t0 * up / 9)) : 0.0;
                     x += Climb.SIDE[i] * len / steps + wander;
                     // The real height, down as well as up, as a photo shows it.
                     pts.add([x, Climb.netAt(i) + up * t, Climb.dAt(i) + len * t] as Array<Float>);
