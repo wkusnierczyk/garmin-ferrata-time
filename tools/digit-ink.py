@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""The left side of the number glyphs' ink, for the ascent's numbers on the round screen (#109).
+
+    python3 tools/digit-ink.py <BarlowSemiCondensedTabular-SemiBold.ttf> <source/DigitInk.mc>
+
+The ascent's numbers on pages 1 and 1a must stay on the screen (Widgets.ascentInset). Their box, as
+wide as their advances, reaches further left than their ink: a number's side bearings, and the round
+tops of the digits, leave its corners empty, and the number that comes nearest the edge is the first
+of its width, 10 or 100, whose 1 has no ink in the box's upper left. The screen is a disk, which is
+convex, so a glyph's ink is on it exactly when the corners of its convex hull are; and for how far
+the line must move right, only the hull's left chain counts, from its top to its bottom by the left.
+This writes that chain for 0 to 9 and the minus sign, in font units (1000 to the em), y up from the
+baseline, as a Monkey C module. Curves are flattened in 32 chords each, inside the curve by under
+half a unit. A round corner gives the hull many corners, so the chain is cut to those that keep
+every other within TOLERANCE units across, and then moved TOLERANCE left, x rounded down: the
+corners kept are never right of the ink, by at most TOLERANCE (0.14 px at 28 px), give or take
+the half unit their y is rounded by. Needs fontTools (`pip install fonttools`);
+`make font-sources` runs it after making the TTFs, and tools/tests/test_digit_ink.py holds the
+committed file to it.
+"""
+import math
+import sys
+
+from fontTools.pens.basePen import BasePen
+from fontTools.ttLib import TTFont
+
+CHARS = "0123456789-"
+STEPS = 32
+TOLERANCE = 5
+
+
+class Points(BasePen):
+    """Every point of a glyph's outline, its curves flattened."""
+
+    def __init__(self, glyphs):
+        super().__init__(glyphs)
+        self.points, self.cur = [], None
+
+    def _moveTo(self, p):
+        self.cur = p
+        self.points.append(p)
+
+    def _lineTo(self, p):
+        self.cur = p
+        self.points.append(p)
+
+    def _curveToOne(self, a, b, c):
+        p0 = self.cur
+        for i in range(1, STEPS + 1):
+            t = i / STEPS
+            u = 1 - t
+            self._lineTo((u ** 3 * p0[0] + 3 * u * u * t * a[0] + 3 * u * t * t * b[0] + t ** 3 * c[0],
+                          u ** 3 * p0[1] + 3 * u * u * t * a[1] + 3 * u * t * t * b[1] + t ** 3 * c[1]))
+
+    def _qCurveToOne(self, a, b):
+        p0 = self.cur
+        for i in range(1, STEPS + 1):
+            t = i / STEPS
+            u = 1 - t
+            self._lineTo((u * u * p0[0] + 2 * u * t * a[0] + t * t * b[0], u * u * p0[1] + 2 * u * t * a[1] + t * t * b[1]))
+
+
+def left_chain(points):
+    """The convex hull's corners from its top to its bottom by the left: the hull counter-clockwise
+    (Andrew's monotone chain, collinear points dropped), walked from its highest corner (the leftmost
+    of them) to its lowest (the leftmost of them)."""
+    pts = sorted(set(points))
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    def half(seq):
+        out = []
+        for p in seq:
+            while len(out) >= 2 and cross(out[-2], out[-1], p) <= 0:
+                out.pop()
+            out.append(p)
+        return out[:-1]
+
+    hull = half(pts) + half(reversed(pts))  # counter-clockwise, from the leftmost corner
+    top = min(range(len(hull)), key=lambda i: (-hull[i][1], hull[i][0]))
+    bottom = min(range(len(hull)), key=lambda i: (hull[i][1], hull[i][0]))
+    chain, i = [hull[top]], top
+    while i != bottom:
+        i = (i + 1) % len(hull)
+        chain.append(hull[i])
+    return chain
+
+
+def simplify(chain):
+    """Douglas-Peucker by the horizontal distance to each chord: on a convex left chain the corners
+    dropped lie left of their chord by at most TOLERANCE."""
+    if len(chain) <= 2:
+        return list(chain)
+    (x0, y0), (x1, y1) = chain[0], chain[-1]
+
+    def across(p):
+        if y1 == y0:
+            return abs(p[0] - x0) if min(x0, x1) <= p[0] <= max(x0, x1) else min(abs(p[0] - x0), abs(p[0] - x1))
+        return abs(p[0] - (x0 + (p[1] - y0) / (y1 - y0) * (x1 - x0)))
+    far = max(range(1, len(chain) - 1), key=lambda i: across(chain[i]))
+    if across(chain[far]) <= TOLERANCE:
+        return [chain[0], chain[-1]]
+    return simplify(chain[:far + 1])[:-1] + simplify(chain[far:])
+
+
+def chains(ttf):
+    font = TTFont(ttf)
+    glyphs, cmap = font.getGlyphSet(), font.getBestCmap()
+    out = []
+    for c in CHARS:
+        pen = Points(glyphs)
+        glyphs[cmap[ord(c)]].draw(pen)
+        out.append([(math.floor(x - TOLERANCE), round(y)) for x, y in simplify(left_chain(pen.points))])
+    return out
+
+
+def module(ttf_name, rows):
+    lines = []
+    for c, row in zip(CHARS, rows):
+        flat = ", ".join(f"{x}, {y}" for x, y in row)
+        lines.append(f"        [{flat}] as Array<Number>,   // {c}")
+    body = "\n".join(lines)
+    return f"""import Toybox.Lang;
+
+// Generated by tools/digit-ink.py from resources/fonts/{ttf_name}: do not edit.
+// The left side of each number glyph's ink (#109): the corners of its convex hull's left chain, top
+// to bottom, as x, y pairs in font units (1000 to the em), y up from the baseline. Widgets.inkPastEdge
+// holds them against the round screen's edge.
+module DigitInk {{
+
+    const CHARS = "{CHARS}";
+
+    const LEFT = [
+{body}
+    ] as Array<Array<Number> >;
+}}
+"""
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.exit(__doc__.strip().splitlines()[2].strip())
+    ttf, out = argv
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(module(ttf.rsplit("/", 1)[-1], chains(ttf)))
+    print(f"wrote {out}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

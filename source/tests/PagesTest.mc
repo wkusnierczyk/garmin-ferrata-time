@@ -192,6 +192,84 @@ module PagesTest {
         return true;
     }
 
+    // The Daubenhorn's ferrata, its sections' lengths and heights from the pages mock (make_route_mocks.py),
+    // and the mock's stand-in with its fifth section a descent of its own height: three-digit numbers
+    // high up the ascent's line (#109).
+    function daubenhorn(standIn as Boolean) as Route {
+        var len = [600, 60, 40, 60, 30, 25, 80, 60, 120, 40, 100, 200, 120, 10] as Array<Number>;
+        var up = [0, 40, 97, 10, standIn ? -85 : 85, 67, 0, 140, 80, 105, 30, 142, 15, 30] as Array<Number>;
+        var steps = [] as Array<Array<Number> >;
+        for (var i = 0; i < len.size(); i++) { steps.add([len[i], up[i]] as Array<Number>); }
+        return RouteTest.made(steps);
+    }
+
+    // How far, in pixels across, the ink of the ascent's numbers reaches past the round screen's edge at
+    // most (below 0: how near it comes), with the line at x from y0 up to y0 - h and the climber at every
+    // net height of the route, either side of each metre, the line's ends included; each number's ink
+    // as the watch draws it (Widgets.inkPastEdge). A number whose box, as wide as its advances and from
+    // the digits' highest ink to their lowest, is inside the screen has its ink inside too: only the
+    // others are traced, or the brute force trips the watchdog.
+    function inkPastEdge(d as Draw, x as Float, y0 as Float, h as Float) as Float {
+        var font = d.semi(Widgets.NUMBER_SIZE), nx = x - Widgets.RING_OUTER - Widgets.NUMBER_SPACE;
+        var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2, lo = Climb.netLow(), hi = Climb.netHigh();
+        var worst = -d.w, inkTop = 0, inkFoot = 0;
+        for (var g = 0; g < DigitInk.LEFT.size(); g++) {
+            for (var j = 1; j < DigitInk.LEFT[g].size(); j += 2) {
+                var v = DigitInk.LEFT[g][j];
+                if (v > inkTop) { inkTop = v; }
+                if (v < inkFoot) { inkFoot = v; }
+            }
+        }
+        for (var i = lo; i <= hi; i++) {
+            for (var side = -1; side <= 1; side += 2) {
+                var n = i + side * 0.49;
+                if (n < lo) { n = lo.toFloat(); }
+                if (n > hi) { n = hi.toFloat(); }
+                var nums = Widgets.numbersAt(n), ys = Widgets.numberYs(y0 - Widgets.shareAt(n) * h, y0, h);
+                for (var k = 0; k < 2; k++) {
+                    var t = nums[k].format("%d"), w = (t.length() - (nums[k] < 0 ? 1 : 0)) * digit + (nums[k] < 0 ? minus : 0);
+                    var base = d.s(ys[k]) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
+                    var box = -d.w, rows = [base - inkTop * em, base - inkFoot * em] as Array<Float>;
+                    for (var b = 0; b < 2; b++) {
+                        var dy = rows[b] - r, q = r * r - dy * dy;
+                        var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (d.s(nx) - w)).toFloat();
+                        if (over > box) { box = over; }
+                    }
+                    var over = box <= 0 ? box : Widgets.inkPastEdge(d, font, nx, ys[k], t, digit, minus);
+                    if (over > worst) { worst = over; }
+                }
+            }
+        }
+        return worst;
+    }
+
+    // Pages 1 and 1a place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
+    // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
+    // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
+    // just until it does not, the profile's right end where it was.
+    (:test, :noreplay)
+    function ascentNumbersStayOnTheScreen(logger as Logger) as Boolean {
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w;
+        var routes = [RouteTest.demo(), daubenhorn(true)] as Array<Route>, names = ["the demo: ", "the mock's Daubenhorn: "];
+        for (var r = 0; r < routes.size(); r++) {
+            Climb.use(routes[r], :ferrata);
+            Test.assertEqualMessage(Pages.profileLeft(d), Pages.PROFILE_X0, names[r] + "the profile's left where the mock has it");
+            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h);
+            logger.debug(names[r] + "the ink comes within " + (-at0) + " px of the edge");
+            Test.assertMessage(at0 <= 0, names[r] + "the ink past the edge by " + at0 + " px");
+        }
+        Climb.use(daubenhorn(false), :ferrata);
+        var x = Pages.profileLeft(d), moved = (x - Pages.PROFILE_X0) * d.w, where = "the Daubenhorn: ";
+        var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h), atX = inkPastEdge(d, x, y0, h), less = inkPastEdge(d, x - px, y0, h);
+        logger.debug(where + "the ink " + at0 + " px past the edge where the mock has the line; moved " + moved + " px");
+        Test.assertMessage(at0 > 0, where + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
+        Test.assertMessage(atX <= 0, where + "moved " + moved + " px, the ink still past the edge by " + atX + " px");
+        Test.assertMessage(less > 0, where + "moved " + moved + " px, one fewer would do: the ink " + less + " px past the edge");
+        for (var p = 0; p < 2; p++) { Pages.draw(p, d, at(Climb.totalD() / 2.0)); }
+        return true;
+    }
+
     // A route of sections [len, up, grade], from a head at 1000 m, with the points given.
     function route(steps as Array<Array<Number> >, points as Array<Dictionary>) as Route {
         var sections = [] as Array<Dictionary>, len = 0;

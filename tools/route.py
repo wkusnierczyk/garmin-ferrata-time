@@ -28,8 +28,9 @@ ALT_TOLERANCE = 15  # metres between the sections' height and the known altitude
 EARTH_RADIUS = 6371000.0
 # What a name may hold after folding: the text fonts' charset, which carries only the characters the
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
-# until then a test compares the two whenever the file is there.
-TEXT_CHARSET = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…")
+# until then a test compares the two whenever the file is there. The en dash and the question mark
+# came with Barlow Semi Condensed (#109): a name keeps them as they are.
+TEXT_CHARSET = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…")
 # What NFKD leaves: letters it does not take apart, spelled out; typographic marks, written plainly
 # (the charset has no double quote, so every quote becomes '); invisible marks, dropped.
 FOLD = {
@@ -38,7 +39,7 @@ FOLD = {
     "ħ": "h", "Ħ": "H", "ı": "i", "ŧ": "t", "Ŧ": "T", "ŋ": "ng", "Ŋ": "Ng", "μ": "u",
     "‘": "'", "’": "'", "‛": "'", "“": "'", "”": "'", "„": "'", "«": "'", "»": "'", "ʼ": "'",
     '"': "'", "`": "'", "′": "'", "‚": ",",
-    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-", "⁄": "/",
+    "‐": "-", "‑": "-", "‒": "-", "—": "-", "−": "-", "⁄": "/",
     "\u00ad": "", "\u200b": "", "\u200c": "", "\u200d": "",
     **{chr(c): "" for c in range(0xFE00, 0xFE10)},  # variation selectors
 }

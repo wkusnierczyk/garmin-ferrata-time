@@ -237,11 +237,16 @@ module Widgets {
     // (0) to the top's net height, so the ring pulls back down on a descent. Its share of the way, kept
     // on the line where the route dips below the head or rises above its top before coming down to it.
     function ascentShare(st as Climb.State) as Float {
+        return shareAt(st.net());
+    }
+
+    // The share at a net height above the head.
+    function shareAt(net as Float) as Float {
         var top = Climb.netAt(Climb.count());
         // A part whose top is at or below its start (an approach going down) has no way up to show: the
         // ring stays at the start (the review of #101), until the approach pages hide the height (#90).
         if (top <= 0) { return 0.0; }
-        var f = st.net() / top;
+        var f = net / top;
         return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
     }
 
@@ -249,28 +254,39 @@ module Widgets {
     // Amounts climbed stay height gained (State.climbed): the stacks, the gauge by ascent, the totals.
     // A part whose top is at or below its start shows none, 0 and 0, as its ring stays at the start.
     function ascentNumbers(st as Climb.State) as [Number, Number] {
+        return numbersAt(st.net());
+    }
+
+    // The numbers at a net height above the head.
+    function numbersAt(net as Float) as [Number, Number] {
         if (Climb.netAt(Climb.count()) <= 0) { return [0, 0]; }
-        var up = Math.round(st.net()).toNumber();
+        var up = Math.round(net).toNumber();
         return [up, Climb.netAt(Climb.count()) - up];
     }
 
-    // The route's height as a line at x, from y0 (the start) up to y0 - h, with the climber on it.
-    function ascent(d as Draw, st as Climb.State, x as Float, y0 as Float, h as Float, ends as Boolean) as Void {
-        var top = y0 - h, ty = y0 - ascentShare(st) * h, nums = ascentNumbers(st);
-        // Back to front: the line, the ring's black inside, the end dots, the ring's outline.
-        d.line(x, y0, x, top, SCALE, 0.004808);
-        d.dot(x, ty, RING_R, BLACK);
-        // Each number centred on its stretch, kept clear of the ring, never past the line's end.
-        var gap = 0.057692;
+    // Where the two numbers stand, their middles, with the ring at ty on the line from y0 up to y0 - h:
+    // each centred on its stretch, kept clear of the ring, never past the line's end. Below it the
+    // metres above the head, above it the metres to the top.
+    function numberYs(ty as Float, y0 as Float, h as Float) as [Float, Float] {
+        var gap = 0.057692, top = y0 - h;
         var yb = (ty + y0) / 2;
         if (yb < ty + gap) { yb = ty + gap; }
         if (yb > y0) { yb = y0; }
         var ya = (top + ty) / 2;
         if (ya > ty - gap) { ya = ty - gap; }
         if (ya < top) { ya = top; }
+        return [yb, ya];
+    }
+
+    // The route's height as a line at x, from y0 (the start) up to y0 - h, with the climber on it.
+    function ascent(d as Draw, st as Climb.State, x as Float, y0 as Float, h as Float, ends as Boolean) as Void {
+        var top = y0 - h, ty = y0 - ascentShare(st) * h, nums = ascentNumbers(st), ys = numberYs(ty, y0, h);
+        // Back to front: the line, the ring's black inside, the end dots, the ring's outline.
+        d.line(x, y0, x, top, SCALE, 0.004808);
+        d.dot(x, ty, RING_R, BLACK);
         var nx = x - RING_OUTER - NUMBER_SPACE;
-        d.textRight(nx, yb, d.semi(NUMBER_SIZE), nums[0].format("%d"), WHITE);
-        d.textRight(nx, ya, d.semi(NUMBER_SIZE), nums[1].format("%d"), WHITE);
+        d.textRight(nx, ys[0], d.semi(NUMBER_SIZE), nums[0].format("%d"), WHITE);
+        d.textRight(nx, ys[1], d.semi(NUMBER_SIZE), nums[1].format("%d"), WHITE);
         if (ends) {
             d.dot(x, y0, ASC_DOT, GREEN);
             d.dot(x, top, ASC_DOT, RED);
@@ -282,6 +298,7 @@ module Widgets {
     // changes (Codex on #88).
     function forgetRoute() as Void {
         ascentWidest = null;
+        ascentInsetFor = null;
         widest = [null, null];
         gaugeStarts = [null, null];
         front = null;
@@ -320,6 +337,73 @@ module Widgets {
     // How far the ascent widget reaches left of its line.
     function ascentLeft(d as Draw) as Float {
         return ascentNumbersWidth(d) + NUMBER_SPACE + RING_OUTER;
+    }
+
+    // How far right of x the ascent's line from y0 up to y0 - h must stand for the ink of each of its
+    // numbers, wherever the climber is, to stay on the round screen: 0 where it all fits (#109). Barlow
+    // Semi Condensed's numbers are wider than Condensed's, and on the Daubenhorn a 100 near the line's
+    // top end reached past the edge. In whole pixels, worked out once per part.
+    var ascentInsetFor as Array<Float>? = null;
+
+    function ascentInset(d as Draw, x as Float, y0 as Float, h as Float) as Float {
+        var c = ascentInsetFor;
+        if (c != null && c[0] == x && c[1] == y0 && c[2] == h) { return c[3]; }
+        var font = d.semi(NUMBER_SIZE), nx = x - RING_OUTER - NUMBER_SPACE;
+        var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
+        // Each number's y falls as the climber rises, and it changes glyphs only where it gains a digit
+        // or a sign, its first glyph a 1 or a minus there; the screen's edge is convex, so the ink of a
+        // number of one width reaches furthest past it at an end of the stretch of heights it is drawn
+        // over. The heights checked: the route's lowest and highest, and either side of each change of
+        // width (0, 1, 9, 10, 99, 100 ... above the head and below it, and as far from the top's height).
+        var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh();
+        var anchors = [lo, hi] as Array<Number>;
+        for (var t = 1; t <= 10000; t *= 10) {
+            var pts = [t, t - 1, -t, 1 - t] as Array<Number>;
+            for (var i = 0; i < pts.size(); i++) { anchors.add(pts[i]); anchors.add(top + pts[i]); }
+        }
+        var need = 0.0;
+        for (var i = 0; i < anchors.size(); i++) {
+            for (var side = -1; side <= 1; side += 2) {
+                var n = anchors[i] + side * 0.49;
+                if (n < lo) { n = lo.toFloat(); }
+                if (n > hi) { n = hi.toFloat(); }
+                var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
+                for (var k = 0; k < 2; k++) {
+                    var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus);
+                    if (over > need) { need = over; }
+                }
+            }
+        }
+        var inset = (Math.ceil(need - 0.0001) / d.w).toFloat();
+        ascentInsetFor = [x, y0, h, inset] as Array<Float>;
+        return inset;
+    }
+
+    // How far the ink of a number reaches past the round screen's left edge, in pixels across (below
+    // 0: inside), drawn as Draw.textRight draws it at (nx, y): its right end on the pixel Draw.s(nx),
+    // the font's line height centred on the pixel Draw.s(y), each glyph one advance (digit, minus, in
+    // pixels) after the one before. The ink is each glyph's left side (DigitInk, from the font's
+    // outlines), in ems: the bitmap's base, its ascent, is one em.
+    function inkPastEdge(d as Draw, font as Graphics.FontType, nx as Float, y as Float, text as String,
+            digit as Number, minus as Number) as Float {
+        var cs = text.toCharArray(), width = 0;
+        for (var i = 0; i < cs.size(); i++) { width += cs[i] == '-' ? minus : digit; }
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2;
+        var pen = d.s(nx) - width, base = d.s(y) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
+        var worst = -d.w;
+        for (var i = 0; i < cs.size(); i++) {
+            var k = DigitInk.CHARS.find(cs[i].toString());
+            if (k != null) {
+                var p = DigitInk.LEFT[k];
+                for (var j = 0; j < p.size(); j += 2) {
+                    var dy = base - p[j + 1] * em - r, q = r * r - dy * dy;
+                    var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (pen + p[j] * em)).toFloat();
+                    if (over > worst) { worst = over; }
+                }
+            }
+            pen += cs[i] == '-' ? minus : digit;
+        }
+        return worst;
     }
 
     // ---------------------------------------------------------------- difficulty
