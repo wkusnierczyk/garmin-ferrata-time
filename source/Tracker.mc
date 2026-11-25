@@ -36,8 +36,10 @@ class Tracker {
     // The place, metres along the part, and the synced altitude less the part's start altitude (net).
     var d as Float = 0.0;
     var u as Float = 0.0;
-    // Own pace against the guidebook: minutes taken per guidebook minute.
+    // Own pace against the guidebook: minutes taken per guidebook minute, counted from the guidebook
+    // minute the part started at (m0: 0 from its start, more after an At altitude start partway).
     var pace as Float = 1.0;
+    var m0 as Float = 0.0;
     // The pace assumed until enough is done to trust the climber's own: 1, or the demo's (#50), so the
     // demo's time left reads as 0.1.0's from the first minute.
     var basePace as Float = 1.0;
@@ -104,6 +106,7 @@ class Tracker {
         begin(!route.hasApproach(), rd);
         guess(known, rd);
         d = Climb.distanceAtNet(known - Climb.START_ALT, 0.0);
+        m0 = Climb.minuteAtDistance(d);
         var s = synced(rd);
         if (s != null) { u = s; }
     }
@@ -248,7 +251,7 @@ class Tracker {
     // The pace from the place and the time taken: elapsed minutes per guidebook minute done, once
     // enough is done to trust it.
     function repace(elapsed as Float) as Void {
-        var m = Climb.minuteAtDistance(d);
+        var m = Climb.minuteAtDistance(d) - m0;
         pace = m >= PACE_AFTER && elapsed > 0 ? elapsed / m : basePace;
     }
 
@@ -307,6 +310,7 @@ class Tracker {
         phase = ferrata ? ASCENT : APPROACH;
         d = 0.0;
         u = 0.0;
+        m0 = 0.0;
         pace = basePace;
         partT = rd.t;
         syncT = rd.t;

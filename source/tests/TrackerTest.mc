@@ -213,8 +213,29 @@ module TrackerTest {
         Test.assertMessage(near(t.offset as Float, -40.0), "offset " + t.offset);
         Test.assertMessage(near(t.drifts[0], -40.0), "drift " + t.drifts);
         Test.assertMessage(near(t.d, 0.0), "at the head, d " + t.d);
-        t.update(at(12, 1330.0));
-        Test.assertMessage(near(t.d, 0.0), "after the sync: d " + t.d);
+        // A minute later 5 m up the first wall (the watch 1335 m less the 40): the place goes on from
+        // the head, about 2 m, not back to the 23 m the estimate had reached.
+        t.update(at(13, 1335.0));
+        Test.assertMessage(t.d > 1.0 && t.d < 3.0, "from the head: d " + t.d);
+        return true;
+    }
+
+    // The review of #114: after an At altitude start partway, the pace counts only the guidebook
+    // minutes from where the climb started, not those before it.
+    (:test)
+    function paceFromAnAltitudeStart(logger as Logger) as Boolean {
+        // Three walls of 100 m up, 10 guidebook minutes each; started 150 m up, at minute 15.
+        var t = new Tracker(RouteTest.made([[100, 100], [100, 100], [100, 100]]));
+        t.startAt(1150.0, at(0, 1150.0));
+        Test.assertMessage(near(t.d, 150.0), "150 m up, d " + t.d);
+        t.update(at(1, 1160.0));
+        // One minute for one guidebook minute: too few to trust a pace yet, so 1, and 14 minutes left.
+        Test.assertMessage(near(t.pace, 1.0), "pace " + t.pace);
+        Test.assertMessage(near(t.state().left(), 14.0), "left " + t.state().left());
+        t.update(at(20, 1250.0));
+        // 20 minutes for the 10 guidebook minutes from 150 m to 250 m: pace 2, 10 minutes left.
+        Test.assertMessage(near(t.pace, 2.0), "pace " + t.pace);
+        Test.assertMessage(near(t.state().left(), 10.0), "left " + t.state().left());
         return true;
     }
 
