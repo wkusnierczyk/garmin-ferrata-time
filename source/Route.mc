@@ -11,6 +11,8 @@ class Route {
     var name as String;
     // The activity's name, at most 15 characters.
     var short as String;
+    // Where the route is, for the ready screen (#51); empty when the file has none.
+    var place as String;
     // The sections before the head; empty when the route has no approach.
     var approach as Array<Dictionary>;
     // The ferrata, from the head to the top.
@@ -21,6 +23,8 @@ class Route {
         id = data["id"] as String;
         name = data["name"] as String;
         short = data["short"] as String;
+        var pl = data["place"];
+        place = pl instanceof String ? pl : "";
         var a = data["approach"];
         approach = a instanceof Array ? a as Array<Dictionary> : [] as Array<Dictionary>;
         sections = data["sections"] as Array<Dictionary>;
@@ -116,6 +120,52 @@ class Route {
         var i = point("approach");
         if (i < 0) { return false; }
         return (points[i]["alt"] as Object?) != null;
+    }
+
+    // The ferrata's figures for the ready screen (#51): the height it gains (the sum of the positive
+    // up), its guidebook minutes and its hardest grade, in half steps.
+    function ascent() as Number {
+        var u = 0;
+        for (var i = 0; i < sections.size(); i++) {
+            var up = sections[i]["up"] as Number;
+            if (up > 0) { u += up; }
+        }
+        return u;
+    }
+
+    function guideMinutes() as Number {
+        var m = 0;
+        for (var i = 0; i < sections.size(); i++) { m += minutes(sections[i]); }
+        return m;
+    }
+
+    function hardest() as Number {
+        var g = -1;
+        for (var i = 0; i < sections.size(); i++) {
+            var h = sections[i]["grade"] as Number;
+            if (h > g) { g = h; }
+        }
+        return g;
+    }
+
+    // The lowest and the highest altitude on the route, the approach included: the range an entered
+    // altitude is kept within (#51).
+    function altRange() as [Number, Number] {
+        var head = headAlt(), lo = head, hi = head;
+        var a = point("approach");
+        var lists = [approach, sections] as Array<Array<Dictionary> >;
+        var starts = [a >= 0 && points[a]["alt"] != null ? points[a]["alt"] as Number : head - net(approach), head];
+        for (var k = 0; k < 2; k++) {
+            var h = starts[k] as Number;
+            if (h < lo) { lo = h; }
+            if (h > hi) { hi = h; }
+            for (var i = 0; i < lists[k].size(); i++) {
+                h += lists[k][i]["up"] as Number;
+                if (h < lo) { lo = h; }
+                if (h > hi) { hi = h; }
+            }
+        }
+        return [lo, hi];
     }
 
     // Net height of a list of sections: up and down.

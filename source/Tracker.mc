@@ -51,8 +51,24 @@ class Tracker {
     var moveT as Number = 0;
     var alt as Float? = null;
     var startClock as Float = 0.0;
-    // A known altitude confirmed while the watch had none: synced at the first reading that has one.
+    // A known altitude confirmed while the watch had none: synced at the first reading that has one;
+    // pendingGuess when it is an altitude the climber entered.
     var pending as Float? = null;
+    var pendingGuess as Boolean = false;
+    // Whether the offset came from a known point, else from an altitude the climber entered (a guess,
+    // design section 6): only the change from one known point's offset to the next is drift.
+    var fromKnown as Boolean = false;
+    // The points calibrated at in this climb (indices into the route's points): Calibrate does not
+    // suggest them again (#51).
+    var calibratedAt as Array<Number> = [] as Array<Number>;
+    // The activity's time, in seconds: the approach and the ferrata while not paused, as Garmin's timer.
+    var activeS as Number = 0;
+    // As the climb was before the end, for Resume on the summary to undo it: the phase, the place, the
+    // height and how many drifts there were.
+    var endedFrom as Phase? = null;
+    var endD as Float = 0.0;
+    var endU as Float = 0.0;
+    var endDrifts as Number = 0;
 
     // Guidebook minutes done before the pace is trusted; until then it is basePace (my call, the plan).
     const PACE_AFTER = 10;
@@ -71,21 +87,34 @@ class Tracker {
     // :approachPoint (the approach, synced to its start) or :elsewhere (the approach when the route
     // has one, else the ferrata; unsynced).
     function start(where as Symbol, rd as Reading) as Void {
-        offset = null;
-        pending = null;
-        drifts = [] as Array<Float>;
-        pausedFrom = null;
+        fresh();
         var ferrata = where == :head || where == :elsewhere && !route.hasApproach();
         begin(ferrata, rd);
         if (where != :elsewhere) { sync(Climb.START_ALT.toFloat(), rd); }
+        if (where == :head) { calibratedAt.add(route.point("head")); }
+        var s = synced(rd);
+        if (s != null) { u = s; }
+    }
+
+    // Start at an altitude the climber entered (At altitude, #51): on the approach when the route has
+    // one, else on the ferrata; calibrated to it, a guess, so no drift; the place the point at that
+    // altitude nearest the part's start.
+    function startAt(known as Float, rd as Reading) as Void {
+        fresh();
+        begin(!route.hasApproach(), rd);
+        guess(known, rd);
+        d = Climb.distanceAtNet(known - Climb.START_ALT, 0.0);
         var s = synced(rd);
         if (s != null) { u = s; }
     }
 
     // Leave the approach for the ferrata: synced to the head, the change in offset a drift.
     function startAscent(rd as Reading) as Void {
+        takeTime(rd);
         begin(true, rd);
+        pausedFrom = null;
         sync(Climb.START_ALT.toFloat(), rd);
+        calibratedAt.add(route.point("head"));
         var s = synced(rd);
         if (s != null) { u = s; }
     }
@@ -107,37 +136,79 @@ class Tracker {
         pausedFrom = null;
     }
 
-    // Sync at a known point (an index into the route's points) the climber confirms. A landmark in the
-    // part in use also sets the place to it, even behind: the climber said where they are.
+    // Calibrate at a known point (an index into the route's points) the climber confirms. A point in
+    // the part in use (the head, a landmark, an exit, the top: Calibrate's list, #51) also sets the
+    // place to it, even behind: the climber said where they are.
     function syncAt(point as Number, rd as Reading) as Void {
         if (phase == IDLE || phase == ENDED) { return; }
         var p = route.points[point];
-        lastT = rd.t;
+        takeTime(rd);
         alt = rd.alt;
         var known = p["alt"];
         if (known != null) { sync((known as Number).toFloat(), rd); }
-        if ("landmark".equals(p["kind"] as Object?)) {
+        if (calibratedAt.indexOf(point) < 0) { calibratedAt.add(point); }
+        if (["head", "landmark", "exit", "top"].indexOf(p["kind"] as String) >= 0) {
             var at = (p["at"] as Number) + shift();
             // The place is known now: time moves it on from here, and the band starts again.
             // The pace follows the corrected place at once (Codex on #89).
-            if (at >= 0 && at <= Climb.totalD()) {
-                d = at.toFloat(); moveT = rd.t; syncT = rd.t;
-                repace(elapsedAt(rd.t));
-            }
+            if (at >= 0 && at <= Climb.totalD()) { moveTo(at.toFloat(), rd); }
         }
         var s = synced(rd);
         if (s != null) { u = s; }
     }
 
-    // End at a point: its altitude, when known, is checked against the watch's and the drift kept,
-    // not applied to the climb done.
+    // Calibrate to an altitude the climber entered (At altitude, #51): a guess, so the offset changes
+    // without a drift; the place moves to the point at that altitude nearest the estimate, back or on.
+    function calibrateTo(known as Float, rd as Reading) as Void {
+        if (phase == IDLE || phase == ENDED) { return; }
+        takeTime(rd);
+        alt = rd.alt;
+        guess(known, rd);
+        moveTo(Climb.distanceAtNet(known - Climb.START_ALT, d), rd);
+        var s = synced(rd);
+        if (s != null) { u = s; }
+    }
+
+    // End at a point (-1: here, no check): its altitude, when known, is checked against the watch's
+    // and the drift kept, not applied to the climb done; the place is set to the point, as the climber
+    // says they are there (#51). Resume undoes it (unend).
     function end(point as Number, rd as Reading) as Void {
         if (phase == IDLE || phase == ENDED) { return; }
-        var known = route.points[point]["alt"];
-        var a = rd.alt, o = offset;
-        if (known != null && a != null && o != null) { drifts.add((known as Number) - a - o); }
-        lastT = rd.t;
+        takeTime(rd);
+        endedFrom = phase;
+        endD = d;
+        endU = u;
+        endDrifts = drifts.size();
+        if (point >= 0) {
+            var p = route.points[point];
+            var known = p["alt"];
+            var a = rd.alt, o = offset;
+            if (known != null && a != null && o != null && fromKnown) { drifts.add((known as Number) - a - o); }
+            var at = (p["at"] as Number) + shift();
+            if (at >= 0 && at <= Climb.totalD()) {
+                d = at.toFloat();
+                u = Climb.netAtDistance(d);
+            }
+        }
         phase = ENDED;
+    }
+
+    // Resume from the summary: the climb paused as it was before the end, the end's check undone.
+    function unend() as Void {
+        if (phase != ENDED) { return; }
+        d = endD;
+        u = endU;
+        drifts = drifts.slice(0, endDrifts);
+        if (endedFrom != PAUSED) { pausedFrom = endedFrom; }
+        endedFrom = null;
+        phase = PAUSED;
+    }
+
+    // The sum of the drifts, in metres.
+    function drift() as Float {
+        var sum = 0.0;
+        for (var i = 0; i < drifts.size(); i++) { sum += drifts[i]; }
+        return sum;
     }
 
     // A new reading: the height maps to a stretch of the route ahead (Climb.stretchAhead), time moves
@@ -147,10 +218,12 @@ class Tracker {
     // reading with one). Paused, only the pace follows the time, which counts pauses.
     function update(rd as Reading) as Void {
         if (phase == IDLE || phase == ENDED) { return; }
-        lastT = rd.t;
+        takeTime(rd);
         alt = rd.alt;
         var known = pending;
-        if (known != null) { sync(known, rd); }
+        if (known != null) {
+            if (pendingGuess) { guess(known, rd); } else { sync(known, rd); }
+        }
         var elapsed = elapsedAt(rd.t);
         if (phase == PAUSED) {
             moveT = rd.t;
@@ -200,6 +273,34 @@ class Tracker {
 
     // ---------------------------------------------------------------- helpers
 
+    // A new climb: no offset, drift or calibration yet, the activity's time from 0.
+    function fresh() as Void {
+        offset = null;
+        pending = null;
+        pendingGuess = false;
+        fromKnown = false;
+        drifts = [] as Array<Float>;
+        pausedFrom = null;
+        endedFrom = null;
+        calibratedAt = [] as Array<Number>;
+        activeS = 0;
+    }
+
+    // The time of reading rd: the activity's time runs on while not paused.
+    function takeTime(rd as Reading) as Void {
+        if ((phase == APPROACH || phase == ASCENT) && rd.t > lastT) { activeS += rd.t - lastT; }
+        lastT = rd.t;
+    }
+
+    // The place set by the climber: time moves it on from here, the band starts again, and the pace
+    // follows it at once.
+    function moveTo(at as Float, rd as Reading) as Void {
+        d = at;
+        moveT = rd.t;
+        syncT = rd.t;
+        repace(elapsedAt(rd.t));
+    }
+
     // A new part from rd: the approach or the ferrata, at its start, the clocks restarted.
     function begin(ferrata as Boolean, rd as Reading) as Void {
         Climb.use(route, ferrata ? :ferrata : :approach);
@@ -220,11 +321,24 @@ class Tracker {
     // watch reading, it waits for the first one with an altitude.
     function sync(known as Float, rd as Reading) as Void {
         var a = rd.alt;
-        if (a == null) { pending = known; return; }
+        if (a == null) { pending = known; pendingGuess = false; return; }
         pending = null;
         var next = known - a, o = offset;
-        if (o != null) { drifts.add(next - o); }
+        if (o != null && fromKnown) { drifts.add(next - o); }
         offset = next;
+        fromKnown = true;
+        syncT = rd.t;
+    }
+
+    // The offset from an altitude the climber entered: no drift, and the next known point's change
+    // from it is none either. Without a watch reading, it waits for the first one with an altitude.
+    function guess(known as Float, rd as Reading) as Void {
+        var a = rd.alt;
+        if (a == null) { pending = known; pendingGuess = true; return; }
+        pending = null;
+        pendingGuess = false;
+        offset = known - a;
+        fromKnown = false;
         syncT = rd.t;
     }
 
