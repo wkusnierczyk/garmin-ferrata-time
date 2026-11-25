@@ -94,10 +94,19 @@ class FlowMenus {
     // This climb: whether the head has been offered (once), and the landmarks the GPS prompted.
     var headOffered as Boolean = false;
     var prompted as Array<Number> = [] as Array<Number>;
+    // The ready screen's figures, worked out once: the length, the ascent and the guidebook time as
+    // shown, and the hardest grade.
+    var figures as Array<String>;
+    var hardest as Number;
 
     function initialize(f as Feed) {
         feed = f;
-        range = f.route.altRange();
+        var r = f.route;
+        range = r.altRange();
+        figures = [(Route.lengthOf(r.sections) / 1000.0).format("%.1f"), r.ascent().format("%d"),
+            Flow.hours(r.guideMinutes())];
+        var g = r.hardest();
+        hardest = g < 0 ? 0 : (g > 12 ? 12 : g);
     }
 
     // A new climb from the settings: the ready screen, nothing open.
@@ -178,6 +187,8 @@ class FlowMenus {
 
     function pressMenu(m as FlowMenu, key as Symbol) as Void {
         var n = m.items.size();
+        // An empty menu (none is opened so) takes only Back.
+        if (n == 0 && key != :back) { return; }
         if (key == :up) {
             m.sel = (m.sel + n - 1) % n;
         } else if (key == :down) {
@@ -219,6 +230,7 @@ class FlowMenus {
         } else if (id == :calAt) {
             menu = null;
             feed.calibrateAt(it.point);
+            quietNear();
             calibrated = "at " + pointName(it.point) + " " + pointAlt(it.point).format("%d") + " m";
         } else if (id == :endAt) {
             feed.end(it.point);
@@ -260,6 +272,7 @@ class FlowMenus {
                 feed.startAt(e.value.toFloat());
             } else {
                 feed.calibrateTo(e.value.toFloat());
+                quietNear();
                 calibrated = "at " + e.value.format("%d") + " m";
             }
         }
@@ -274,7 +287,7 @@ class FlowMenus {
     function openEntry(parent as FlowMenu, start as Boolean) as Void {
         var est = 0, known = true, d0 = 0.0;
         if (start) {
-            var a = feed.reading().alt;
+            var a = feed.peek();
             known = a != null;
             est = a != null ? Math.round(a).toNumber() : feed.route.headAlt();
         } else {
@@ -328,6 +341,16 @@ class FlowMenus {
         return true;
     }
 
+    // After a calibration, the landmarks within the GPS prompt's reach of the new place have been dealt
+    // with: no prompt for them right after it (owner, #51), as if they had prompted.
+    function quietNear() as Void {
+        var pts = feed.route.points, d = feed.tracker.d;
+        for (var i = 0; i < pts.size(); i++) {
+            if (!"landmark".equals(pts[i]["kind"] as Object?) || prompted.indexOf(i) >= 0) { continue; }
+            if (((pts[i]["at"] as Number) - d).abs() <= Flow.GPS) { prompted.add(i); }
+        }
+    }
+
     function buzz() as Void {
         if (Attention has :vibrate) { Attention.vibrate([new Attention.VibeProfile(50, 300)]); }
     }
@@ -341,7 +364,7 @@ class FlowMenus {
             var a = r.point("approach");
             rows.add(new FlowItem(:atApproach, pointName(a), "at " + pointAlt(a).format("%d") + " m", Flow.WHITE));
         }
-        var baro = feed.reading().alt;
+        var baro = feed.peek();
         rows.add(new FlowItem(:atAltitude, "At altitude",
             baro != null ? "barometer " + Math.round(baro).toNumber().format("%d") + " m" : "no barometer yet", Flow.WHITE));
         return new FlowMenu(:start, "START", Flow.WHITE, rows);
@@ -395,7 +418,8 @@ class FlowMenus {
         var t = feed.tracker, rows = [] as Array<FlowItem>;
         var near = Flow.suggested(t, prompted);
         if (near >= 0) { rows.add(markItem(near)); }
-        rows.add(new FlowItem(:landmarks, "At landmark", Flow.marks(t).size().format("%d") + " on the route", Flow.WHITE));
+        var n = Flow.marks(t).size();
+        if (n > 0) { rows.add(new FlowItem(:landmarks, "At landmark", n.format("%d") + " on the route", Flow.WHITE)); }
         rows.add(new FlowItem(:calAltitude, "At altitude", "estimate " + t.state().altitude().format("%d") + " m", Flow.WHITE));
         return new FlowMenu(:calibrate, "CALIBRATE", Flow.SYNC, rows);
     }

@@ -41,6 +41,13 @@ class ReplayInput extends Input {
         return reading(a, b, f, t.toNumber());
     }
 
+    // The altitude of the entry the last reading was at, the first before any.
+    function peek() as Float? {
+        if (samples.size() == 0) { return null; }
+        var a = samples[at][1] as Numeric?;
+        return a != null ? a.toFloat() : null;
+    }
+
     // The reading a fraction f of the way from entry a to entry b, at time t.
     function reading(a as Array, b as Array, f as Float, t as Number) as Reading {
         var alt = mix(a[1] as Numeric?, b[1] as Numeric?, f);

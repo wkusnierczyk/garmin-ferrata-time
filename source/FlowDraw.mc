@@ -25,7 +25,7 @@ module FlowDraw {
             if (m.id == :summary) { summary(d, f, m); } else { menu(d, m); }
         } else if (f.phase() == Tracker.IDLE) {
             d.clear();
-            ready(d, f.feed.route);
+            ready(d, f);
         } else {
             drew = false;
         }
@@ -50,16 +50,15 @@ module FlowDraw {
 
     // Before Start: the route's name and place, its length, ascent and guidebook time, its hardest
     // grade, and the prompt beside the Start button.
-    function ready(d as Draw, r as Route) as Void {
-        var name = r.name.toUpper();
+    function ready(d as Draw, f as FlowMenus) as Void {
+        var r = f.feed.route, name = r.name.toUpper();
         d.textCapCentre(0.5, 0.17, fit(d, true, 0.0865, name, chord(0.17) * 0.85), name, Flow.WHITE);
         var where = r.place.length() > 0 ? "Via ferrata · " + r.place : "Via ferrata";
         d.textCapCentre(0.5, 0.245, fit(d, false, 0.0481, where, chord(0.245) * 0.85), where, Flow.GREY);
-        figure(d, 0.25, (Route.lengthOf(r.sections) / 1000.0).format("%.1f"), "km", "LENGTH");
-        figure(d, 0.5, r.ascent().format("%d"), "m", "ASCENT");
-        figure(d, 0.75, Flow.hours(r.guideMinutes()), "h:mm", "GUIDE");
-        var g = r.hardest();
-        g = g < 0 ? 0 : (g > 12 ? 12 : g);
+        figure(d, 0.25, f.figures[0], "km", "LENGTH");
+        figure(d, 0.5, f.figures[1], "m", "ASCENT");
+        figure(d, 0.75, f.figures[2], "h:mm", "GUIDE");
+        var g = f.hardest;
         outline(d, 0.39, 0.67, 0.22, 0.1, 0.012, Flow.DIM, 0.0048);
         var box = Widgets.BOX_NAME[g];
         d.textCapCentre(0.5, 0.72, fit(d, true, 0.0721, box, 0.19), box, d.grade(g, false));
@@ -96,11 +95,17 @@ module FlowDraw {
                     near ? it.colour : Flow.DIM);
             }
         }
-        var n = m.items.size();
+        var n = m.items.size(), step = dotStep(n);
         for (var i = 0; i < n; i++) {
-            var a = Math.toRadians((i - (n - 1) / 2.0) * 6);
+            var a = Math.toRadians((i - (n - 1) / 2.0) * step);
             d.dot(0.5 + 0.455 * Math.cos(a), 0.5 + 0.455 * Math.sin(a), 0.009, i == m.sel ? Flow.WHITE : Flow.DIM);
         }
+    }
+
+    // Degrees between the menu's dots: 6, closer on a long list, so they keep within 60 degrees of
+    // three o'clock, clear of the title.
+    function dotStep(n as Number) as Float {
+        return n > 21 ? 120.0 / (n - 1) : 6.0;
     }
 
     // The selected row's two lines, the same size (the mock's 0.062; both weights have 0.0673).

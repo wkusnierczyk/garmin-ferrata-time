@@ -20,6 +20,7 @@ class View extends WatchUi.View {
     // when the part shown changes (the approach or the ferrata), whose sections are others.
     var sel as Number = -1;
     var ferrataShown as Boolean = true;
+    var climbShown as Tracker? = null;
     var timer as Timer.Timer?;
     var dotsMs as Number = 0;
 
@@ -130,11 +131,16 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // From the approach to the ferrata or back to a new climb, the sections are others: page 9 follows
-    // the climber's again (the review of #88).
+    // From the approach to the ferrata or back, the sections are others, and a new climb starts with
+    // the climber's own: page 9 follows the climber's again (the reviews of #88 and #114).
     function followPart() as Void {
         if (Climb.FERRATA != ferrataShown) {
             ferrataShown = Climb.FERRATA;
+            sel = -1;
+        }
+        var f = feed;
+        if (f != null && f.tracker != climbShown) {
+            climbShown = f.tracker;
             sel = -1;
         }
     }

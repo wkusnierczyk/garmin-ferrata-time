@@ -14,6 +14,24 @@ class SetInput extends Input {
     function read(now as Number) as Reading {
         return new Reading(alt, null, null, t);
     }
+
+    function peek() as Float? {
+        return alt;
+    }
+}
+
+// A feed on the sensors' path playing a recording: 1000 m, then 1100 m ten minutes later.
+class ReplayFeed extends Feed {
+
+    function initialize(r as Route) {
+        Feed.initialize(r);
+    }
+
+    function wantsDemo() as Boolean { return false; }
+
+    function newInput(isDemo as Boolean) as Input {
+        return new ReplayInput([[30000, 1000, null, null], [30600, 1100, null, null]] as Array<Array>, ReplayInput.SPEED);
+    }
 }
 
 // A feed on the sensors' path with the test's input.
@@ -496,20 +514,107 @@ module FlowTest {
         return true;
     }
 
+    // On steep ground, 40 m below a landmark: out of the band, so offered only because the GPS
+    // prompted it.
+    function belowLedge() as FlowMenus {
+        var r = RouteTest.made([[100, 100], [100, 100]]);
+        r.points.add({"kind" => "landmark", "at" => 100, "alt" => 1100, "name" => "Ledge"});
+        var f = new FlowMenus(new FlowFeed(r));
+        f.feed.start(:head);
+        f.feed.tracker.d = 60.0;
+        return f;
+    }
+
+    const LEDGE = 2;
+
     // The GPS near a landmark (#52): the climb pauses, the pause menu opens with Calibrate selected,
     // and Calibrate offers the landmark first; once.
     (:test)
     function landmarkPromptSelectsCalibrate(logger as Logger) as Boolean {
-        var f = ascentAt(350.0);
-        Test.assertMessage(f.nearLandmark(BENCH), "prompted");
+        var f = belowLedge();
+        Test.assertEqualMessage(Flow.suggested(f.feed.tracker, [] as Array<Number>), -1, "not suggested unprompted");
+        Test.assertMessage(f.nearLandmark(LEDGE), "prompted");
         Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "paused");
         var m = f.menu as FlowMenu;
         Test.assertEqualMessage(m.items[m.sel].id, :calibrate, "Calibrate selected");
+        text(m.items[1].sub, "Near Ledge", "Calibrate's line");
         f.press(:start);
-        Test.assertEqualMessage((f.menu as FlowMenu).items[0].point, BENCH, "the Bench first");
+        Test.assertEqualMessage((f.menu as FlowMenu).items[0].point, LEDGE, "the Ledge first");
         f.press(:back);
         choose(f, :continue);
-        Test.assertMessage(!f.nearLandmark(BENCH), "once");
+        Test.assertMessage(!f.nearLandmark(LEDGE), "once");
+        return true;
+    }
+
+    // Owner, #51: no landmark prompt within 50 m right after a calibration, at it or near it.
+    (:test)
+    function noPromptRightAfterCalibration(logger as Logger) as Boolean {
+        var f = ascentAt(380.0);
+        f.press(:start);
+        choose(f, :calibrate);
+        choose(f, :calAt);
+        f.press(:back);
+        Test.assertMessage(!f.nearLandmark(BENCH), "not at the landmark calibrated at");
+        Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
+        f = belowLedge();
+        f.press(:start);
+        choose(f, :calibrate);
+        choose(f, :calAltitude);
+        f.press(:up);
+        f.press(:start);
+        f.press(:back);
+        Test.assertMessage(!f.nearLandmark(LEDGE), "not 30 m from an altitude calibration");
+        Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
+        return true;
+    }
+
+    // The review of #114: with no point to calibrate at (no altitudes), no At landmark row, and an empty
+    // menu takes the buttons without failing.
+    (:test)
+    function noMarksNoLandmarkRow(logger as Logger) as Boolean {
+        var r = Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
+            "sections" => [{"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S", "side" => 0.0}],
+            "points" => [{"kind" => "head", "at" => 0, "name" => "Head"},
+                {"kind" => "landmark", "at" => 50, "name" => "Bench"},
+                {"kind" => "top", "at" => 100, "name" => "Top"}]}) as Route;
+        var f = new FlowMenus(new FlowFeed(r));
+        f.feed.start(:head);
+        f.press(:start);
+        choose(f, :calibrate);
+        Test.assertMessage(rows(f.menu, [:calAltitude]), "At altitude only: " + ids(f.menu));
+        var empty = new FlowMenu(:landmarks, "LANDMARKS", Flow.SYNC, [] as Array<FlowItem>);
+        f.open(empty, null);
+        f.press(:up);
+        f.press(:down);
+        f.press(:start);
+        Test.assertMessage(f.menu == empty, "nothing chosen");
+        return true;
+    }
+
+    // The review of #114: a landmark on the approach is not one the ferrata can calibrate at.
+    (:test)
+    function approachPointsNotMarks(logger as Logger) as Boolean {
+        var r = RouteTest.demo();
+        r.points.add({"kind" => "landmark", "at" => -50, "alt" => 1280, "name" => "Spring"});
+        var f = new FlowMenus(new FlowFeed(r));
+        f.feed.start(:head);
+        Test.assertMessage(same(Flow.marks(f.feed.tracker), [HEAD, BENCH, TOP]), "the ferrata's: " + Flow.marks(f.feed.tracker));
+        return true;
+    }
+
+    // The review of #114: the Start menu and the altitude entry read the barometer without starting
+    // the replay's clock; the recording plays from its start when the climb starts.
+    (:test)
+    function startMenuLeavesReplayClock(logger as Logger) as Boolean {
+        var f = new FlowMenus(new ReplayFeed(RouteTest.demo()));
+        var input = f.feed.input as ReplayInput;
+        f.press(:start);
+        text((f.menu as FlowMenu).items[2].sub, "barometer 1000 m", "the recording's first altitude");
+        choose(f, :atAltitude);
+        Test.assertEqualMessage((f.entry as FlowEntry).est, 1000, "the entry from it");
+        Test.assertMessage(input.startMs == null, "the replay not started");
+        f.press(:start);
+        Test.assertMessage(input.startMs != null, "started with the climb");
         return true;
     }
 
@@ -573,6 +678,19 @@ module FlowTest {
         return true;
     }
 
+    // The menu's dots keep within 60 degrees of three o'clock however long the list, clear of the title
+    // (the review of #114).
+    (:test)
+    function menuDotsKeepClearOfTitle(logger as Logger) as Boolean {
+        Test.assertMessage(near(FlowDraw.dotStep(3), 6.0, 0.001), "6 degrees on a short list");
+        var sizes = [21, 22, 40, 200] as Array<Number>;
+        for (var i = 0; i < sizes.size(); i++) {
+            var n = sizes[i];
+            Test.assertMessage(FlowDraw.dotStep(n) * (n - 1) <= 120.001, n + " rows: " + FlowDraw.dotStep(n) * (n - 1));
+        }
+        return true;
+    }
+
     // ---------------------------------------------------------------- the view
 
     // The review of #88: page 9's selected section follows the climber again when the part changes.
@@ -592,6 +710,12 @@ module FlowTest {
         Climb.use(r, :ferrata);
         v.followPart();
         Test.assertEqualMessage(v.sel, -1, "reset on the ferrata");
+        // A new climb on the same part (the review of #114).
+        v.sel = 3;
+        (v.feed as Feed).save();
+        Climb.use(r, :ferrata);
+        v.followPart();
+        Test.assertEqualMessage(v.sel, -1, "reset for a new climb");
         (v.feed as Feed).stop();
         return true;
     }

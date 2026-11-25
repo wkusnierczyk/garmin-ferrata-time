@@ -113,6 +113,10 @@ class Feed {
 
     function reading() as Reading { return input.read(now()); }
 
+    // The watch's altitude now, for the Start menu and the altitude entry, without moving the input on
+    // (a replay's clock starts with the climb, not with the menu).
+    function peek() as Float? { return input.peek(); }
+
     // ---------------------------------------------------------------- the climb flow (#51)
 
     // Start at the head or at the approach's start (:head, :approachPoint), calibrated to it.

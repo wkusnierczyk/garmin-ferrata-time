@@ -19,6 +19,12 @@ class Input {
         return new Reading(null, null, null, 0);
     }
 
+    // The altitude a reading would give now, without starting or moving the input's clock; null when
+    // there is none.
+    function peek() as Float? {
+        return null;
+    }
+
     function stop() as Void {
     }
 }
@@ -43,6 +49,11 @@ class SensorInput extends Input {
 
     function onPosition(info as Position.Info) as Void {
         fix = info;
+    }
+
+    function peek() as Float? {
+        var info = Activity.getActivityInfo();
+        return info != null ? info.altitude : null;
     }
 
     function read(now as Number) as Reading {
@@ -113,6 +124,12 @@ class DemoInput extends Input {
         lastT = t;
         var p = positionAt(d);
         return p != null ? new Reading(alt, p[0], p[1], t) : new Reading(alt, null, null, t);
+    }
+
+    // The altitude at the last reading's minute, or at the part's start before the first.
+    function peek() as Float? {
+        var m = startMs == null ? 0.0 : minute;
+        return Climb.START_ALT + Climb.netAtDistance(Climb.distanceAtMinute(m)) - LOW;
     }
 
     // The next part from its start, at the caller's next reading; the time of day goes on.

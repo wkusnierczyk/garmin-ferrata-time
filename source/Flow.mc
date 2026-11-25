@@ -28,13 +28,14 @@ module Flow {
         return kind instanceof String && ["head", "landmark", "exit", "top"].indexOf(kind) >= 0;
     }
 
-    // The points a calibration may use, those with an altitude, nearest the place first: Calibrate's
-    // At landmark list.
+    // The points a calibration may use, those on the ferrata with an altitude, nearest the place first:
+    // Calibrate's At landmark list.
     function marks(t as Tracker) as Array<Number> {
         var out = [] as Array<Number>;
         var pts = t.route.points;
         for (var i = 0; i < pts.size(); i++) {
-            if (isMark(pts[i]["kind"] as Object?) && (pts[i]["alt"] as Object?) != null) { out.add(i); }
+            if (isMark(pts[i]["kind"] as Object?) && (pts[i]["alt"] as Object?) != null
+                && (pts[i]["at"] as Number) >= 0) { out.add(i); }
         }
         return nearestFirst(t.route, out, t.d);
     }
