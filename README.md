@@ -84,7 +84,7 @@ make run REPLAY=1                       # FerrataTime-replay.prg, the replay in 
 make test REPLAY=1                      # the unit tests in the replay build, on that recording
 ```
 
-In a replay build the replay stands in for the sensors whatever the Demo climb setting says, and starts as they do, through the climb flow: the recording plays from its start when the first climb starts (the Start menu and the altitude entry only look at its first altitude), and a later climb goes on from where it is. The bundled route is still the demo's, not the recorded one's, until Daubenhorn comes (#55).
+In a replay build the replay stands in for the sensors whatever the Demo climb setting says, and starts as they do, through the climb flow: the recording plays from its start when a climb starts (the Start menu and the altitude entry only look at its first altitude), and again from its start for the next climb, after Save or Discard. The bundled route is still the demo's, not the recorded one's, until Daubenhorn comes (#55).
 
 ## Fonts
 

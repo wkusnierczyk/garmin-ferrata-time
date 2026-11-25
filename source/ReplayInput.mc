@@ -41,6 +41,12 @@ class ReplayInput extends Input {
         return reading(a, b, f, t.toNumber());
     }
 
+    // The next climb plays the recording from its first entry again.
+    function rewind() as Void {
+        startMs = null;
+        at = 0;
+    }
+
     // The altitude of the entry the last reading was at, the first before any.
     function peek() as Float? {
         if (samples.size() == 0) { return null; }

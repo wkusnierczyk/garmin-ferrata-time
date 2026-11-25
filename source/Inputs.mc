@@ -27,6 +27,10 @@ class Input {
 
     function stop() as Void {
     }
+
+    // Back to its start for the next climb; only a replay has one.
+    function rewind() as Void {
+    }
 }
 
 // The watch: the altitude the activity info gives (null in the first seconds, or with no barometer

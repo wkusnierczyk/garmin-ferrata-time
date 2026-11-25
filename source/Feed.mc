@@ -160,11 +160,11 @@ class Feed {
 
     function unend() as Void { tracker.unend(); }
 
-    // Save or discard the ended climb, then the ready screen. The Recorder (#53) saves or discards the
-    // activity here; until then nothing is recorded.
-    function save() as Void { ready(); }
+    // Save or discard the ended climb, then the ready screen, a replay rewound to its start. The
+    // Recorder (#53) saves or discards the activity here; until then nothing is recorded.
+    function save() as Void { input.rewind(); ready(); }
 
-    function discard() as Void { ready(); }
+    function discard() as Void { input.rewind(); ready(); }
 
     // The demo plays one part from its start: the ferrata from the head, or the approach from its
     // start, its clock from 0 and its time of day going on from where it was.
