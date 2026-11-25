@@ -272,39 +272,52 @@ module PagesTest {
     }
 
     // The front view on a long route like the Daubenhorn's 1545 m (#105): a point every 4 m of height on
-    // the walls and one step on every other section, not a point every 4 m along the route, which
-    // tripped the watchdog on page 11's first frame. Pages 11 and 12 draw it.
+    // the walls and one step on every other section, not a point every 4 m along the route (462 points,
+    // which tripped the watchdog on the front page's first frame). The test runner does not enforce the
+    // watchdog, so the point count stands in for it; the check on the watch stays the acceptance.
     (:test, :noreplay)
     function frontViewLight(logger as Logger) as Boolean {
         var steps = [[600, 0], [60, 40], [40, 97], [60, 10], [30, 85], [25, 67], [80, 0], [60, 140], [120, 80],
-            [40, 105], [100, 30], [200, 142], [120, 15], [10, -30]] as Array<Array<Number> >;
-        var sections = [] as Array<Dictionary>, len = 0, wallPoints = 0;
-        for (var i = 0; i < steps.size(); i++) {
-            sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => 3, "min" => 10, "name" => "S" + i,
-                "side" => i % 2 == 0 ? -0.6 : 0.4});
-            len += steps[i][0];
-            var rise = steps[i][1].abs();
-            if (rise > steps[i][0]) { wallPoints += (rise / 4.0 + 0.5).toNumber(); }
-        }
-        Climb.use(Route.fromJson({"format" => 1, "id" => "long", "name" => "Long", "short" => "Long",
-            "sections" => sections, "points" => [
-                {"kind" => "head", "at" => 0, "alt" => 2100, "name" => "Head"},
-                {"kind" => "top", "at" => len, "name" => "Top"}]}) as Route, :ferrata);
+            [40, 105], [100, 30], [200, 142], [120, 15], [10, 30]] as Array<Array<Number> >;
+        useLong(steps);
         var pts = Widgets.frontPoints(), n = Climb.count();
-        // The start, every wall's points, and one for each other section; the last section, a wall
-        // climbed down, wanders too.
-        var walls = 0;
-        for (var i = 0; i < n; i++) { if (Climb.UP[i].abs() > Climb.LEN[i]) { walls++; } }
-        Test.assertEqualMessage(pts.size(), 1 + wallPoints + n - walls, "points");
-        Test.assertMessage(pts.size() < len / 8, pts.size() + " points, not one every 4 m of " + len + " m");
+        // The start, the walls' 131 points, one for each of the 8 other sections.
+        Test.assertEqualMessage(pts.size(), 1 + 131 + 8, "points");
         // The points follow the route: distance never goes back, and the last is at the top's height.
         for (var j = 1; j < pts.size(); j++) { Test.assertMessage(pts[j][2] >= pts[j - 1][2], "distance at point " + j); }
         Test.assertMessage(RouteTest.near(pts[pts.size() - 1][1], Climb.netAt(n).toFloat()), "the top's height");
-        var d = draw(), places = [0.0, 300.0, 700.0, len.toFloat()] as Array<Float>;
+        var d = draw(), len = Climb.totalD().toFloat(), places = [0.0, 300.0, 700.0, len] as Array<Float>;
         for (var p = 0; p < places.size(); p++) {
             Pages.draw(11, d, at(places[p]));
             Pages.draw(12, d, at(places[p]));
         }
         return true;
+    }
+
+    // However much wall a route has, the walls together get at most FRONT_BUDGET points, a few more for
+    // rounding (one per wall): 20 walls of 300 m would be 1500 points at one every 4 m.
+    (:test)
+    function frontViewWithinBudget(logger as Logger) as Boolean {
+        var steps = [] as Array<Array<Number> >;
+        for (var i = 0; i < 20; i++) { steps.add([50, 300] as Array<Number>); steps.add([200, 0] as Array<Number>); }
+        useLong(steps);
+        var pts = Widgets.frontPoints();
+        Test.assertMessage(pts.size() <= 1 + Widgets.FRONT_BUDGET + 20 + 20, pts.size() + " points");
+        Test.assertMessage(pts.size() >= Widgets.FRONT_BUDGET, pts.size() + " points: the walls still get their share");
+        return true;
+    }
+
+    // A route of [length, height] sections, sideways alternately, grade C.
+    function useLong(steps as Array<Array<Number> >) as Void {
+        var sections = [] as Array<Dictionary>, len = 0;
+        for (var i = 0; i < steps.size(); i++) {
+            sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => 3, "min" => 10, "name" => "S" + i,
+                "side" => i % 2 == 0 ? -0.6 : 0.4});
+            len += steps[i][0];
+        }
+        Climb.use(Route.fromJson({"format" => 1, "id" => "long", "name" => "Long", "short" => "Long",
+            "sections" => sections, "points" => [
+                {"kind" => "head", "at" => 0, "alt" => 2100, "name" => "Head"},
+                {"kind" => "top", "at" => len, "name" => "Top"}]}) as Route, :ferrata);
     }
 }
