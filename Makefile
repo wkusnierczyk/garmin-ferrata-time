@@ -220,25 +220,26 @@ check-fonts:
 	@echo "Checking the fonts..."
 	@python3 tools/check-font-config.py
 
-# The typeface (#62): Barlow Condensed SemiBold and Bold, the static weights in google/fonts
-# (ofl/barlowcondensed/), fetched at the commit below and held to their SHA-256, then given
-# tabular figures by tools/tabular-figures.py, which needs fontTools (pip install fonttools)
-# in FONTTOOLS_PYTHON. Writes resources/fonts/BarlowCondensedTabular-*.ttf and the licence
-# beside them; make fonts then makes the bitmaps from them.
+# The typeface (#62, #109): Barlow Semi Condensed SemiBold and Bold, the static weights in
+# google/fonts (ofl/barlowsemicondensed/), fetched at the commit below and held to their SHA-256,
+# then given tabular figures by tools/tabular-figures.py, which needs fontTools (pip install
+# fonttools) in FONTTOOLS_PYTHON. Writes resources/fonts/BarlowSemiCondensedTabular-*.ttf and the
+# licence beside them, and source/DigitInk.mc, the number glyphs' ink (tools/digit-ink.py, #109);
+# make fonts then makes the bitmaps from them.
 GOOGLE_FONTS_COMMIT := 60824dce48f7dd28fe7d65559f2da1f6e04e585b
-GOOGLE_FONTS_RAW := https://raw.githubusercontent.com/google/fonts/$(GOOGLE_FONTS_COMMIT)/ofl/barlowcondensed
+GOOGLE_FONTS_RAW := https://raw.githubusercontent.com/google/fonts/$(GOOGLE_FONTS_COMMIT)/ofl/barlowsemicondensed
 BARLOW_SHA256 := \
-  7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9:BarlowCondensed-SemiBold.ttf \
-  e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65:BarlowCondensed-Bold.ttf \
+  bd299f4bc5b44d30be8d42e9bad3a5df7d66af1cd55d0ed72a8b8916360a1424:BarlowSemiCondensed-SemiBold.ttf \
+  5bd6757e459a110da81b44532f0f43058e2dab2401688abca84f2fdbde193cbb:BarlowSemiCondensed-Bold.ttf \
   186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f:OFL.txt
-# The committed TTFs were made with fontTools 4.60.2, and 4.68.0 gives the same bytes; older ones
-# are refused. Build its environment on Apple's /usr/bin/python3, as for the scaler (Homebrew's
+# The committed TTFs were made with fontTools 4.60.2 (Barlow Condensed's gave the same bytes with
+# 4.68.0); older ones are refused. Build its environment on Apple's /usr/bin/python3, as for the scaler (Homebrew's
 # Python cannot bootstrap pip on the owner's Mac): /usr/bin/python3 -m venv <dir> &&
 # <dir>/bin/pip install fonttools==4.60.2, then FONTTOOLS_PYTHON=<dir>/bin/python.
 FONTTOOLS_VERSION := 4.60.2
 ## The Python with fontTools that font-sources runs tools/tabular-figures.py with
 FONTTOOLS_PYTHON ?= python3
-## Fetch Barlow Condensed from google/fonts and give it tabular figures (needs fontTools) [FONTTOOLS_PYTHON]
+## Fetch Barlow Semi Condensed from google/fonts and give it tabular figures (needs fontTools) [FONTTOOLS_PYTHON]
 font-sources:
 	@have=$$("$(FONTTOOLS_PYTHON)" -c 'import fontTools; print(fontTools.version)' 2>/dev/null); \
 	  $(call version_at_least,$$have,$(FONTTOOLS_VERSION)) || { \
@@ -253,10 +254,11 @@ font-sources:
 	  test "$$got" = "$$sum" || { echo "$$f: SHA-256 $$got, expected $$sum."; exit 1; }; \
 	done; \
 	for w in SemiBold Bold; do \
-	  "$(FONTTOOLS_PYTHON)" tools/tabular-figures.py "$$tmp/BarlowCondensed-$$w.ttf" \
-	    "resources/fonts/BarlowCondensedTabular-$$w.ttf" || exit 1; \
+	  "$(FONTTOOLS_PYTHON)" tools/tabular-figures.py "$$tmp/BarlowSemiCondensed-$$w.ttf" \
+	    "resources/fonts/BarlowSemiCondensedTabular-$$w.ttf" || exit 1; \
 	done; \
-	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowCondensed.txt
+	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowSemiCondensed.txt; \
+	"$(FONTTOOLS_PYTHON)" tools/digit-ink.py resources/fonts/BarlowSemiCondensedTabular-SemiBold.ttf source/DigitInk.mc
 
 ## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
 ## runs them in the replay build, on resources-replay/replay.json
