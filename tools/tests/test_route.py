@@ -481,9 +481,10 @@ def test_make_routes_rejects_orphan(tmp_path):
     ("Łódź", "Lodz"),
     ("Đakovo", "Dakovo"),
     ("Þingvellir", "Thingvellir"),
-    ("Via dell’Amicizia – Nord", "Via dell'Amicizia - Nord"),
+    ("Via dell’Amicizia — Nord", "Via dell'Amicizia - Nord"),
+    ("Via dell’Amicizia – Nord", "Via dell'Amicizia – Nord"),
     ("Plain (A-Z), 0-9 / ok.", "Plain (A-Z), 0-9 / ok."),
-    ("Kept: + > ~ ° · …", "Kept: + > ~ ° · …"),
+    ("Kept: + > ? ~ ° · – …", "Kept: + > ? ~ ° · – …"),
 ])
 def test_fold(text, folded):
     assert route.fold(text) == folded
