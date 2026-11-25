@@ -138,6 +138,9 @@ module ReplayTest {
         Test.assertMessage(f.input instanceof ReplayInput, "the replay in the sensors' place");
         Test.assertMessage(!f.demo && !f.records(), "not the demo, and never recorded");
         var input = f.input as ReplayInput;
+        // Nothing is read before the climb starts (#51): the replay's clock starts with it.
+        Test.assertMessage(input.startMs == null, "not started on the ready screen");
+        f.start(:head);
         var n = input.samples.size();
         Test.assertMessage(n > 0, "entries: " + n);
         var first = input.samples[0] as Array, last = input.samples[n - 1] as Array;

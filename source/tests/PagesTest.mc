@@ -101,6 +101,7 @@ module PagesTest {
     (:test, :noreplay)
     function zoomDrawsTheDemoFrameByFrame(logger as Logger) as Boolean {
         var f = new TestFeed(RouteTest.demo(), true, false), d = draw(), moves = 0, frames = DemoInput.LOOP_MS / Feed.DEMO_TICK_MS;
+        f.start(:head);
         var before = null as Array<Float>?;
         for (var frame = 0; frame < frames; frame++) {
             f.tick();
