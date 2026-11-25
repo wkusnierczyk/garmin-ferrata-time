@@ -2,8 +2,8 @@
   "about": "The app's font sizes, the one source of truth (#62): each a share of the screen's width, with its pixels at the 416 px reference. tools/font-config.py writes fonts.xml, charsets.json and source/FontSizes.mc from it. A mock uses only these sizes; a size scaled by a widget's factor rounds to the nearest, the larger on a tie, as the watch does.",
   "reference": 416,
   "glyphs": {
-    "text": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
-    "numbers": " -:0123456789",
+    "text": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
+    "numbers": " -–:0123456789",
     "grades": "/0123456789ABCDEFGKRW"
   },
   "fonts": [

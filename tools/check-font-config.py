@@ -27,17 +27,18 @@ WRITE = '--write' in sys.argv[1:]
 HASHES = 'fonts.sha256'
 # Where the SDK manager keeps the device definitions: macOS, then Linux. CIQ_DEVICES overrides.
 DEVICE_DIRS = ['~/Library/Application Support/Garmin/ConnectIQ/Devices', '~/.Garmin/ConnectIQ/Devices']
-LICENCE = 'resources/fonts/OFL-BarlowCondensed.txt'
+LICENCE = 'resources/fonts/OFL-BarlowSemiCondensed.txt'
 CIQ_SHAPES = {'round', 'semiround', 'rectangle', 'semioctagon'}
 
 # The size table, resources/fonts/sizes.json, is the one source (tools/font-config.py writes the
 # configuration from it). The glyph sets are the owner's (2026-11-22: only what the app needs).
 # Text: letters, digits, the space, and the punctuation the code and the mock pages draw (the
 # parentheses, the comma and the period from route names in the mocks, "Grosser Spalt (var. E)",
-# "Bridge, summit wall"); route names are folded to these by the route tool (#84). Numbers: what
-# the large figures show, counts and h:mm. Grades: the letters and digits of the difficulty boxes
-# (A to F with half steps such as C/D, K1 to K6 and K3/4, R, W and E).
-FACES = {'SemiBold': 'BarlowCondensedTabular-SemiBold', 'Bold': 'BarlowCondensedTabular-Bold'}
+# "Bridge, summit wall"), the question mark of a call sign with no emergency number and the en dash
+# of a time not known yet (#109); route names are folded to these by the route tool (#84). Numbers:
+# what the large figures show, counts and h:mm, and the en dash. Grades: the letters and digits of
+# the difficulty boxes (A to F with half steps such as C/D, K1 to K6 and K3/4, R, W and E).
+FACES = {'SemiBold': 'BarlowSemiCondensedTabular-SemiBold', 'Bold': 'BarlowSemiCondensedTabular-Bold'}
 _spec = importlib.util.spec_from_file_location('font_config', os.path.join(os.path.dirname(__file__), 'font-config.py'))
 font_config = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(font_config)
@@ -45,11 +46,11 @@ SIZES = font_config.table()
 IDS = {w: [font_config.font_id(f) for f in SIZES['fonts'] if f['weight'] == w] for w in FACES}
 CHARSETS = {font_config.font_id(f): SIZES['glyphs'][f['glyphs']] for f in SIZES['fonts']}
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-TEXT = LETTERS + " '()+,-./:>~°·…"
-NUMBERS = ' -:0123456789'
+TEXT = LETTERS + " '()+,-./:>?~°·–…"
+NUMBERS = ' -–:0123456789'
 GRADES = '/0123456789ABCDEFGKRW'
 
-# Barlow Condensed, in font units: ascender and descender (hhea) and cap height (OS/2). ttf2bmp's
+# Barlow Semi Condensed, in font units (Barlow Condensed's too): ascender and descender (hhea) and cap height (OS/2). ttf2bmp's
 # size is the em, as a browser's font-size: lineHeight = ceil(size x 1.2 em), base = size (the
 # ascender is 1 em), which Draw.CAP (0.7) relies on; a capital stands 0.7 of the size, as in a mock.
 UPM, ASC, DESC, CAP = 1000, 1000, 200, 700

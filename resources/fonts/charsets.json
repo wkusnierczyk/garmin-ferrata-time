@@ -1,102 +1,102 @@
 [
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold16"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold18"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold20"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold22"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold24"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold28"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold30"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold32"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold36"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold40"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold44"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "SemiBold46"
     },
     {
-        "fontCharset": " -:0123456789",
+        "fontCharset": " -–:0123456789",
         "fontId": "SemiBold52"
     },
     {
-        "fontCharset": " -:0123456789",
+        "fontCharset": " -–:0123456789",
         "fontId": "SemiBold58"
     },
     {
-        "fontCharset": " -:0123456789",
+        "fontCharset": " -–:0123456789",
         "fontId": "SemiBold64"
     },
     {
-        "fontCharset": " -:0123456789",
+        "fontCharset": " -–:0123456789",
         "fontId": "SemiBold84"
     },
     {
-        "fontCharset": " -:0123456789",
+        "fontCharset": " -–:0123456789",
         "fontId": "SemiBold104"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold18"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold20"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold24"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold26"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold28"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold30"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold34"
     },
     {
-        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>~°·…",
+        "fontCharset": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
         "fontId": "Bold36"
     },
     {

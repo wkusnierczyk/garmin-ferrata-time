@@ -4,8 +4,8 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// The app's typeface (#62): Barlow Condensed, the mocks' face, with tabular figures, in SemiBold and
-// Bold, as bitmap fonts. A size is a share of the screen's width, from the size table
+// The app's typeface (#62, #109): Barlow Semi Condensed, the mocks' face, with tabular figures, in
+// SemiBold and Bold, as bitmap fonts. A size is a share of the screen's width, from the size table
 // (resources/fonts/sizes.json, as FontSizes); garmin-font-scaler makes each font at its share of
 // every resolution. Each font is loaded on first use and kept.
 module Fonts {
