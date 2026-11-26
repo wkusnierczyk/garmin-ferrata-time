@@ -239,17 +239,18 @@ module DescentTest {
         for (var page = from; page <= to; page++) {
             for (var p = 0; p < places.size(); p++) {
                 var st = Climb.State.placed(places[p], Climb.heightAtDistance(places[p]), 30.0, 1.0, 480.0, 25);
-                Pages.draw(page, new Draw(dc), st);
+                Pages.drawPage(page, new Draw(dc), st);
             }
         }
         return true;
     }
 
-    // Every page on the route that dips below its head; pages 3 and 4 also on the one with no sideways
-    // travel, whose fit divided by 0 (the other pages draw nothing there the dip does not).
+    // Every page, the parked stacks too (#128), on the route that dips below its head; pages 3 and 4
+    // also on the one with no sideways travel, whose fit divided by 0 (the other pages draw nothing
+    // there the dip does not).
     (:test, :noreplay)
     function pagesDrawOnADip(logger as Logger) as Boolean {
-        return drawsEverywhere(dipRoute(), 0, Pages.COUNT - 1);
+        return drawsEverywhere(dipRoute(), 0, Pages.pageAt(Pages.COUNT - 1));
     }
 
     (:test, :noreplay)

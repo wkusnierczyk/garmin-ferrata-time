@@ -18,6 +18,17 @@ module PagesTest {
         return Climb.State.placed(d, Climb.heightAtDistance(d), 30.0, 1.0, 480.0, 25);
     }
 
+    // The cycle leaves out the parked stacks, pages 8 to 11 (#128): after page 7 comes page 12, the
+    // section preview (page 15) is the cycle's last place, and the tap zone's page is the preview's.
+    (:test)
+    function cycleSkipsTheParkedStacks(logger as Logger) as Boolean {
+        Test.assertEqualMessage(Pages.pageAt(6), 6, "page 7 in its own place");
+        Test.assertEqualMessage(Pages.pageAt(7), 11, "page 12 right after page 7");
+        Test.assertEqualMessage(Pages.pageAt(Pages.COUNT - 1), 14, "page 15 last");
+        Test.assertEqualMessage(Pages.pageAt(Pages.SECTION_PAGE), 14, "the tap zone on page 15");
+        return true;
+    }
+
     // Page 15 names the ferrata's head on its first section and the route's top on its last, and
     // neither on the approach, which starts elsewhere and ends at the head.
     (:test)
