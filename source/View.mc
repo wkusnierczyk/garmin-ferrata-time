@@ -147,8 +147,9 @@ class View extends WatchUi.View {
         if (Climb.FERRATA != ferrataShown) {
             ferrataShown = Climb.FERRATA;
             sel = -1;
-            // Onto the ferrata, its first page (the flow mock).
-            page = 0;
+            // Onto the ferrata, its first page (the flow mock). Not onto the approach: this runs only
+            // when the pages draw, after Up on F4 has already picked the last page (Codex, #124).
+            if (Climb.FERRATA) { page = 0; }
         }
         var f = feed;
         if (f != null && f.tracker != climbShown) {
