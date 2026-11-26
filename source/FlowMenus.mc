@@ -32,6 +32,8 @@ class FlowMenu {
     var items as Array<FlowItem>;
     var sel as Number = 0;
     var parent as FlowMenu? = null;
+    // The summary's line of figures, laid out once when it is first drawn (FlowDraw).
+    var line as SummaryLine? = null;
 
     function initialize(i as Symbol, rows as Array<FlowItem>) {
         id = i;

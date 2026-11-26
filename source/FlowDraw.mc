@@ -204,29 +204,75 @@ module FlowDraw {
     function summary(d as Draw, f as FlowMenus, m as FlowMenu) as Void {
         var t = f.feed.tracker;
         title(d, f.feed.route.name.toUpper(), Flow.WHITE);
-        var climbed = Climb.FERRATA ? t.state().climbed() : 0;
-        var syms = [:ascent, :watch, :drift] as Array<Symbol>;
-        var values = [climbed.format("%d"), Flow.hours(t.activeS / 60), Flow.signed(Math.round(t.drift()).toNumber())] as Array<String>;
-        var units = ["m", "", "m"] as Array<String>;
-        var fs = 0.085, sym = fs * 0.87, sg = 0.013, ig = 0.045, ug = 0.007;
-        var vk = size(false, fs), uk = size(false, fs * 0.616);
-        var w = new Array<Float>[3], total = 2 * ig;
-        for (var i = 0; i < 3; i++) {
-            w[i] = sym + sg + width(d, false, vk, values[i]) + (units[i].length() > 0 ? ug + width(d, false, uk, units[i]) : 0.0);
-            total += w[i];
+        var line = m.line;
+        if (line == null) {
+            var climbed = Climb.FERRATA ? t.state().climbed() : 0;
+            line = summaryLine(d, [climbed.format("%d"), Flow.hours(t.activeS / 60),
+                Flow.signed(Math.round(t.drift()).toNumber())] as Array<String>);
+            m.line = line;
         }
-        var x = 0.5 - total / 2, y = 0.34, base = y + d.capHeight(font(d, false, vk)) / 2;
+        var syms = [:ascent, :watch, :drift] as Array<Symbol>;
+        var fs = line.fs, sym = fs * 0.87, sg = fs * SG, ig = fs * IG, ug = fs * UG;
+        var x = 0.5 - line.total / 2, base = LINE_Y + d.capHeight(font(d, false, line.vk)) / 2;
         for (var i = 0; i < 3; i++) {
-            Symbols.row(d, syms[i], x + sym / 2, y, sym);
+            Symbols.row(d, syms[i], x + sym / 2, LINE_Y, sym);
             var vx = x + sym + sg;
-            d.textBase(vx, base, font(d, false, vk), values[i], Flow.WHITE, LEFT);
-            if (units[i].length() > 0) {
-                d.textBase(vx + width(d, false, vk, values[i]) + ug, base, font(d, false, uk), units[i], Flow.GREY, LEFT);
+            d.textBase(vx, base, font(d, false, line.vk), line.values[i], Flow.WHITE, LEFT);
+            if (UNITS[i].length() > 0) {
+                d.textBase(vx + line.vw[i] + ug, base, font(d, false, line.uk), UNITS[i], Flow.GREY, LEFT);
             }
-            x += w[i] + ig;
+            x += line.w[i] + ig;
         }
         d.line(0.18, 0.45, 0.82, 0.45, 0x333333, 0.0036);
         rows(d, m, 0.67, 1, 1);
+    }
+
+    // The summary's line (owner, 2026-11-26): its middle at 0.34, the figures at 0.085 of the width,
+    // the symbols 0.87 of them, the units 0.616, the gaps after a symbol, between the items and before a
+    // unit 0.013, 0.045 and 0.007 at that size, in proportion to it at another.
+    const LINE_Y = 0.34;
+    const LINE = 0.085;
+    const SG = 0.013 / 0.085;
+    const IG = 0.045 / 0.085;
+    const UG = 0.007 / 0.085;
+    const UNITS = ["m", "", "m"] as Array<String>;
+    // The room a line may take: this share of the round screen's width at its glyphs' top and bottom,
+    // as a title's (Codex on #124: a long climb's figures ran off the screen).
+    const LINE_MARGIN = 0.85;
+
+    // The line laid out: the largest SemiBold from the mock's size down whose whole block (symbols,
+    // values, units and gaps, all at that size) fits its room, or the smallest. Measured as it goes, so
+    // done once, when the summary opens.
+    function summaryLine(d as Draw, values as Array<String>) as SummaryLine {
+        var line = new SummaryLine(values);
+        for (var k = size(false, LINE); k >= 0; k--) {
+            layLine(d, line, k);
+            if (line.total <= lineRoom(d, line)) { break; }
+        }
+        return line;
+    }
+
+    function layLine(d as Draw, line as SummaryLine, k as Number) as Void {
+        var fs = FontSizes.SEMI[k], uk = size(false, fs * 0.616);
+        line.vk = k;
+        line.uk = uk;
+        line.fs = fs;
+        line.total = 2 * fs * IG;
+        for (var i = 0; i < 3; i++) {
+            line.vw[i] = d.width(font(d, false, k), line.values[i]);
+            line.w[i] = fs * 0.87 + fs * SG + line.vw[i]
+                + (UNITS[i].length() > 0 ? fs * UG + d.width(font(d, false, uk), UNITS[i]) : 0.0);
+            line.total += line.w[i];
+        }
+    }
+
+    // The width a line may take: the narrower of the screen's widths at its top and bottom (the taller
+    // of the symbols and the capitals), less the margin.
+    function lineRoom(d as Draw, line as SummaryLine) as Float {
+        var cap = d.capHeight(font(d, false, line.vk)), sym = line.fs * 0.87;
+        var half = (cap > sym ? cap : sym) / 2;
+        var top = chord(LINE_Y - half), bottom = chord(LINE_Y + half);
+        return (top < bottom ? top : bottom) * LINE_MARGIN;
     }
 
     // F11: "CALIBRATED at", the altitude calibrated to large in the middle, and under it the point's
@@ -403,6 +449,23 @@ module FlowDraw {
     function chord(y as Float) as Float {
         var dy = y - 0.5;
         return 2 * Math.sqrt(0.25 - dy * dy).toFloat();
+    }
+}
+
+// The summary's line of figures as laid out once (FlowDraw.summaryLine): the values, the SemiBold of
+// the values and of the units, the values' size as a share, each value's and item's width, the total.
+class SummaryLine {
+
+    var values as Array<String>;
+    var vk as Number = 0;
+    var uk as Number = 0;
+    var fs as Float = 0.0;
+    var vw as Array<Float> = [0.0, 0.0, 0.0] as Array<Float>;
+    var w as Array<Float> = [0.0, 0.0, 0.0] as Array<Float>;
+    var total as Float = 0.0;
+
+    function initialize(v as Array<String>) {
+        values = v;
     }
 }
 
