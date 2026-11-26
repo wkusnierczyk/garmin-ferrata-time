@@ -6,9 +6,17 @@ import Toybox.Lang;
 // The buttons go to the climb flow (#51) first: Start and Back open its menus (and before the start
 // Back leaves), and Up and Down move in them while one is open, else change page. Holding Up opens Ask
 // (and Settings). On page 9 a tap on a chevron steps the previewed section; other taps do nothing.
+// A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns
+// false (BehaviorDelegate's documented order, #117).
 class Delegate extends WatchUi.BehaviorDelegate {
 
     var view as View;
+    // When the Start button last went down (System.getTimer()), null once taken or after another key:
+    // Start comes as the select behaviour, which a tap on the screen also sends, so onSelect presses
+    // Start only for a press this recent (#117). A Start held, or whose release a system screen took,
+    // never comes as select; the bound keeps that press from making a later tap act as Start.
+    var startDownMs as Number? = null;
+    const START_MS = 1500;
 
     function initialize(v as View) {
         BehaviorDelegate.initialize();
@@ -45,9 +53,16 @@ class Delegate extends WatchUi.BehaviorDelegate {
     // The buttons. Up and Down go to the flow only while it has the screen; else they come back as
     // onNextPage and onPreviousPage and change page. Back the flow does not take (before the start)
     // comes back as onBack, which leaves the app.
+    function onKeyPressed(evt as WatchUi.KeyEvent) as Boolean {
+        startDownMs = evt.getKey() == WatchUi.KEY_ENTER ? System.getTimer() : null;
+        return false;
+    }
+
     function onKey(evt as WatchUi.KeyEvent) as Boolean {
         var k = evt.getKey();
-        if (k == WatchUi.KEY_ENTER) { return view.press(:start); }
+        // On a watch whose Start has no select behaviour, it comes here. Always taken, so Start is
+        // pressed once whatever press() returns.
+        if (k == WatchUi.KEY_ENTER) { startDownMs = null; view.press(:start); return true; }
         if (k == WatchUi.KEY_ESC) { return view.press(:back); }
         if ((k == WatchUi.KEY_UP || k == WatchUi.KEY_DOWN) && view.flowOnScreen()) {
             return view.press(k == WatchUi.KEY_UP ? :up : :down);
@@ -55,9 +70,17 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // A tap on a touchscreen also comes as select, possibly before onTap sees it: it does nothing, so a
-    // touch never pauses the climb or picks a row. The Start button comes to onKey.
+    // The Start button comes here first (#117), and so does a tap on the touchscreen, possibly before
+    // onTap sees it. Only the button presses Start, so a touch never pauses the climb or picks a row;
+    // Start is taken here, so onKey does not see it again. A tap is taken too (it does nothing) except
+    // on page 9 off the flow, where onTap steps the section.
     function onSelect() as Boolean {
+        var t = startDownMs;
+        startDownMs = null;
+        if (t != null && System.getTimer() - t < START_MS) {
+            view.press(:start);
+            return true;
+        }
         return view.page != Pages.SECTION_PAGE || view.flowOnScreen();
     }
 
