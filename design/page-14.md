@@ -1,8 +1,8 @@
-# Ferrata. Page 8, version 1
+# Ferrata. Page 14, version 1
 
 Status: settled with the owner on 2026-11-21 (#23)  
 Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
-Reference mock: `design/demo/page-8.html` (a live dial with a slider and playback, and the options as settings)  
+Reference mock: `design/demo/page-14.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
 The current difficulty large in the middle, the ascent around the edge.

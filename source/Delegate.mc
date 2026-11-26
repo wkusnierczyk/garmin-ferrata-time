@@ -6,7 +6,7 @@ import Toybox.Lang;
 // The buttons go to the climb flow (#51) first: Start and Back open its menus (before the start Back
 // closes the app at once, #121), and Up and Down move in them while the flow has the
 // screen, else change page. Holding Up opens Ask
-// (and Settings). On page 9 a tap on a chevron steps the previewed section; other taps do nothing.
+// (and Settings). On page 15 a tap on a chevron steps the previewed section; other taps do nothing.
 // A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns
 // false (BehaviorDelegate's documented order, #117).
 class Delegate extends WatchUi.BehaviorDelegate {
@@ -38,7 +38,7 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // A tap beside page 9's difficulty box, level with it, steps the section that way. The zone's edges
+    // A tap beside page 15's difficulty box, level with it, steps the section that way. The zone's edges
     // are shares of the screen's width, in whole pixels as the page draws them (a share is a decimal a
     // hair off its pixel).
     function onTap(evt as WatchUi.ClickEvent) as Boolean {
@@ -75,7 +75,7 @@ class Delegate extends WatchUi.BehaviorDelegate {
     // The Start button comes here first (#117), and so does a tap on the touchscreen, possibly before
     // onTap sees it. Only the button presses Start, so a touch never pauses the climb or picks a row;
     // Start is taken here, so onKey does not see it again. A tap is taken too (it does nothing) except
-    // on page 9 off the flow, where onTap steps the section.
+    // on page 15 off the flow, where onTap steps the section.
     function onSelect() as Boolean {
         var t = startDownMs;
         startDownMs = null;

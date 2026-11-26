@@ -3,7 +3,7 @@
 
     python3 tools/digit-ink.py <BarlowSemiCondensedTabular-SemiBold.ttf> <source/DigitInk.mc>
 
-The ascent's numbers on pages 1 and 1a must stay on the screen (Widgets.ascentInset). Their box, as
+The ascent's numbers on pages 1 and 2 must stay on the screen (Widgets.ascentInset). Their box, as
 wide as their advances, reaches further left than their ink: a number's side bearings, and the round
 tops of the digits, leave its corners empty, and the number that comes nearest the edge is the first
 of its width, 10 or 100, whose 1 has no ink in the box's upper left. The screen is a disk, which is

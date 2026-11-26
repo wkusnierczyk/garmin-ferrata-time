@@ -224,7 +224,7 @@ class Draw {
     // (Graphics.createColor and Dc.setFill, API 4.0; the epix's alphaBlendingSupport). The SDK's docs
     // say setFill takes precedence over setColor; in the simulator (SDK 9.3, epix2pro47mm) the next
     // setColor, which every other drawing here starts with, does set an opaque fill again (review of
-    // #103). On the watch: the page dots, drawn after it, should stay solid on page 1a. A device without
+    // #103). On the watch: the page dots, drawn after it, should stay solid on page 2. A device without
     // the API's alpha draws it opaque black (#121, the flow's button marks).
     function shade(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, r as Numeric, a as Number) as Void {
         if (!(Graphics has :createColor) || !(dc has :setFill)) {

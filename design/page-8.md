@@ -1,19 +1,19 @@
-# Ferrata. Pages 4 and 4a
+# Ferrata. Pages 8 and 9
 
 Status: settled with the owner on 2026-11-21 (#20)  
 Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
-Reference mock: `design/demo/pages-4-5.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
+Reference mock: `design/demo/pages-8-11.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
 Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
 
-The **ascent stack**: the route's sections as boxes as tall as the metres they climb, in a window that moves with the climber. Page 4a is the same stack inside the **ascent gauge** around the screen's edge. Pages 4 and 5 look alike (owner, 2026-11-22: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
+The **ascent stack**: the route's sections as boxes as tall as the metres they climb, in a window that moves with the climber. Page 9 is the same stack inside the **ascent gauge** around the screen's edge. Pages 8 and 10 look alike (owner, 2026-11-22, by their old numbers: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
 
 ## Settings
 
 | Setting | Value |
 |:--|:--|
 | Column | 0.1058 of the screen wide, centred on the screen |
-| Window | from 0.0865 to 0.9135 of the screen down; on page 4a from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
-| Scale | 0.0072 of the screen per metre climbed: 115 m in view, 91 m on page 4a |
+| Window | from 0.0865 to 0.9135 of the screen down; on page 9 from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
+| Scale | 0.0072 of the screen per metre climbed: 115 m in view, 91 m on page 9 |
 | The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
 | Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section as large as the next altitude's label (Bold 0.1250; owner, 2026-11-23) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
 | Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |

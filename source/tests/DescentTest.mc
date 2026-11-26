@@ -104,13 +104,13 @@ module DescentTest {
     function altitudesAreReal(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);
         // At the descent's foot: 50 m above the head, though 100 m have been climbed. What the pages show
-        // (the altitude widget, page 6, the difficulty group; the column's borders; page 9) is the real
-        // altitude, not the head's plus the height gained (1100).
+        // (the altitude widget, pages 12 and 13, the difficulty group; the column's borders; page 15) is
+        // the real altitude, not the head's plus the height gained (1100).
         var st = Climb.State.placed(150.0, Climb.heightAtDistance(150.0), 0.0, 1.0, 0.0, 25);
         Test.assertEqualMessage(st.climbed(), 100, "climbed");
         Test.assertEqualMessage(Widgets.altitudeNow(st, false), 1050, "the climber's altitude");
         Test.assertEqualMessage(Widgets.borderAltitude(2, false), 1050, "the descent's foot on the column");
-        Test.assertEqualMessage(Widgets.sectionAltitudes(1, false).toString(), [1100, 1050].toString(), "page 9's foot and top");
+        Test.assertEqualMessage(Widgets.sectionAltitudes(1, false).toString(), [1100, 1050].toString(), "page 15's foot and top");
         Test.assertEqualMessage(Widgets.altitudeNow(st, true), 3450, "in feet, to 50");
         return true;
     }
@@ -191,10 +191,10 @@ module DescentTest {
         return true;
     }
 
-    // Page 9 (#100): a descent's start, the higher altitude, above its box and its end below; a climb's
+    // Page 15 (#100): a descent's start, the higher altitude, above its box and its end below; a climb's
     // end above and its start below, as before.
     (:test)
-    function pageNineHigherAltitudeAbove(logger as Logger) as Boolean {
+    function pageFifteenHigherAltitudeAbove(logger as Logger) as Boolean {
         Climb.use(downRoute(), :ferrata);
         Test.assertEqualMessage(Pages.sectionLines(0, false).toString(), [1100, 1000].toString(), "a climb");
         Test.assertEqualMessage(Pages.sectionLines(1, false).toString(), [1100, 1050].toString(), "the descent");
@@ -245,7 +245,7 @@ module DescentTest {
         return true;
     }
 
-    // Every page on the route that dips below its head; pages 7 and 7a also on the one with no sideways
+    // Every page on the route that dips below its head; pages 3 and 4 also on the one with no sideways
     // travel, whose fit divided by 0 (the other pages draw nothing there the dip does not).
     (:test, :noreplay)
     function pagesDrawOnADip(logger as Logger) as Boolean {
@@ -254,6 +254,6 @@ module DescentTest {
 
     (:test, :noreplay)
     function frontPagesDrawWithoutSidewaysTravel(logger as Logger) as Boolean {
-        return drawsEverywhere(downRoute(), 11, 12);
+        return drawsEverywhere(downRoute(), 2, 3);
     }
 }
