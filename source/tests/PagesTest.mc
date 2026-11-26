@@ -236,12 +236,50 @@ module PagesTest {
                         var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (d.s(nx) - w)).toFloat();
                         if (over > box) { box = over; }
                     }
-                    var over = box <= 0 ? box : Widgets.inkPastEdge(d, font, nx, ys[k], t, digit, minus);
+                    // The outlines traced in full (boxFirst false): the brute force has its own box, from
+                    // the ink's real extent, so a wrong box in Widgets cannot hide here.
+                    var over = box <= 0 ? box : Widgets.inkPastEdge(d, font, nx, ys[k], t, digit, minus, false);
                     if (over > worst) { worst = over; }
                 }
             }
         }
         return worst;
+    }
+
+    // The box Widgets.inkPastEdge checks before tracing holds every number glyph's ink (#119): were
+    // DigitInk made again with ink outside it, the box would pass numbers whose ink crosses the edge.
+    (:test)
+    function digitInkInsideTheBox(logger as Logger) as Boolean {
+        for (var g = 0; g < DigitInk.LEFT.size(); g++) {
+            var p = DigitInk.LEFT[g];
+            for (var j = 0; j < p.size(); j += 2) {
+                var at = DigitInk.CHARS.substring(g, g + 1) + " at " + p[j] + ", " + p[j + 1];
+                Test.assertMessage(p[j] >= Widgets.INK_LEFT, at + ": left of the box");
+                Test.assertMessage(p[j + 1] >= Widgets.INK_FOOT && p[j + 1] <= Widgets.INK_TOP, at + ": above or below the box");
+            }
+        }
+        return true;
+    }
+
+    // With the box first or the outlines traced in full, the overshoot is the same wherever the ink
+    // reaches the edge, and below 0 in both where it does not (#119): numbers of every width and sign,
+    // along the left edge from top to bottom and either side of it.
+    (:test)
+    function inkBoxAgreesWithTrace(logger as Logger) as Boolean {
+        var d = draw(), font = d.semi(Widgets.NUMBER_SIZE);
+        var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
+        var texts = ["1", "7", "10", "100", "1000", "-1", "-10", "-100", "48", "350"] as Array<String>;
+        for (var x = 0.02; x < 0.3; x += 0.02) {
+            for (var y = 0.0; y <= 1.0; y += 0.05) {
+                for (var i = 0; i < texts.size(); i++) {
+                    var a = Widgets.inkPastEdge(d, font, x, y, texts[i], digit, minus, true);
+                    var b = Widgets.inkPastEdge(d, font, x, y, texts[i], digit, minus, false);
+                    var at = texts[i] + " at " + x + ", " + y + ": box first " + a + ", traced " + b;
+                    Test.assertMessage(b < 0 ? a < 0 : a == b, at);
+                }
+            }
+        }
+        return true;
     }
 
     // Pages 1 and 1a place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
