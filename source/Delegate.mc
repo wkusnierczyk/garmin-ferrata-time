@@ -4,7 +4,7 @@ using Toybox.WatchUi;
 import Toybox.Lang;
 
 // The buttons go to the climb flow (#51) first: Start and Back open its menus (before the start Back
-// shows APP CLOSED, then the app closes, #121), and Up and Down move in them while the flow has the
+// closes the app at once, #121), and Up and Down move in them while the flow has the
 // screen, else change page. Holding Up opens Ask
 // (and Settings). On page 9 a tap on a chevron steps the previewed section; other taps do nothing.
 // A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns

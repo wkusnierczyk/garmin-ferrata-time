@@ -89,7 +89,7 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // After APP CLOSED (Back on the ready screen, #121), the app leaves.
+    // After Back on the ready screen (#121), the app leaves.
     function leaveIfClosed(fl as FlowMenus) as Void {
         if (fl.quit) { System.exit(); }
     }

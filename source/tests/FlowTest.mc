@@ -162,26 +162,14 @@ module FlowTest {
         return true;
     }
 
-    // Back on the ready screen closes the app after APP CLOSED, which stays 3 s; Back again closes it at
-    // once (#121).
+    // Back on the ready screen closes the app at once, with nothing shown (owner, 2026-11-26, #121).
     (:test)
     function backBeforeStartClosesApp(logger as Logger) as Boolean {
         var f = flow();
         f.press(:start);
-        Test.assertMessage(f.press(:back) && f.menu == null, "Back in the Start menu returns to the ready screen");
+        Test.assertMessage(f.press(:back) && f.menu == null && !f.quit, "Back in the Start menu returns to the ready screen");
         Test.assertMessage(f.press(:back), "Back on the ready screen taken");
-        text(f.toast, "APP CLOSED", "APP CLOSED shows");
-        f.press(:start);
-        Test.assertMessage(f.menu == null && !f.quit, "Start does nothing under it");
-        f.tick(2999);
-        Test.assertMessage(f.toast != null && !f.quit, "for 3 s");
-        f.tick(1);
-        Test.assertMessage(f.toast == null && f.quit, "then the app closes");
-        f = flow();
-        f.press(:back);
-        f.tick(1000);
-        f.press(:back);
-        Test.assertMessage(f.toast == null && f.quit, "Back closes it at once");
+        Test.assertMessage(f.toast == null && f.quit, "the app closes at once, no toast");
         return true;
     }
 
@@ -675,14 +663,13 @@ module FlowTest {
         return true;
     }
 
-    // A new climb from the settings leaves no toast, and no APP CLOSED to close the app after it (the
-    // review of #124).
+    // A new climb from the settings leaves no toast, and no quit (the review of #124).
     (:test)
     function resetClearsToasts(logger as Logger) as Boolean {
         var f = flow();
-        f.press(:back);
+        f.showToast("SAVED", Flow.WHITE);
         f.reset();
-        Test.assertMessage(f.toast == null && !f.closing && !f.quit, "nothing left");
+        Test.assertMessage(f.toast == null && !f.quit, "nothing left");
         f.tick(5000);
         Test.assertMessage(!f.quit, "the app stays");
         f.quit = true;
@@ -990,9 +977,6 @@ module FlowTest {
         f.press(:start);
         choose(f, :save);
         Test.assertMessage(FlowDraw.draw(d, f), "F16, SAVED");
-        f.press(:back);
-        f.press(:back);
-        Test.assertMessage(FlowDraw.draw(d, f), "F19, APP CLOSED");
         return true;
     }
 

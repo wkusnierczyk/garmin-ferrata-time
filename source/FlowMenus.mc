@@ -94,15 +94,15 @@ class FlowDetail {
 // the tests drive it by press(); FlowDraw draws it, the view passes it the keys.
 class FlowMenus {
 
-    // How long SAVED, DISCARDED or APP CLOSED shows, in milliseconds (#121): Back closes it sooner.
+    // How long SAVED or DISCARDED shows, in milliseconds (#121): Back closes it sooner.
     const TOAST_MS = 3000;
 
     var feed as Feed;
     var range as [Number, Number];
     // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
     // confirmation (the altitude calibrated to, and the point it was at, -1 for an altitude entered), a
-    // toast over the ready screen. APP CLOSED is the toast Back on the ready screen shows (#121): when
-    // it closes the app does (quit, which the view acts on).
+    // toast over the ready screen. Back on the ready screen closes the app at once, to the watch's
+    // activities (quit, which the view acts on; owner, 2026-11-26: no APP CLOSED).
     var menu as FlowMenu? = null;
     var entry as FlowEntry? = null;
     var detail as FlowDetail? = null;
@@ -114,7 +114,6 @@ class FlowMenus {
     var toast as String? = null;
     var toastColour as Number = Flow.WHITE;
     var toastMs as Number = 0;
-    var closing as Boolean = false;
     var quit as Boolean = false;
     // This climb: whether the head has been offered (once), and the landmarks the GPS prompted.
     var headOffered as Boolean = false;
@@ -138,14 +137,13 @@ class FlowMenus {
         figures = [Math.round(path).toNumber().format("%d"), r.ascent().format("%d"), Flow.hours(r.guideMinutes())];
     }
 
-    // A new climb from the settings: the ready screen, nothing open, no toast (nor APP CLOSED's exit).
+    // A new climb from the settings: the ready screen, nothing open, no toast, no quit.
     function reset() as Void {
         menu = null;
         entry = null;
         detail = null;
         calibrated = null;
         toast = null;
-        closing = false;
         quit = false;
         newClimb();
     }
@@ -203,19 +201,14 @@ class FlowMenus {
         if (toastMs <= 0) { closeToast(); }
     }
 
-    // The toast goes; after APP CLOSED, so does the app.
     function closeToast() as Void {
         toast = null;
-        if (closing) {
-            closing = false;
-            quit = true;
-        }
     }
 
     // A button: :start, :back, :up or :down. False when the flow does not take it: Up and Down during
     // the climb (the pages change).
     function press(key as Symbol) as Boolean {
-        // SAVED, DISCARDED and APP CLOSED stay their time; Back closes them at once (#121).
+        // SAVED and DISCARDED stay their time; Back closes them at once (#121).
         if (toast != null) {
             if (key == :back) { closeToast(); }
             return true;
@@ -243,11 +236,8 @@ class FlowMenus {
         var p = phase();
         if (p == Tracker.IDLE) {
             if (key == :start) { open(startMenu(), null); }
-            // Back leaves the app, after APP CLOSED (#121). Up and Down do nothing yet.
-            if (key == :back) {
-                showToast("APP CLOSED", Flow.GREY);
-                closing = true;
-            }
+            // Back leaves the app at once (#121). Up and Down do nothing yet.
+            if (key == :back) { quit = true; }
             return true;
         }
         if (p == Tracker.ENDED) {
