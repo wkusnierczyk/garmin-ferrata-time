@@ -201,7 +201,7 @@ def check_rules(r):
     for p in pts:
         if p["kind"] == "approach" and "type" not in p:
             out.append(f"{point_label(p)}: type is missing (what the point is, as Top station or Car park)")
-        elif p["kind"] == "approach" and not p["type"]:
+        elif p["kind"] == "approach" and not p["type"].strip():
             out.append(f"{point_label(p)}: type is not empty")
         elif p["kind"] == "landmark" and "type" not in p:
             out.append(f"{point_label(p)}: type is missing ({LANDMARK_TYPES_TEXT})")

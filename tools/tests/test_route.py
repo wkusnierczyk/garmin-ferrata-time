@@ -136,8 +136,9 @@ def test_type_missing_on_approach_point(tmp_path, capsys):
             "approach 'Car park': type is missing (what the point is, as Top station or Car park)")
 
 
-def test_type_empty(tmp_path, capsys):
-    rejects(tmp_path, capsys, fixture(lambda r: point(r, "approach").update(type="")),
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_type_empty(tmp_path, capsys, blank):
+    rejects(tmp_path, capsys, fixture(lambda r: point(r, "approach").update(type=blank)),
             "approach 'Car park': type is not empty")
 
 

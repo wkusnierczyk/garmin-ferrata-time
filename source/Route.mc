@@ -85,8 +85,8 @@ class Route {
         // The approach's start and a landmark say what they are (#121), which the Start menu and the
         // details show. A landmark's type the app does not know (the tool has rest, bridge, sign) shows
         // as it is, in grey.
-        var typed = "approach".equals(kind) || "landmark".equals(kind);
-        if (typed && !(d["type"] instanceof String)) { return false; }
+        var typed = "approach".equals(kind) || "landmark".equals(kind), type = d["type"];
+        if (typed && (!(type instanceof String) || type.length() == 0)) { return false; }
         if (d["lat"] != null && !isNumeric(d["lat"] as Object?)) { return false; }
         if (d["lon"] != null && !isNumeric(d["lon"] as Object?)) { return false; }
         return true;
