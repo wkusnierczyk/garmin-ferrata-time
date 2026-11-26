@@ -1707,8 +1707,9 @@ module Widgets {
     // comes next, "C/D 125 m", GROUP_GAP from the box; all centred on the box (owner, 2026-11-23: the
     // altitude's unit ended at the box's right edge). Pages 3 and 4: the altitude at SemiBold 40 and its
     // unit 24 (px at 416) whatever k, no point of interest. Page 14 (points): the altitude at 26 and the
-    // unit 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's top too) as a
-    // word under the next line, centred, the top of its capitals 0.0288 below that line's baseline.
+    // unit 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's
+    // top too) as a word under the next line, centred, the top of its capitals 0.0288 below that line's
+    // baseline.
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k, Climb.descends(st.cur));
