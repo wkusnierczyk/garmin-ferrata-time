@@ -47,7 +47,7 @@ The route's height as a vertical line, with the climber on it.
 - The climber's height as an orange ring on the line, sized so that at either end it rings the end's dot. The line runs from the head to the top's real (net) height, and the ring is a position on it, the real height (#100; owner, 2026-11-23): on a descent it pulls back down. Where the route dips below the head, or climbs above its top before coming down to it, the ring stays at the line's end and the numbers say how far past it.
 - Stacking, back to front: the line; the ring's black inside, hiding the line; the end dots; the ring's orange outline.
 - Two numbers left of the line, right-aligned a small space before the ring:
-  - below the ring, the real height above the head now; above it, the top's real height less that (#100: on a descent the lower number falls and the upper grows). Amounts climbed stay height gained: the stacks, the gauge by ascent's arcs and the climbed totals;
+  - below the ring, the real height above the head now; above it, the top's real height less that (#100: on a descent the lower number falls and the upper grows). Amounts climbed stay height gained: the stacks (parked), the gauge by ascent's arcs and the climbed totals;
   - each centred on its stretch of the line, but kept clear of the ring as it nears either end;
   - and never past the line's end: once a number is level with the end it stays there.
 
@@ -98,6 +98,8 @@ The difficulty widget turned upright: the sections around the climber.
 Options: the colour map; a rest as `W` or as `R` (the mock's switch; the app shows `W`).
 
 ## difficulty stack
+
+Parked with pages 8 to 11: too noisy as a design, not in the app (#110, #128); the code stays.
 
 The sections to scale: boxes in a narrow column centred on the screen (0.1058 of its width), in a window that moves with the climber. Two variants:
 

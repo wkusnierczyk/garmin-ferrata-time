@@ -16,6 +16,7 @@ class View extends WatchUi.View {
     // the Ask list) or the page changes; counted down by the timer, not by the system clock, which wraps.
     const DOTS_MS = 2000;
 
+    // The place in the page cycle, from 0 (Pages.pageAt gives the page drawn).
     var page as Number = 0;
     // The section page 15 shows: -1 for the climber's, until the user steps with the chevrons. Reset
     // when the part shown changes (the approach or the ferrata), whose sections are others.

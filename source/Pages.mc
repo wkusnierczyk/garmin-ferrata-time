@@ -12,8 +12,9 @@ module Pages {
     const COUNT = 11;
     const PARKED_FROM = 7;
     const PARKED = 4;
-    // Page 15, the section preview (its place in the cycle), and the section it shows (-1: the climber's).
-    const SECTION_PAGE = 10;
+    // Page 15, the section preview (its place in the cycle, the last), and the section it shows (-1: the
+    // climber's).
+    const SECTION_PAGE = COUNT - 1;
     // Page 15's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
@@ -40,9 +41,15 @@ module Pages {
         return place >= PARKED_FROM ? place + PARKED : place;
     }
 
+    // Draws the page at a place in the cycle.
     function draw(place as Number, d as Draw, st as Climb.State) as Void {
+        drawPage(pageAt(place), d, st);
+    }
+
+    // Draws a page by its number less 1, the parked ones too (the tests draw every page).
+    function drawPage(page as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
-        switch (pageAt(place)) {
+        switch (page) {
             // Pages 1 and 2: the profile, and zoomed.
             case 0: { profilePage(d, st, false); break; }
             case 1: { profilePage(d, st, true); break; }
@@ -53,7 +60,8 @@ module Pages {
             case 4: { columnPage(d, st, false); break; }
             case 5: { columnPage(d, st, true); break; }
             case 6: { sideBySide(d, st); break; }
-            // Pages 8 and 9 by ascent, 10 and 11 by path; 9 and 11 inside the ascent gauge.
+            // Pages 8 and 9 by ascent, 10 and 11 by path; 9 and 11 inside the ascent gauge. Parked: not in
+            // the cycle (pageAt skips them, #128).
             case 7: { stackPage(d, st, true, false); break; }
             case 8: { stackPage(d, st, true, true); break; }
             case 9: { stackPage(d, st, false, false); break; }
