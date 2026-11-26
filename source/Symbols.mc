@@ -100,13 +100,13 @@ module Symbols {
         }
     }
 
-    // The pause symbol (owner, 2026-11-26, in place of the word PAUSED): a blue disk of radius r with
-    // two black bars.
+    // The pause symbol (owner, 2026-11-26, in place of the word PAUSED): two blue bars spanning what a
+    // disk of radius r would, 1.4 r tall, each 0.42 r wide, 0.36 r apart. No disk: on the watch the
+    // bars, rounded to pixels apart from it, stood a pixel off its middle (owner, 2026-11-26).
     function pause(d as Draw, cx as Float, cy as Float, r as Float) as Void {
-        var bw = r * 0.26, bh = r * 0.9, g = r * 0.2;
-        d.dot(cx, cy, r, PAUSE);
-        d.roundRect(cx - g - bw, cy - bh / 2, bw, bh, bw * 0.25, Graphics.COLOR_BLACK);
-        d.roundRect(cx + g, cy - bh / 2, bw, bh, bw * 0.25, Graphics.COLOR_BLACK);
+        var bw = r * 0.42, bh = r * 1.4, g = r * 0.18;
+        d.roundRect(cx - g - bw, cy - bh / 2, bw, bh, bw * 0.25, PAUSE);
+        d.roundRect(cx + g, cy - bh / 2, bw, bh, bw * 0.25, PAUSE);
     }
 
     // ---------------------------------------------------------------- the button marks
