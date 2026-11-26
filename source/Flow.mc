@@ -113,20 +113,23 @@ module Flow {
         return (minutes / 60).format("%d") + ":" + (minutes % 60).format("%02d");
     }
 
-    // A point's kind as a details screen's title shows it, and its colour, the pages' (Widgets): the
-    // head and an exit green, the top red (#121). A landmark's own type (a rest, a bridge, a sign) is not
-    // in the route file yet: LANDMARK in grey, as the mock's bridge and sign.
-    function kindWord(kind as String) as String {
+    // What a point is, as a details screen's title shows it, and its colour, the pages' (Widgets;
+    // #121): HEAD and EXIT green, TOP red; a landmark by its type, REST blue, BRIDGE and SIGN grey (the
+    // pages have no colour for them), LANDMARK grey for one without a type.
+    function word(p as Dictionary) as String {
+        var kind = p["kind"] as String;
         if (kind.equals("head")) { return "HEAD"; }
         if (kind.equals("exit")) { return "EXIT"; }
         if (kind.equals("top")) { return "TOP"; }
-        return "LANDMARK";
+        var type = p["type"];
+        return type instanceof String ? type.toUpper() : "LANDMARK";
     }
 
-    function kindColour(kind as String) as Number {
+    function colour(p as Dictionary) as Number {
+        var kind = p["kind"] as String;
         if (kind.equals("head")) { return Widgets.GREEN; }
         if (kind.equals("exit")) { return Widgets.GREEN; }
         if (kind.equals("top")) { return Widgets.RED; }
-        return GREY;
+        return "rest".equals(p["type"] as Object?) ? Widgets.REST : GREY;
     }
 }

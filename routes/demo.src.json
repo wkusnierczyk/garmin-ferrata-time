@@ -27,7 +27,7 @@
     {"kind": "head", "at": 0, "alt": 1290, "name": "Ferrata head"},
     {"kind": "danger", "at": 55, "name": "Rockfall"},
     {"kind": "exit", "at": 210, "name": "Band exit"},
-    {"kind": "landmark", "at": 390, "alt": 1310, "name": "Bench"},
+    {"kind": "landmark", "at": 390, "alt": 1310, "type": "rest", "name": "Bench"},
     {"kind": "exit", "at": 475, "name": "Last exit"},
     {"kind": "danger", "at": 520, "name": "Exposed bridge"},
     {"kind": "top", "at": 640, "alt": 1580, "name": "Top"}

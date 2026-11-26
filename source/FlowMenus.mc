@@ -489,9 +489,9 @@ class FlowMenus {
         return new FlowMenu(:landmarks, rows);
     }
 
-    // A point as a row: its name alone, outlined in its kind's colour.
+    // A point as a row: its name alone, outlined in its type's colour.
     function markItem(i as Number) as FlowItem {
-        var row = new FlowItem(:calAt, pointName(i), Flow.kindColour(feed.route.points[i]["kind"] as String));
+        var row = new FlowItem(:calAt, pointName(i), Flow.colour(feed.route.points[i]));
         row.point = i;
         return row;
     }

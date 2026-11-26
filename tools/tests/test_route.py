@@ -30,7 +30,7 @@ MINIMAL = {
         {"kind": "approach", "at": -20, "alt": 990, "type": "Car park", "name": "Car park"},
         {"kind": "head", "at": 0, "alt": 1000, "name": "Head"},
         {"kind": "exit", "at": 50, "name": "Exit"},
-        {"kind": "landmark", "at": 50, "alt": 1040, "name": "Bench"},
+        {"kind": "landmark", "at": 50, "alt": 1040, "type": "rest", "name": "Bench"},
         {"kind": "danger", "at": 60, "name": "Loose"},
         {"kind": "top", "at": 80, "alt": 1060, "name": "Top"},
     ],
@@ -120,8 +120,9 @@ def test_rule1_approach_point_not_at_start(tmp_path, capsys):
             "the approach point is at -20 (minus the approach's length)")
 
 
-# The approach point's type (#121): what the point is, a Top station or a Car park, which the Start
-# menu shows in its place; required on it, a non-empty name, and on no other point.
+# A point's type (#121): what the approach point is, a Top station or a Car park, which the Start menu
+# shows in its place, a non-empty name; what a landmark is, rest, bridge or sign, which its details
+# show; required on both, and on no other point.
 
 def test_type_written_after_alt(tmp_path):
     code, out = build(tmp_path, fixture())
@@ -145,9 +146,28 @@ def test_type_not_a_string(tmp_path, capsys):
             "approach 1 'Car park': type is a string")
 
 
-def test_type_only_on_approach_point(tmp_path, capsys):
-    rejects(tmp_path, capsys, fixture(lambda r: point(r, "landmark").update(type="Bench")),
-            "landmark 'Bench': type is for the approach point only")
+def test_type_only_on_approach_and_landmarks(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: point(r, "exit").update(type="rest")),
+            "exit 'Exit': type is for the approach point and landmarks only")
+
+
+@pytest.mark.parametrize("kind", ["rest", "bridge", "sign"])
+def test_landmark_types(tmp_path, kind):
+    code, out = build(tmp_path, fixture(lambda r: point(r, "landmark").update(type=kind)))
+    assert code == 0
+    assert list(point(out, "landmark")) == ["kind", "at", "alt", "type", "name"]
+    assert point(out, "landmark")["type"] == kind
+
+
+def test_landmark_type_missing(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: point(r, "landmark").pop("type")),
+            "landmark 'Bench': type is missing (rest, bridge or sign)")
+
+
+@pytest.mark.parametrize("kind", ["bench", "Rest", ""])
+def test_landmark_type_from_the_set(tmp_path, capsys, kind):
+    rejects(tmp_path, capsys, fixture(lambda r: point(r, "landmark").update(type=kind)),
+            f"landmark 'Bench': type is rest, bridge or sign, not {kind!r}")
 
 
 def test_type_folded(tmp_path, capsys):

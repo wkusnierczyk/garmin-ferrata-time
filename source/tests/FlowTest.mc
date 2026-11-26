@@ -384,7 +384,7 @@ module FlowTest {
         Test.assertMessage(rows(m, [:calAt, :landmarks, :calAltitude]), "the Bench first: " + ids(m));
         Test.assertEqualMessage(m.items[0].point, BENCH, "the Bench");
         Test.assertEqualMessage(m.items[0].label, "Bench", "its name alone");
-        Test.assertEqualMessage(m.items[0].colour, Flow.GREY, "outlined in a landmark's grey");
+        Test.assertEqualMessage(m.items[0].colour, Widgets.REST, "outlined in a rest's blue");
         return true;
     }
 
@@ -603,6 +603,28 @@ module FlowTest {
         return true;
     }
 
+    // A point's details are titled by what it is (#121): a landmark by its type, REST blue, BRIDGE and
+    // SIGN grey; the head and exits green, the top red. CALIBRATED's name takes the same colour.
+    (:test)
+    function pointWordsAndColours(logger as Logger) as Boolean {
+        var r = RouteTest.demo();
+        Test.assertEqualMessage(Flow.word(r.points[BENCH]), "REST", "the Bench is a rest");
+        Test.assertEqualMessage(Flow.colour(r.points[BENCH]), Widgets.REST, "blue");
+        var kinds = ["bridge", "sign"] as Array<String>;
+        for (var i = 0; i < kinds.size(); i++) {
+            var p = {"kind" => "landmark", "type" => kinds[i]} as Dictionary;
+            Test.assertEqualMessage(Flow.word(p), kinds[i].toUpper(), "its type");
+            Test.assertEqualMessage(Flow.colour(p), Flow.GREY, "grey");
+        }
+        Test.assertEqualMessage(Flow.word(r.points[HEAD]), "HEAD", "the head");
+        Test.assertEqualMessage(Flow.colour(r.points[HEAD]), Widgets.GREEN, "green");
+        Test.assertEqualMessage(Flow.word(r.points[BAND_EXIT]), "EXIT", "an exit");
+        Test.assertEqualMessage(Flow.colour(r.points[BAND_EXIT]), Widgets.GREEN, "green");
+        Test.assertEqualMessage(Flow.word(r.points[TOP]), "TOP", "the top");
+        Test.assertEqualMessage(Flow.colour(r.points[TOP]), Widgets.RED, "red");
+        return true;
+    }
+
     (:test)
     function aheadOrBack(logger as Logger) as Boolean {
         var a = Flow.ahead(420.0, 400.0);
@@ -708,7 +730,7 @@ module FlowTest {
         var r = Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
             "sections" => [{"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S", "side" => 0.0}],
             "points" => [{"kind" => "head", "at" => 0, "name" => "Head"},
-                {"kind" => "landmark", "at" => 50, "name" => "Bench"},
+                {"kind" => "landmark", "at" => 50, "type" => "rest", "name" => "Bench"},
                 {"kind" => "top", "at" => 100, "name" => "Top"}]}) as Route;
         var f = new FlowMenus(new FlowFeed(r));
         f.feed.start(:head);

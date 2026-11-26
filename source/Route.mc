@@ -72,8 +72,8 @@ class Route {
     }
 
     // A dictionary with a string kind; a point of a known kind also has a whole-number at and a name,
-    // the approach's start a type, and alt, lat and lon are numbers when there. Unknown kinds are not
-    // checked: they are ignored.
+    // the approach's start and a landmark a type, and alt, lat and lon are numbers when there. Unknown
+    // kinds are not checked: they are ignored.
     static function pointValid(p as Object?) as Boolean {
         if (!(p instanceof Dictionary)) { return false; }
         var d = p as Dictionary;
@@ -82,8 +82,11 @@ class Route {
         if (!isKnownKind(kind as String)) { return true; }
         if (!(d["at"] instanceof Number) || !(d["name"] instanceof String)) { return false; }
         if (d["alt"] != null && !(d["alt"] instanceof Number)) { return false; }
-        // The approach's start says what it is (#121), which the Start menu shows.
-        if ("approach".equals(kind) && !(d["type"] instanceof String)) { return false; }
+        // The approach's start and a landmark say what they are (#121), which the Start menu and the
+        // details show. A landmark's type the app does not know (the tool has rest, bridge, sign) shows
+        // as it is, in grey.
+        var typed = "approach".equals(kind) || "landmark".equals(kind);
+        if (typed && !(d["type"] instanceof String)) { return false; }
         if (d["lat"] != null && !isNumeric(d["lat"] as Object?)) { return false; }
         if (d["lon"] != null && !isNumeric(d["lon"] as Object?)) { return false; }
         return true;

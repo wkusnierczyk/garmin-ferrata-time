@@ -175,8 +175,8 @@ module FlowDraw {
             title(d, "HERE", Flow.WHITE);
             second = new SymRow(:path, Math.round(dt.d).toNumber().format("%d"), "m along");
         } else {
-            var kind = r.points[p]["kind"] as String;
-            titleParts(d, [["at ", Flow.GREY, false], [Flow.kindWord(kind), Flow.kindColour(kind), true]]);
+            var pt = r.points[p], kind = pt["kind"] as String;
+            titleParts(d, [["at ", Flow.GREY, false], [Flow.word(pt), Flow.colour(pt), true]]);
             if (kind.equals("landmark") || kind.equals("exit")) {
                 var k = size(true, 0.055), shown = dt.shown;
                 if (shown == null) {
@@ -232,7 +232,7 @@ module FlowDraw {
         if (p < 0) { return; }
         var pt = f.feed.route.points[p], name = (pt["name"] as String).toUpper();
         var k = fit(d, true, 0.06, name, chord(0.66) * 0.8);
-        d.textCapCentre(0.5, 0.66, font(d, true, k), name, Flow.kindColour(pt["kind"] as String));
+        d.textCapCentre(0.5, 0.66, font(d, true, k), name, Flow.colour(pt));
     }
 
     // Over the pages, the approach and the screens under the pause menu while paused: the pause symbol

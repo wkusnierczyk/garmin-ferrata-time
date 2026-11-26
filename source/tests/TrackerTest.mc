@@ -446,7 +446,7 @@ module TrackerTest {
         return Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
-                {"kind" => "landmark", "at" => 100, "alt" => 1100, "name" => "Ledge start"},
+                {"kind" => "landmark", "at" => 100, "alt" => 1100, "type" => "rest", "name" => "Ledge start"},
                 {"kind" => "top", "at" => 400, "name" => "Top"}]}) as Route;
     }
 

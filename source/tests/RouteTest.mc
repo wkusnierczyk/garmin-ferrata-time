@@ -457,6 +457,10 @@ module RouteTest {
         Test.assertMessage(Route.fromJson(data) == null, "an approach point without its type");
         data = source(); point(data, "approach")["type"] = 3;
         Test.assertMessage(Route.fromJson(data) == null, "type not a string");
+        data = source(); (data["points"] as Array<Dictionary>).add({"kind" => "landmark", "at" => 40, "alt" => 1050, "name" => "Ledge"});
+        Test.assertMessage(Route.fromJson(data) == null, "a landmark without its type");
+        point(data, "landmark")["type"] = "bridge";
+        Test.assertMessage(Route.fromJson(data) != null, "a landmark with one");
         return true;
     }
 
