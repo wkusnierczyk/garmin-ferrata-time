@@ -11,13 +11,6 @@ Issue numbers in parentheses point at
 [the tracker](https://github.com/wkusnierczyk/garmin-ferrata-time/issues), where the reasoning behind
 each change is recorded in full.
 
-## Unreleased
-
-### Changed
-
-* The pages are renumbered 1 to 37 in the order they come, and the route from the front comes
-  third, after the profile and its zoom: pages 1 to 15 now, 16 to 37 to follow. (#112)
-
 ## 0.1.0 -- 2026-11-21
 
 The prototype: a sideloadable demo that plays a made-up climb on the app's pages, to judge them on
