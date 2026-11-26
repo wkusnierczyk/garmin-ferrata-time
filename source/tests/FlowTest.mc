@@ -1035,7 +1035,7 @@ module FlowTest {
 
     // ---------------------------------------------------------------- the view
 
-    // The review of #88: page 9's selected section follows the climber again when the part changes.
+    // The review of #88: page 15's selected section follows the climber again when the part changes.
     (:test)
     function selectionResetsWithPart(logger as Logger) as Boolean {
         var r = RouteTest.demo();

@@ -5,7 +5,7 @@ using Toybox.System;
 import Toybox.Lang;
 import Toybox.Test;
 
-// Pages 1 to 9 as the mocks draw them (#95): what the widgets work out, apart from the drawing itself.
+// Pages 1 to 15 as the mocks draw them (#95): what the widgets work out, apart from the drawing itself.
 module PagesTest {
 
     function draw() as Draw {
@@ -18,7 +18,7 @@ module PagesTest {
         return Climb.State.placed(d, Climb.heightAtDistance(d), 30.0, 1.0, 480.0, 25);
     }
 
-    // Page 9 names the ferrata's head on its first section and the route's top on its last, and
+    // Page 15 names the ferrata's head on its first section and the route's top on its last, and
     // neither on the approach, which starts elsewhere and ends at the head.
     (:test)
     function headAndTopOnlyOnTheFerrata(logger as Logger) as Boolean {
@@ -26,7 +26,7 @@ module PagesTest {
         var n = Climb.count(), first = Widgets.sectionPoints(0), last = Widgets.sectionPoints(n - 1);
         Test.assertEqualMessage(first[0], Widgets.POI_HEAD, "HEAD first on the first section");
         Test.assertEqualMessage(last[last.size() - 1], Widgets.POI_TOP, "TOP last on the last section");
-        Test.assertEqualMessage(Widgets.poiNear(at(0.0), true), Widgets.POI_HEAD, "page 8 at the head");
+        Test.assertEqualMessage(Widgets.poiNear(at(0.0), true), Widgets.POI_HEAD, "page 14 at the head");
         Climb.use(RouteTest.demo(), :approach);
         var only = Widgets.sectionPoints(0);
         Test.assertMessage(only.indexOf(Widgets.POI_HEAD) < 0 && only.indexOf(Widgets.POI_TOP) < 0, "none on the approach");
@@ -35,7 +35,7 @@ module PagesTest {
         return true;
     }
 
-    // Page 1a draws the placement made for the climber's window, not one kept from an earlier window
+    // Page 2 draws the placement made for the climber's window, not one kept from an earlier window
     // (review of #99): the climber stays on the zoomed profile as the window moves on.
     (:test, :noreplay)
     function zoomFollowsTheWindow(logger as Logger) as Boolean {
@@ -53,7 +53,7 @@ module PagesTest {
         return true;
     }
 
-    // Page 1a draws each window at the largest scale that fits the rectangle, centred in it (#102: no
+    // Page 2 draws each window at the largest scale that fits the rectangle, centred in it (#102: no
     // search for a place clear of the widgets), on the demo route and on one with a crest a metre wide,
     // narrower than the window's height samples.
     (:test, :noreplay)
@@ -78,7 +78,7 @@ module PagesTest {
         return true;
     }
 
-    // The route page 1a draws, at the window's ends and every section end between them, inside the
+    // The route page 2 draws, at the window's ends and every section end between them, inside the
     // profile's rectangle.
     function zoomInside(where as String) as Void {
         var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2], e = 0.0001;
@@ -95,7 +95,7 @@ module PagesTest {
         }
     }
 
-    // Page 1a's zoomed profile frame by frame as the demo plays the route at its pace, the whole climb:
+    // Page 2's zoomed profile frame by frame as the demo plays the route at its pace, the whole climb:
     // every frame draws the climber's window, worked out anew only when the window moves, inside the
     // rectangle, the climber on it.
     (:test, :noreplay)
@@ -127,7 +127,7 @@ module PagesTest {
         return true;
     }
 
-    // Page 1a's half-transparent box under the altitude group (#102), in metres and in feet: it spans
+    // Page 2's half-transparent box under the altitude group (#102), in metres and in feet: it spans
     // the number's box and its unit; with a poi word it reaches down over the word, and left to the
     // word's start when the word is wider than the number, as "DANGER" is over three-digit altitudes
     // (the review of #103); without one it stops at the digits.
@@ -162,18 +162,18 @@ module PagesTest {
         return true;
     }
 
-    // A long flat stretch, as the Daubenhorn's 600 m traverse at its start: pages 1a and 7a draw only what
+    // A long flat stretch, as the Daubenhorn's 600 m traverse at its start: pages 2 and 4 draw only what
     // can be on the screen (review of #99, finding 2), and draw everywhere on it.
     (:test, :noreplay)
     function zoomedPagesDrawOnALongTraverse(logger as Logger) as Boolean {
         var r = RouteTest.made([[600, 0], [60, 40], [40, 97], [60, 10]] as Array<Array<Number> >);
         DescentTest.drawsEverywhere(r, 1, 1);
-        return DescentTest.drawsEverywhere(r, 12, 12);
+        return DescentTest.drawsEverywhere(r, 3, 3);
     }
 
-    // Page 9's words, measured once, are as wide as measured each time.
+    // Page 15's words, measured once, are as wide as measured each time.
     (:test)
-    function pageNineWordsMeasuredOnce(logger as Logger) as Boolean {
+    function pageFifteenWordsMeasuredOnce(logger as Logger) as Boolean {
         var d = draw(), font = d.bold(0.0673);
         for (var k = 0; k < Widgets.POI_WORD.size(); k++) {
             Test.assertEqualMessage(Pages.wordWidth(d, font, k), d.spacedWidth(font, Widgets.POI_WORD[k]), Widgets.POI_WORD[k]);
@@ -182,7 +182,7 @@ module PagesTest {
         return true;
     }
 
-    // Page 7's group placement is worked out per size and height, not one for all.
+    // Pages 3 and 4's group placement is worked out per size and height, not one for all.
     (:test)
     function groupPlaceFollowsItsSize(logger as Logger) as Boolean {
         Climb.use(RouteTest.demo(), :ferrata);
@@ -282,7 +282,7 @@ module PagesTest {
         return true;
     }
 
-    // Pages 1 and 1a place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
+    // Pages 1 and 2 place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
     // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
     // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
     // just until it does not, the profile's right end where it was.
@@ -360,7 +360,7 @@ module PagesTest {
     }
 
     // What comes next: the next section of a different difficulty and its distance to 5 m, or the
-    // top; page 7 places its group by the widest such line on the route.
+    // top; pages 3 and 4 place their group by the widest such line on the route.
     (:test)
     function nextAndTheLongestNext(logger as Logger) as Boolean {
         Climb.use(route([[100, 100, 1], [50, 0, 1], [100, 100, 3]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
@@ -405,8 +405,8 @@ module PagesTest {
         Test.assertMessage(RouteTest.near(pts[pts.size() - 1][1], Climb.netAt(n).toFloat()), "the top's height");
         var d = draw(), len = Climb.totalD().toFloat(), places = [0.0, 300.0, 700.0, len] as Array<Float>;
         for (var p = 0; p < places.size(); p++) {
-            Pages.draw(11, d, at(places[p]));
-            Pages.draw(12, d, at(places[p]));
+            Pages.draw(2, d, at(places[p]));
+            Pages.draw(3, d, at(places[p]));
         }
         return true;
     }

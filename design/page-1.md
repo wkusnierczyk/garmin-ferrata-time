@@ -1,11 +1,11 @@
-# Ferrata. Page 1, version 1
+# Ferrata. Pages 1 and 2, version 1
 
 Status: settled with the owner on 2026-11-20 (#16)  
 Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
 Reference mock: `design/demo/page-1.html` (a live dial with a slider and playback, and the options as settings)  
 Widgets: `design/widgets.md`
 
-The app's first page: the profile alone, with the numbers moved into widgets around it (it replaced the prototype's side-profile page, page A). Page 1a, the second page, is the same page with the profile zoomed.
+The app's first page: the profile alone, with the numbers moved into widgets around it (it replaced the prototype's side-profile page, page A). Page 2, the second page, is the same page with the profile zoomed.
 
 ## Layout
 
@@ -16,7 +16,7 @@ The app's first page: the profile alone, with the numbers moved into widgets aro
 - **difficulty**, without points (rests, exits, dangers), under the profile, centred on the screen, 40 % larger than on other pages (the middle box's letters Bold 0.0865 of the screen, the satellites' 0.0625), the boxes' tops on one line a box gap (0.0120) below the climber's ring at the start (owner, 2026-11-23: it sat small in the rectangle's lower right; the round screen has more room under the profile, in the middle).
 - The **altitude group** (altitude, with poi under it) in the rectangle's upper left: the top of the altitude's digits level with the top of the ascent's top number when that sits at the line's end, 0.31 of the number's size above the line's end (owner, 2026-11-23: it was level with the line's end, lower than the number beside it), its box starting a small space right of the ascent line's ring.
 
-## Page 1a: the profile zoomed
+## Page 2: the profile zoomed
 
 - The profile shows 100 m of path (each section's length and height combined) around the climber, a fifth of it behind and the rest ahead, slid inside the route near its ends, at one scale across and up.
 - The window at the largest scale that fits the rectangle, centred in it, worked out once per window (owner, 2026-11-23, #102). No search for a placement clear of the widgets: the search cost too much on the watch, and while it ran the profile was drawn over the altitude.

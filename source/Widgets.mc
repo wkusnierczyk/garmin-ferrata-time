@@ -122,7 +122,7 @@ module Widgets {
         d.ring(x, y, 0.019231, passed ? d.darken(c, 0.33) : c, 0.007212);
     }
 
-    // ---------------------------------------------------------------- profile, zoomed (page 1a)
+    // ---------------------------------------------------------------- profile, zoomed (page 2)
 
     // The zoom window (zoomWindow) drawn at one scale across and up, the largest that fits the box,
     // centred in it. No search for a place clear of the widgets around it (owner, 2026-11-23: too much
@@ -569,7 +569,7 @@ module Widgets {
     function altitudeNow(st as Climb.State, ft as Boolean) as Number { return altitudeValue(st.net(), ft); }
     function borderAltitude(b as Number, ft as Boolean) as Number { return altitudeValue(Climb.netAt(b).toFloat(), ft); }
 
-    // Section i's altitudes at its foot and its top, to the metre or foot (page 9).
+    // Section i's altitudes at its foot and its top, to the metre or foot (page 15).
     function sectionAltitudes(i as Number, ft as Boolean) as [Number, Number] {
         var k = ft ? 3.28084 : 1.0;
         return [Math.round((Climb.START_ALT + Climb.netAt(i)) * k).toNumber(),
@@ -636,7 +636,7 @@ module Widgets {
         return [left, right, down];
     }
 
-    // Page 1a: a half-transparent black box under the altitude group at x and yt (owner, 2026-11-23,
+    // Page 2: a half-transparent black box under the altitude group at x and yt (owner, 2026-11-23,
     // #102), ALT_PAD round it and rounded by as much, so the zoomed route running under the group shows
     // through half-dimmed. Drawn after the profile, before the group.
     const ALT_PAD = 0.014423;
@@ -719,7 +719,7 @@ module Widgets {
         return widestAltitude(d, ft, d.semi(COL_ALT), 1);
     }
 
-    // Page 2a: border b's height above the bottom of section cur, signed ("+137", "0", "-20"): the
+    // Page 6: border b's height above the bottom of section cur, signed ("+137", "0", "-20"): the
     // route's own heights, not the climber's estimate, so to the metre, or to 5 ft.
     function relativeValue(b as Number, cur as Number, ft as Boolean) as Number {
         var du = (Climb.netAt(b) - Climb.netAt(cur)).toFloat();
@@ -759,7 +759,7 @@ module Widgets {
     }
 
     // The difficulty column group's width: the larger box, the space, the altitudes (relative on page
-    // 2a) and the unit shown.
+    // 6) and the unit shown.
     function columnGroupWidth(d as Draw, relative as Boolean) as Float {
         var ft = feet(), altW = relative ? columnRelativeBox(d, ft) : columnAltitudeBox(d, ft);
         return COL_W * COL_BIG + COL_SPACE + altW + 0.007212 + d.width(d.semi(COL_UNIT), ft ? "ft" : "m");
@@ -779,7 +779,7 @@ module Widgets {
     // right, from the current section's bottom up (owner, 2026-11-23: no longer the bottom of the one
     // before): the current's bottom always, even with no box below it; the others level with a border
     // between two boxes, and at the column's top edge if outer. Right-aligned in a box as wide as the
-    // route's widest, its unit after it. Page 2a (relative): each the height above the current section's
+    // route's widest, its unit after it. Page 6 (relative): each the height above the current section's
     // bottom. Its left edge at left, the column centred vertically on cy.
     function columnGroupAt(d as Draw, st as Climb.State, left as Float, cy as Float, outer as Boolean,
             relative as Boolean) as Void {
@@ -1082,7 +1082,7 @@ module Widgets {
         }
     }
 
-    // ---------------------------------------------------------------- gauge, page 6
+    // ---------------------------------------------------------------- gauge, pages 12 and 13
 
     // The route around the screen's edge, from its start at the lower left over the top to its top at
     // the lower right, each section's arc its length along the route, or the metres it climbs (byUp);
@@ -1205,7 +1205,7 @@ module Widgets {
         d.textCapCentre(x, y, d.bold(size), BOX_NAME[g], BLACK);
     }
 
-    // ---------------------------------------------------------------- selection gauge (page 9)
+    // ---------------------------------------------------------------- selection gauge (page 15)
 
 
     // Whether the point at distance dist is in section i or at its foot or top.
@@ -1315,7 +1315,7 @@ module Widgets {
         return [i < Climb.count() ? i : -1, m < 0 ? 0 : m];
     }
 
-    // The ascent along the gauge's gap at the bottom (pages 6a, 6b and 9): the start and top dots on
+    // The ascent along the gauge's gap at the bottom (pages 12, 13 and 15): the start and top dots on
     // the gauge's two ends, the ascent's two numbers beside them, facing inwards, and between the
     // numbers a line the climber's ring travels, reaching up to each number as drawn (it grows when a
     // number is short: the mocks give up the no-jitter rule here on purpose).
@@ -1365,7 +1365,7 @@ module Widgets {
             Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
-    // ---------------------------------------------------------------- front view, page 7
+    // ---------------------------------------------------------------- front view, pages 3 and 4
 
     // The route seen from the front, as on a topo photo of the face (Climb.SIDE): up is height, across
     // is sideways travel. Points as [x across, y up, distance along], every few metres of height on a
@@ -1373,7 +1373,7 @@ module Widgets {
     // across and up.
     var front as Array<Array<Float>>? = null;
 
-    // The most points the walls get together: page 11 draws every point each frame, and about 460 tripped
+    // The most points the walls get together: page 3 draws every point each frame, and about 460 tripped
     // the watchdog (#105).
     const FRONT_BUDGET = 200;
 
@@ -1410,8 +1410,8 @@ module Widgets {
     }
 
     // The view's points on the screen, fitted once into [x0, x1] by [y0, y1], as [x, y, distance].
-    // One box only: page 7's. The box is fixed at the first call; the model points are kept for page
-    // 7a, which fits a part of them into it every frame.
+    // One box only: page 3's. The box is fixed at the first call; the model points are kept for page
+    // 4, which fits a part of them into it every frame.
     var frontScreen as Array<Array<Float>>? = null;
 
     function frontOnScreen(x0 as Float, x1 as Float, y0 as Float, y1 as Float) as Array<Array<Float>> {
@@ -1493,7 +1493,7 @@ module Widgets {
     }
 
     // The front view through the screen points pts, between the distances from and to along the route
-    // (page 7a draws only the part around its window).
+    // (page 4 draws only the part around its window).
     function frontDraw(d as Draw, st as Climb.State, pts as Array<Array<Float>>, from as Float, to as Float) as Void {
         var around = st.stretch(), lo = around[0] > from ? around[0] : from, hi = around[1] < to ? around[1] : to;
         // The outline with a round brush: thick lines end square on the watch. It is short, so cheap.
@@ -1543,7 +1543,7 @@ module Widgets {
         d.ring(p[0], p[1], 0.016827, dist <= st.d ? d.darken(c, 0.33) : c, 0.007212);
     }
 
-    // Page 7a: the front view zoomed to the zoom window (zoomWindow), fitted into [x0, x1] by [y0, y1]
+    // Page 4: the front view zoomed to the zoom window (zoomWindow), fitted into [x0, x1] by [y0, y1]
     // keeping its shape, at least 20 m each way so a straight stretch does not blow up; the route runs
     // on past the box, cut on the left at clipX, short of the difficulty group. The screen points are
     // written into one array kept per route, not made anew every frame.
@@ -1588,7 +1588,7 @@ module Widgets {
         d.unclip();
     }
 
-    // ---------------------------------------------------------------- zoom (pages 1a and 7a)
+    // ---------------------------------------------------------------- zoom (pages 2 and 4)
 
     // The zoom window: 100 m along the path (each section's length and height combined), a fifth of it
     // behind the climber, slid inside the route near its ends, as [from, to] in metres along the route.
@@ -1697,18 +1697,19 @@ module Widgets {
         }
     }
 
-    // The space above and below the large difficulty boxes (pages 6a to 9), the same on every page
-    // (owner, 2026-11-23): the altitude's baseline this far above the box, the capitals of the line
-    // below it this far below.
+    // The space above and below the large difficulty boxes (pages 3, 4 and 12 to 15), the same on
+    // every page (owner, 2026-11-23): the altitude's baseline this far above the box, the capitals of
+    // the line below it this far below.
     const GROUP_GAP = 0.028846;
 
     // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
     // on (cx, by), 0.2115 by 0.1490 of the width; above it the altitude with its unit; below it what
     // comes next, "C/D 125 m", GROUP_GAP from the box; all centred on the box (owner, 2026-11-23: the
-    // altitude's unit ended at the box's right edge). Page 7: the altitude at SemiBold 40 and its unit
-    // 24 (px at 416) whatever k, no point of interest. Page 8 (points): the altitude at 26 and the unit
-    // 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's top too) as a
-    // word under the next line, centred, the top of its capitals 0.0288 below that line's baseline.
+    // altitude's unit ended at the box's right edge). Pages 3 and 4: the altitude at SemiBold 40 and its
+    // unit 24 (px at 416) whatever k, no point of interest. Page 14 (points): the altitude at 26 and the
+    // unit 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's
+    // top too) as a word under the next line, centred, the top of its capitals 0.0288 below that line's
+    // baseline.
     function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k, Climb.descends(st.cur));
@@ -1738,11 +1739,11 @@ module Widgets {
         d.textBase(left + wn + gap, base, small, unit, d.MUTED, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    // Page 7's group (page 7 draws it at size k, its box centred at height by) as far left as the round
-    // screen allows (owner, 2026-11-23): each of its rows keeps GROUP_MARGIN clear of the round edge at
-    // its outer corner, and the row needing the most room sets the group's centre. The rows: the
-    // altitude, at the route's widest; the box, the centres of its corners' rounding; the next line at
-    // its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
+    // Pages 3 and 4's group (they draw it at size k, its box centred at height by) as far left as the
+    // round screen allows (owner, 2026-11-23): each of its rows keeps GROUP_MARGIN clear of the round
+    // edge at its outer corner, and the row needing the most room sets the group's centre. The rows:
+    // the altitude, at the route's widest; the box, the centres of its corners' rounding; the next line
+    // at its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
     // keeps clear of it. Worked out once per part and unit; nothing in it changes as the climber moves.
     const GROUP_MARGIN = 0.019231;
     var groupPlaced as Array<Float>? = null;

@@ -84,7 +84,7 @@ module WidthTest {
         return altitudesMatch(belowZero());
     }
 
-    // Page 2a: the relative altitudes' box is the widest of every difference the column can show, from
+    // Page 6: the relative altitudes' box is the widest of every difference the column can show, from
     // each section's bottom to the borders above it, measured one by one.
     function relativeMatches(r as Route) as Boolean {
         Climb.use(r, :ferrata);

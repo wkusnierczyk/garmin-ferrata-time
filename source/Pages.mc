@@ -2,21 +2,21 @@ using Toybox.Graphics;
 
 import Toybox.Lang;
 
-// The pages, as the mocks draw them (the Daubenhorn grid: pages 1, 1a, 2, 2a, 3, 4, 4a, 5, 5a, 6a, 6b,
-// 7, 7a, 8 and 9, in that order), laid out in shares of the screen's width. Pages 10 to 19 follow, one
+// The pages, as the mocks draw them (the Daubenhorn grid: pages 1 to 15, in the owner's order and
+// numbers, 2026-11-23, #112), laid out in shares of the screen's width. Pages 16 to 37 follow, one
 // issue each (#67 on).
 module Pages {
 
     const COUNT = 15;
-    // Page 9, the section preview, and the section it shows (-1: the climber's).
+    // Page 15, the section preview, and the section it shows (-1: the climber's).
     const SECTION_PAGE = 14;
-    // Page 9's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
+    // Page 15's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
     const SECTION_BH = 0.221154;
     var selected as Number = -1;
 
-    // Page 9's words, letter-spaced, measured once: the points' words by their kind (Widgets.POI_WORD),
+    // Page 15's words, letter-spaced, measured once: the points' words by their kind (Widgets.POI_WORD),
     // and the dot between them.
     const SEPARATOR = 5;
     var wordWidths as Array<Float?> = new Array<Float?>[6];
@@ -34,34 +34,36 @@ module Pages {
     function draw(page as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
         switch (page) {
+            // Pages 1 and 2: the profile, and zoomed.
             case 0: { profilePage(d, st, false); break; }
             case 1: { profilePage(d, st, true); break; }
-            // Page 2a: page 2 with the altitudes relative to the current section's bottom.
-            case 2: { columnPage(d, st, false); break; }
-            case 3: { columnPage(d, st, true); break; }
-            case 4: { sideBySide(d, st); break; }
-            // Pages 4 and 4a by ascent, 5 and 5a by path; 4a and 5a inside the ascent gauge.
-            case 5: { stackPage(d, st, true, false); break; }
-            case 6: { stackPage(d, st, true, true); break; }
-            case 7: { stackPage(d, st, false, false); break; }
-            case 8: { stackPage(d, st, false, true); break; }
-            // Pages 6a and 6b: the gauge by length along the route, and by ascent.
-            case 9: { gaugePage(d, st, false); break; }
-            case 10: { gaugePage(d, st, true); break; }
-            case 11: { frontPage(d, st, false); break; }
-            case 12: { frontPage(d, st, true); break; }
+            // Pages 3 and 4: the front view, and zoomed.
+            case 2: { frontPage(d, st, false); break; }
+            case 3: { frontPage(d, st, true); break; }
+            // Page 6: page 5 with the altitudes relative to the current section's bottom.
+            case 4: { columnPage(d, st, false); break; }
+            case 5: { columnPage(d, st, true); break; }
+            case 6: { sideBySide(d, st); break; }
+            // Pages 8 and 9 by ascent, 10 and 11 by path; 9 and 11 inside the ascent gauge.
+            case 7: { stackPage(d, st, true, false); break; }
+            case 8: { stackPage(d, st, true, true); break; }
+            case 9: { stackPage(d, st, false, false); break; }
+            case 10: { stackPage(d, st, false, true); break; }
+            // Pages 12 and 13: the gauge by length along the route, and by ascent.
+            case 11: { gaugePage(d, st, false); break; }
+            case 12: { gaugePage(d, st, true); break; }
             case 13: { centrePage(d, st); break; }
             default: { sectionPage(d, st); break; }
         }
     }
 
-    // ---------------------------------------------------------------- pages 1 and 1a: the profile
+    // ---------------------------------------------------------------- pages 1 and 2: the profile
 
     // design/page-1.md: profile and ascent share the start and span a rectangle; the altitude group in
     // its upper left, the top of the altitude's digits level with the top of the ascent's top number at
     // the line's end (0.31 of that number's size above the line's end); under the profile the difficulty
     // boxes, 40 % larger than elsewhere, centred on the screen, their tops a box gap below the climber's
-    // ring at the start (owner, 2026-11-23). Page 1a: the profile zoomed to 100 m of path around the
+    // ring at the start (owner, 2026-11-23). Page 2: the profile zoomed to 100 m of path around the
     // climber, centred in the rectangle, the altitude group on a half-transparent box over it (#102).
     const BOXES_BIG = 1.4;
     // The profile's rectangle: its left, width, bottom and height.
@@ -93,17 +95,17 @@ module Pages {
         Widgets.altitudeGroup(d, st, ax, altTop);
     }
 
-    // ---------------------------------------------------------------- pages 2 and 2a: the difficulty column
+    // ---------------------------------------------------------------- pages 5 and 6: the difficulty column
 
-    // design/page-2.md: the difficulty column group, centred, with an altitude at the column's top edge
-    // too; page 2a (relative) the altitudes relative to the current section's bottom.
+    // design/page-5.md: the difficulty column group, centred, with an altitude at the column's top edge
+    // too; page 6 (relative) the altitudes relative to the current section's bottom.
     function columnPage(d as Draw, st as Climb.State, relative as Boolean) as Void {
         Widgets.columnGroup(d, st, 0.5, true, relative);
     }
 
-    // ---------------------------------------------------------------- page 3: side by side
+    // ---------------------------------------------------------------- page 7: side by side
 
-    // design/page-3.md: the ascent on the left and the difficulty column group on the right, with equal
+    // design/page-7.md: the ascent on the left and the difficulty column group on the right, with equal
     // space before, between and after them across 0.1346 to 0.8654 of the width; the ascent as tall as
     // the column. At the top "NOW" and the current altitude: "NOW" in the altitude's font and size, in
     // the current section's colour (a rest's blue when resting), 0.0288 of the width before the
@@ -124,13 +126,13 @@ module Pages {
         Widgets.altitude(d, st, x + nowW + nowGap, yt);
     }
 
-    // ---------------------------------------------------------------- pages 4, 4a, 5 and 5a: the stack
+    // ---------------------------------------------------------------- pages 8 to 11: the stack
 
-    // design/page-4.md, page-5.md: the stack by ascent (byUp: 0.0072 of the width per metre climbed,
+    // design/page-8.md, page-10.md: the stack by ascent (byUp: 0.0072 of the width per metre climbed,
     // ticks every 20 m or 100 ft) or by path (0.0024 per metre along the route, ticks every 10 m or 50
     // ft). Without the gauge the window runs from 0.0865 to 0.9135 of the height, within 0.4399 of the
-    // centre (6 % of the width clear of the edge); with the ascent gauge around the edge (4a, 5a) from
-    // 0.1538 to 0.8077, within 0.4087, inside the gauge and clear of its numbers. A scale per metre
+    // centre (6 % of the width clear of the edge); with the ascent gauge around the edge (pages 9, 11)
+    // from 0.1538 to 0.8077, within 0.4087, inside the gauge and clear of its numbers. A scale per metre
     // carries nine decimals: it multiplies hundreds of metres.
     function stackPage(d as Draw, st as Climb.State, byUp as Boolean, gauge as Boolean) as Void {
         if (gauge) { Widgets.ascentGauge(d, st, true); }
@@ -138,12 +140,12 @@ module Pages {
             byUp ? 0.007211538 : 0.002403846, byUp ? 20 : 10, byUp ? 100 : 50, gauge ? 0.408654 : 0.439904);
     }
 
-    // ---------------------------------------------------------------- pages 6a and 6b: the gauge
+    // ---------------------------------------------------------------- pages 12 and 13: the gauge
 
-    // design/page-6.md: the gauge, each section's arc its length along the route (6a) or the metres it
-    // climbs (byUp, 6b); the current difficulty in a large box centred on the screen; above it the
-    // altitude with its unit; below it what comes next, and under that the point of interest as a word,
-    // all centred; the ascent along the gauge's gap at the bottom.
+    // design/page-12.md: the gauge, each section's arc its length along the route (page 12) or the
+    // metres it climbs (byUp, page 13); the current difficulty in a large box centred on the screen;
+    // above it the altitude with its unit; below it what comes next, and under that the point of
+    // interest as a word, all centred; the ascent along the gauge's gap at the bottom.
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = SECTION_BW, bh = SECTION_BH, by = 0.5;
         Widgets.gauge(d, st, byUp);
@@ -166,12 +168,12 @@ module Pages {
         Widgets.altitudeCentred(d, 0.5, base, v, d.semi(0.0962), d.semi(0.0577), 0.007212);
     }
 
-    // ---------------------------------------------------------------- pages 7 and 7a: from the front
+    // ---------------------------------------------------------------- pages 3 and 4: from the front
 
-    // design/page-7.md: the front view on the right (7a: zoomed to 100 m of path around the climber,
-    // cut on the left 0.0192 of the width right of the group); on the left the current difficulty
-    // group, 50 % larger as on pages 6a, 6b, 8 and 9, its box centred vertically on the screen, as far
-    // left as the round screen allows (Widgets.groupPlace; owner, 2026-11-23).
+    // design/page-3.md: the front view on the right (page 4: zoomed to 100 m of path around the
+    // climber, cut on the left 0.0192 of the width right of the group); on the left the current
+    // difficulty group, 50 % larger as on pages 12, 13, 14 and 15, its box centred vertically on the
+    // screen, as far left as the round screen allows (Widgets.groupPlace; owner, 2026-11-23).
     const FRONT_GROUP = 1.5;
 
     function frontPage(d as Draw, st as Climb.State, zoom as Boolean) as Void {
@@ -184,18 +186,18 @@ module Pages {
         Widgets.group(d, st, place[0], 0.5, FRONT_GROUP, false);
     }
 
-    // ---------------------------------------------------------------- page 8: the centre
+    // ---------------------------------------------------------------- page 14: the centre
 
-    // design/page-8.md: the current difficulty group in the middle, 50 % larger, with the point of
+    // design/page-14.md: the current difficulty group in the middle, 50 % larger, with the point of
     // interest as a word under it; the ascent as a gauge around the edge.
     function centrePage(d as Draw, st as Climb.State) as Void {
         Widgets.ascentGauge(d, st, true);
         Widgets.group(d, st, 0.5, 0.5, 1.5, true);
     }
 
-    // ---------------------------------------------------------------- page 9: a section preview
+    // ---------------------------------------------------------------- page 15: a section preview
 
-    // Page 9's altitudes, [above the box, below it], to the metre or foot: a climb's end above and its
+    // Page 15's altitudes, [above the box, below it], to the metre or foot: a climb's end above and its
     // start below, up the stack; a descent, whose trapezium already says it goes down, its start (the
     // higher) above and its end below (#100; owner, 2026-11-23).
     function sectionLines(i as Number, ft as Boolean) as [Number, Number] {
@@ -203,7 +205,7 @@ module Pages {
         return Climb.descends(i) ? [a[0], a[1]] : [a[1], a[0]];
     }
 
-    // design/page-9.md: page 6b's gauge showing the selected section (the climber's until the user
+    // design/page-15.md: page 13's gauge showing the selected section (the climber's until the user
     // steps), its difficulty in the middle between chevrons (a trapezium for a descent), its altitudes
     // above and below (sectionLines), under them its points as words, a dim dot between; the ascent
     // along the gauge's gap shows the climber.

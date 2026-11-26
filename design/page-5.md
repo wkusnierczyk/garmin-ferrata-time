@@ -1,30 +1,24 @@
-# Ferrata. Pages 5 and 5a
+# Ferrata. Pages 5 and 6
 
-Status: settled with the owner on 2026-11-21 (#20)  
+Status: settled with the owner on 2026-11-21 (#17)  
 Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
-Reference mock: `design/demo/pages-4-5.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
-Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
+Reference mock: `design/demo/page-5.html` (a live dial with a slider and playback, and the options as settings)  
+Widgets: `design/widgets.md`
 
-The **path stack**: the route's sections as boxes as tall as their length along the route, in a window that moves with the climber. Page 5a is the same stack inside the **ascent gauge** around the screen's edge. Pages 4 and 5 look alike (owner, 2026-11-22: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
+The difficulty widget turned upright, as a variant of the ascent widget: the sections around the climber, and the altitudes where the difficulty changes. The app's fifth page, after pages 1 to 4; page 6, the sixth, is the same page with relative altitudes.
 
-## Settings
+## Layout
 
-| Setting | Value |
-|:--|:--|
-| Column | 0.1058 of the screen wide, centred on the screen |
-| Window | from 0.0865 to 0.9135 of the screen down; on page 5a from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
-| Scale | 0.0024 of the screen per metre of path: 344 m in view, 272 m on page 5a |
-| The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
-| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section as large as the next altitude's label (Bold 0.1250; owner, 2026-11-23) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
-| Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |
-| Altitude ticks | every 10 m (50 ft in feet), where the route first reaches each altitude: they crowd on walls and spread on walks |
-| Labels | three: the next altitude to reach (SemiBold 0.1250; the first tick above the climber on the stack, which may sit further along the route than the climber; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865); the other ticks bare |
-| Fit | everything within 0.4399 of the screen's centre (6 % of the width clear of the edge), within 0.4087 inside the gauge |
-| Section names | none |
-| Difficulty colours | heat with amber, no purple, a colour per half step; rests shown as W |
+- The **difficulty column group**, centred on the screen: the current section second from the bottom, one section before it below and three after it above (owner, 2026-11-23: it was in the middle, two and two); the current box 35 % larger than the others, its letters Bold 0.0865 of the screen (owner, 2026-11-23: it was 8 %). Every box of a section that loses height, filled or outlined, is a trapezium narrower at its foot (#100).
+- The altitudes from the current section's bottom up to the column's top edge (owner, 2026-11-23: the bottom of the section before it is no longer shown).
+- Difficulty colours: heat with amber, no purple (grey, light blue, yellow, amber, orange, red); the half steps' letters (`C/D`) and colours.
 
-Symbols that would touch show one: of those in the climber's range (one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
+## Page 6: relative altitudes
+
+- As page 5, but each altitude is its height above the **bottom of the current section**: `0` there, a plus sign above it, a minus sign (a hyphen) below it, where the route descends: "+137", "0", "-20".
+- The route's own heights, not the climber's estimate, so finer than the altitude widget: to the metre, or to 5 ft.
+- Right-aligned in a box as wide as the widest difference the column can show on the route (worked out once per route), the unit after each.
 
 ## Open
 
-- Flat sections: lines, or a minimum height.
+- A rest is flat, so the altitudes at its two borders are equal (in the demo, 1380 above 1380 at the Ledge). Merge the rest into its neighbour, skip one altitude, or keep both.

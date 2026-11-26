@@ -1,7 +1,7 @@
 # Real functionality (0.2.0)
 
 Status: agreed with the owner 2026-11-21; the climb flow and the approach on the pages 2026-11-25; not yet built
-Builds on: the 0.1.0 prototype (pages 1 to 9 as revised for 0.1.0 in #16 to #28, and the demo clock)
+Builds on: the 0.1.0 prototype (pages 1 to 15, then numbered 1 to 9, as revised for 0.1.0 in #16 to #28, and the demo clock)
 
 0.1.0 is a demo: one made-up route in `source/Climb.mc`, and a clock that walks the climber up it. 0.2.0 makes the app usable on a real via ferrata: a real route on the watch, the climber's real progress, and the climb saved as a Garmin activity.
 
@@ -39,7 +39,7 @@ Goals:
 - A route file format that also serves the later library and route builder (section 10) unchanged.
 - Start, pause, continue and end a climb on the watch, with the approach optional.
 - Altitude calibrated at the route's known points, by the app's own offset.
-- The pages driven by the real estimate. Their look has moved on since 0.1.0 (#95, #100, #109); page numbers here are the pages mock's 1 to 37 (#112 renumbers the design pages).
+- The pages driven by the real estimate. Their look has moved on since 0.1.0 (#95, #100, #109); page numbers here are the pages mock's 1 to 37, as in the design pages (#112).
 - The climb saved as a Garmin activity: mountaineering, named after the route, approach and ascent as laps.
 - The demo still runs, in the simulator and on the watch, through the same code path.
 - Lite only, on the epix Pro (Gen 2) 47 mm, as today (owner). Other watches come once the app's memory, processing and storage needs are known, chosen by hardware, capabilities and screen resolution. A fēnix 7X Solar sideload (MIP, 280 px, 64 colours) is a look-only check of the pages, not a supported device. Its first look (owner, 2026-11-21): readable and stable, no crashes; the amber heat scale is poor in 64 colours, so a MIP palette is needed before MIP watches are supported.

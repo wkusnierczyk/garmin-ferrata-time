@@ -17,7 +17,7 @@ class View extends WatchUi.View {
     const DOTS_MS = 2000;
 
     var page as Number = 0;
-    // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons. Reset
+    // The section page 15 shows: -1 for the climber's, until the user steps with the chevrons. Reset
     // when the part shown changes (the approach or the ferrata), whose sections are others.
     var sel as Number = -1;
     var ferrataShown as Boolean = true;
@@ -130,7 +130,7 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // Page 9: step the selected section back or on, from the climber's at first, within the route.
+    // Page 15: step the selected section back or on, from the climber's at first, within the route.
     function stepSection(dir as Number) as Void {
         var f = feed;
         if (f == null) { return; }
@@ -142,7 +142,7 @@ class View extends WatchUi.View {
     }
 
     // From the approach to the ferrata or back, the sections are others, and a new climb starts with
-    // the climber's own: page 9 follows the climber's again (the reviews of #88 and #114).
+    // the climber's own: page 15 follows the climber's again (the reviews of #88 and #114).
     function followPart() as Void {
         if (Climb.FERRATA != ferrataShown) {
             ferrataShown = Climb.FERRATA;

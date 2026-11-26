@@ -1,16 +1,31 @@
-# Ferrata. Page 8, version 1
+# Ferrata. Pages 8 and 9
 
-Status: settled with the owner on 2026-11-21 (#23)  
+Status: settled with the owner on 2026-11-21 (#20)  
 Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner 2026-11-22; ported in #95, 2026-11-23).  
-Reference mock: `design/demo/page-8.html` (a live dial with a slider and playback, and the options as settings)  
-Widgets: `design/widgets.md`
+Reference mock: `design/demo/pages-8-11.html` (live dials held on the left, the options on the right; it opens with this page's settings)  
+Widgets: `design/widgets.md` (*difficulty stack*, *ascent gauge*)
 
-The current difficulty large in the middle, the ascent around the edge.
+The **ascent stack**: the route's sections as boxes as tall as the metres they climb, in a window that moves with the climber. Page 9 is the same stack inside the **ascent gauge** around the screen's edge. Pages 8 and 10 look alike (owner, 2026-11-22, by their old numbers: "make pages 4x look like 5x"); they differ only in what a box's height stands for.
 
-## Layout
+## Settings
 
-- The **current difficulty group** centred on the screen, 50 % larger than its base size.
-- The **ascent gauge** around the edge.
-- Difficulty colours: heat with amber, no purple, a colour per half step.
-- Everything in the group 50 % larger: the box (0.2115 by 0.1490 of the screen times 1.5; a trapezium narrower at its foot for a section that loses height, #100), its letters, the altitude (SemiBold 0.0625 times 1.5, its unit 0.0385 times 1.5, centred on the box with it, its baseline 0.0288 of the screen above the box; owner, 2026-11-23) and the next line (its capitals 0.0288 below the box) ("C/D 125 m", Bold 0.0577 times 1.5); each text at the font table's size nearest, the larger on a tie.
-- The point of interest as a word under the next line (owner, 2026-11-22: it was a symbol above the box): Bold 0.0673, letter-spaced, in its colour, centred, the top of its capitals 0.0288 below the next line's baseline. `DANGER` yellow, `EXIT` green, `REST` blue, and the route's ends while the uncertainty reaches them: `HEAD` green (the ferrata's head, never START: the climb may start on the approach; owner, 2026-11-23), `TOP` red. The nearest wins; on a tie danger, exit, rest, top, head.
+| Setting | Value |
+|:--|:--|
+| Column | 0.1058 of the screen wide, centred on the screen |
+| Window | from 0.0865 to 0.9135 of the screen down; on page 9 from 0.1538 to 0.8077, inside the gauge and clear of its numbers |
+| Scale | 0.0072 of the screen per metre climbed: 115 m in view, 91 m on page 9 |
+| The climber | a quarter of the way up the window; the orange ring on the column's left edge, no line across the column |
+| Letters | every section's grade right of the column (Bold 0.0673 of the screen), at the middle of its box's part in view, in its colour; the climber's section as large as the next altitude's label (Bold 0.1250; owner, 2026-11-23) and its box filled; placed from the climber's section outwards, left out where they would touch letters already placed |
+| Points of interest | symbols (0.0529 across) right of the letters: danger a yellow triangle, exit a green arrow, rest a blue pause (at the middle of the rest), the route's top a red square; dimmed once passed |
+| Altitude ticks | every 20 m (100 ft in feet) |
+| Labels | three: the next altitude to reach (SemiBold 0.1250; the first tick above the climber; near the top, past the last tick, the topmost), and the nearest tick above and below it that keep clear of it (0.0865); the other ticks bare |
+| Fit | everything within 0.4399 of the screen's centre (6 % of the width clear of the edge), within 0.4087 inside the gauge |
+| Section names | none |
+| Difficulty colours | heat with amber, no purple, a colour per half step; rests shown as W |
+
+Symbols that would touch show one: of those in the climber's range (one tick step before the point to half a step after it, along the stack's axis), the first of danger, exit, rest, top, then the nearest; with none in range, the one nearest the climber.
+
+## Open
+
+- A title above the stack, or the current difficulty and altitude below it, as in the sketch.
+- Flat sections: lines, or a minimum height.
