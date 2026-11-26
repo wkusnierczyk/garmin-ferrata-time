@@ -123,7 +123,8 @@ class View extends WatchUi.View {
     }
 
     function nextPage(step as Number) as Void {
-        page = (page + step + Pages.COUNT) % Pages.COUNT;
+        var fl = flow;
+        page = fl != null ? fl.stepPage(page, step, Pages.COUNT) : (page + step + Pages.COUNT) % Pages.COUNT;
         dotsMs = DOTS_MS;
         sel = -1;
         WatchUi.requestUpdate();
@@ -146,6 +147,8 @@ class View extends WatchUi.View {
         if (Climb.FERRATA != ferrataShown) {
             ferrataShown = Climb.FERRATA;
             sel = -1;
+            // Onto the ferrata, its first page (the flow mock).
+            page = 0;
         }
         var f = feed;
         if (f != null && f.tracker != climbShown) {

@@ -250,6 +250,39 @@ module FlowTest {
         return true;
     }
 
+    // On the approach its screen (F4) is the first page, the pages after it (owner, 2026-11-26): Up and
+    // Down on it go on to the pages, and past either end of them back to it.
+    (:test)
+    function approachPages(logger as Logger) as Boolean {
+        var f = flow();
+        f.feed.start(:approachPoint);
+        Test.assertMessage(f.onScreen() && f.approachShown, "the approach's screen first");
+        Test.assertEqualMessage(f.press(:down), false, "Down on it is the pages'");
+        Test.assertEqualMessage(f.stepPage(5, 1, 33), 0, "Down: the first page");
+        Test.assertMessage(!f.onScreen(), "the pages have the screen");
+        Test.assertEqualMessage(f.stepPage(0, 1, 33), 1, "the pages step on");
+        Test.assertEqualMessage(f.stepPage(1, -1, 33), 0, "and back");
+        Test.assertEqualMessage(f.stepPage(0, -1, 33), 0, "Up from the first page: the approach's screen");
+        Test.assertMessage(f.onScreen() && f.approachShown, "the approach's screen again");
+        Test.assertEqualMessage(f.stepPage(0, -1, 33), 32, "Up from it: the last page");
+        Test.assertEqualMessage(f.stepPage(32, 1, 33), 32, "Down from the last: the approach's screen");
+        Test.assertMessage(f.approachShown, "the approach's screen");
+        // Paused on a page, the pause menu opens over it; closed, the page is back.
+        f.stepPage(32, 1, 33);
+        f.press(:start);
+        Test.assertMessage(f.onScreen() && f.menu != null, "the pause menu over the page");
+        f.press(:back);
+        Test.assertMessage(!f.onScreen() && f.feed.paused(), "the page, paused");
+        // On the ferrata the pages wrap, and a new climb starts on the approach's screen again.
+        f.press(:start);
+        choose(f, :startAscent);
+        Test.assertEqualMessage(f.stepPage(32, 1, 33), 0, "the ferrata's pages wrap");
+        var g = flow();
+        g.feed.start(:approachPoint);
+        Test.assertMessage(g.onScreen() && g.approachShown, "a new climb: the approach's screen");
+        return true;
+    }
+
     // ---------------------------------------------------------------- the pause menus
 
     (:test)

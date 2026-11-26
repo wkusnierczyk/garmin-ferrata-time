@@ -36,7 +36,7 @@ module FlowDraw {
         } else if (f.phase() == Tracker.IDLE) {
             d.clear();
             ready(d, f);
-        } else if (f.onApproach()) {
+        } else if (f.onApproach() && f.approachShown) {
             d.clear();
             approach(d, f);
         } else {

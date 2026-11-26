@@ -118,6 +118,9 @@ class FlowMenus {
     var quit as Boolean = false;
     // This climb: whether the head has been offered (once), and the landmarks the GPS prompted.
     var headOffered as Boolean = false;
+    // On the approach, whether its own screen (F4) shows: it is the first page there, the pages after
+    // it (owner, 2026-11-26). A climb starts on it.
+    var approachShown as Boolean = true;
     var prompted as Array<Number> = [] as Array<Number>;
     // The ready screen's figures, worked out once (#121): the ferrata's path, its length and height
     // together as page 16 counts it, its ascent and its guidebook time, as shown.
@@ -149,25 +152,42 @@ class FlowMenus {
 
     function newClimb() as Void {
         headOffered = false;
+        approachShown = true;
         prompted = [] as Array<Number>;
     }
 
     function phase() as Tracker.Phase { return feed.tracker.phase; }
 
-    // Whether the flow has the screen (and Up and Down): before the start, on the approach (its own
-    // screen, #121), after the end, and while anything of it is open. Else the pages have it. (One test
+    // Whether the flow has the screen (and Up and Down): before the start, on the approach while its
+    // own screen shows (F4, #121), after the end, and while anything of it is open. Else the pages have it. (One test
     // a line: a chain of them over the nullable fields runs the compiler's type checker out of memory.)
     function onScreen() as Boolean {
         if (isOpen()) { return true; }
         if (calibrated != null) { return true; }
         if (toast != null) { return true; }
-        if (onApproach()) { return true; }
+        if (onApproach() && approachShown) { return true; }
         var p = phase();
         return p == Tracker.IDLE || p == Tracker.ENDED;
     }
 
     // On the approach, going or paused.
     function onApproach() as Boolean { return !Climb.FERRATA && feed.climbing(); }
+
+    // The page after page by step (1 or -1), of count. On the approach its own screen (F4) is the first
+    // page (owner, 2026-11-26): past either end of the pages comes to it (the page stays as it was,
+    // under it), and from it to the first or the last.
+    function stepPage(page as Number, step as Number, count as Number) as Number {
+        if (!onApproach()) { return (page + step + count) % count; }
+        if (approachShown) {
+            approachShown = false;
+            return step > 0 ? 0 : count - 1;
+        }
+        if (page + step < 0 || page + step >= count) {
+            approachShown = true;
+            return page;
+        }
+        return page + step;
+    }
 
     // Whether a menu, the altitude entry or a point's details is open.
     function isOpen() as Boolean {

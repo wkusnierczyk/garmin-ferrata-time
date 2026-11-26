@@ -24,15 +24,16 @@ class Delegate extends WatchUi.BehaviorDelegate {
         view = v;
     }
 
-    // Up and Down as behaviours (a swipe; the buttons come to onKey first).
+    // Up and Down as behaviours (a swipe; the buttons come to onKey first). What the flow does not take
+    // changes page: on the approach, Up and Down on its screen (F4) go on to the pages.
     function onNextPage() as Boolean {
-        if (view.flowOnScreen()) { return view.press(:down); }
+        if (view.flowOnScreen() && view.press(:down)) { return true; }
         view.nextPage(1);
         return true;
     }
 
     function onPreviousPage() as Boolean {
-        if (view.flowOnScreen()) { return view.press(:up); }
+        if (view.flowOnScreen() && view.press(:up)) { return true; }
         view.nextPage(-1);
         return true;
     }
