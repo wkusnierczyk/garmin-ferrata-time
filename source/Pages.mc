@@ -7,9 +7,13 @@ import Toybox.Lang;
 // issue each (#67 on).
 module Pages {
 
-    const COUNT = 15;
-    // Page 15, the section preview, and the section it shows (-1: the climber's).
-    const SECTION_PAGE = 14;
+    // The pages in the cycle: pages 8 to 11, the stacks, are parked (too noisy, #110) and left out of the
+    // app (owner, 2026-11-26, #128): the cycle goes from page 7 to page 12. Their code stays.
+    const COUNT = 11;
+    const PARKED_FROM = 7;
+    const PARKED = 4;
+    // Page 15, the section preview (its place in the cycle), and the section it shows (-1: the climber's).
+    const SECTION_PAGE = 10;
     // Page 15's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
@@ -31,9 +35,14 @@ module Pages {
     }
     const DIM = 0x7f8a8a;
 
-    function draw(page as Number, d as Draw, st as Climb.State) as Void {
+    // The page drawn at a place in the cycle (from 0), counted as Pages.draw's cases: the parked skipped.
+    function pageAt(place as Number) as Number {
+        return place >= PARKED_FROM ? place + PARKED : place;
+    }
+
+    function draw(place as Number, d as Draw, st as Climb.State) as Void {
         d.clear();
-        switch (page) {
+        switch (pageAt(place)) {
             // Pages 1 and 2: the profile, and zoomed.
             case 0: { profilePage(d, st, false); break; }
             case 1: { profilePage(d, st, true); break; }

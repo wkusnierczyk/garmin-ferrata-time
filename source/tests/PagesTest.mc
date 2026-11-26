@@ -8,6 +8,16 @@ import Toybox.Test;
 // Pages 1 to 15 as the mocks draw them (#95): what the widgets work out, apart from the drawing itself.
 module PagesTest {
 
+    // The cycle leaves out the parked stacks, pages 8 to 11 (#128): after page 7 comes page 12, the
+    // section preview (page 15) is the cycle's last place, and the tap zone's page is the preview's.
+    (:test)
+    function cycleSkipsTheParkedStacks(logger as Logger) as Boolean {
+        Test.assertEqualMessage(Pages.pageAt(6), 6, "page 7 in its own place");
+        Test.assertEqualMessage(Pages.pageAt(7), 11, "page 12 right after page 7");
+        Test.assertEqualMessage(Pages.pageAt(Pages.COUNT - 1), 14, "page 15 last");
+        Test.assertEqualMessage(Pages.pageAt(Pages.SECTION_PAGE), 14, "the tap zone on page 15");
+        return true;
+    }
     function draw() as Draw {
         var w = System.getDeviceSettings().screenWidth;
         var bitmap = Graphics.createBufferedBitmap({:width => w, :height => w}).get() as Graphics.BufferedBitmap;
