@@ -355,23 +355,30 @@ module Widgets {
         // number of one width reaches furthest past it at an end of the stretch of heights it is drawn
         // over. The heights checked: the route's lowest and highest, and either side of each change of
         // width (0, 1, 9, 10, 99, 100 ... above the head and below it, and as far from the top's height).
+        // Each height once: the route's ends exactly, and the sides of a change only within the route
+        // (clamped to an end, they repeated it many times over, and the first frame tripped the watchdog
+        // on the watch, #119).
         var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh();
-        var anchors = [lo, hi] as Array<Number>;
+        var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>;
         for (var t = 1; t <= 10000; t *= 10) {
             var pts = [t, t - 1, -t, 1 - t] as Array<Number>;
-            for (var i = 0; i < pts.size(); i++) { anchors.add(pts[i]); anchors.add(top + pts[i]); }
+            for (var i = 0; i < pts.size(); i++) {
+                for (var j = 0; j < 2; j++) {
+                    var a = j == 0 ? pts[i] : top + pts[i];
+                    for (var side = -1; side <= 1; side += 2) {
+                        var n = a + side * 0.49;
+                        if (n > lo && n < hi) { heights.add(n); }
+                    }
+                }
+            }
         }
         var need = 0.0;
-        for (var i = 0; i < anchors.size(); i++) {
-            for (var side = -1; side <= 1; side += 2) {
-                var n = anchors[i] + side * 0.49;
-                if (n < lo) { n = lo.toFloat(); }
-                if (n > hi) { n = hi.toFloat(); }
-                var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
-                for (var k = 0; k < 2; k++) {
-                    var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus);
-                    if (over > need) { need = over; }
-                }
+        for (var i = 0; i < heights.size(); i++) {
+            var n = heights[i];
+            var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
+            for (var k = 0; k < 2; k++) {
+                var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus);
+                if (over > need) { need = over; }
             }
         }
         var inset = (Math.ceil(need - 0.0001) / d.w).toFloat();
@@ -390,6 +397,18 @@ module Widgets {
         for (var i = 0; i < cs.size(); i++) { width += cs[i] == '-' ? minus : digit; }
         var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2;
         var pen = d.s(nx) - width, base = d.s(y) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
+        // The ink lies within a box from 20 units below the baseline to an em above it, right of the
+        // pen less the outlines' 5-unit shift (DigitInk: x from 19, y from -11 to 712). When the box's
+        // left corners are on the screen so is the ink, and the box's overshoot (below 0) stands for it
+        // without tracing the outlines (#119); the edge cuts in furthest at one of those corners.
+        var bx = pen - 5 * em;
+        var box = -d.w;
+        for (var j = 0; j < 2; j++) {
+            var dy = base - (j == 0 ? -20 : 1000) * em - r, q = r * r - dy * dy;
+            var over = (r - Math.sqrt(q > 0 ? q : 0.0) - bx).toFloat();
+            if (over > box) { box = over; }
+        }
+        if (box < 0) { return box; }
         var worst = -d.w;
         for (var i = 0; i < cs.size(); i++) {
             var k = DigitInk.CHARS.find(cs[i].toString());
