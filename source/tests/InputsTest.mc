@@ -25,7 +25,7 @@ module InputsTest {
         var t = new Tracker(r);
         t.start(:head, input.read(0));
         var worst = 0.0, checked = 0, worstDown = 0.0, down = 0;
-        for (var ms = 250; ms <= DemoInput.LOOP_MS + DemoInput.HOLD_MS; ms += 250) {
+        for (var ms = 250; ms <= DemoInput.LOOP_MS + 4000; ms += 250) {
             t.update(input.read(ms));
             var st = new Climb.State(input.minute);
             if (Climb.UP[st.cur] == 0) { continue; }
@@ -97,7 +97,7 @@ module InputsTest {
         Test.assertMessage(near(rd.alt as Float, 1568.0, 0.01), "alt " + rd.alt);
         var end = Math.round((Climb.START_CLOCK + Climb.totalM() * Climb.PACE) * 60).toNumber();
         Test.assertEqualMessage(rd.t, end, "t at the top");
-        var later = input.read(DemoInput.LOOP_MS + DemoInput.HOLD_MS);
+        var later = input.read(DemoInput.LOOP_MS + 4000);
         Test.assertEqualMessage(later.t, end, "the clock holds at the top");
         return true;
     }

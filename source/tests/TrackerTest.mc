@@ -201,21 +201,46 @@ module TrackerTest {
         return true;
     }
 
+    // The head counts as a landmark for a calibration (#51): calibrating there puts the place at the
+    // head, as the climber says; a calibration that lowers the offset by 40 m is not undone by the next
+    // reading.
     (:test)
-    function headSyncJumpDoesNotMoveBack(logger as Logger) as Boolean {
+    function headCalibrationPlacesAtHead(logger as Logger) as Boolean {
         var t = climbing(60);
-        var d = t.d;
-        // The watch reads 1350; a sync at the head (1290 m, a known point, not a landmark) as if the
-        // watch read 1330 lowers the offset by 40.
+        // The watch reads 1350; a calibration at the head (1290 m) as if the watch read 1330 lowers the
+        // offset by 40.
         t.syncAt(HEAD, at(12, 1330.0));
         Test.assertMessage(near(t.offset as Float, -40.0), "offset " + t.offset);
         Test.assertMessage(near(t.drifts[0], -40.0), "drift " + t.drifts);
-        Test.assertMessage(near(t.d, d), "d " + t.d + ", was " + d);
+        Test.assertMessage(near(t.d, 0.0), "at the head, d " + t.d);
+        // A minute later 5 m up the first wall (the watch 1335 m less the 40): the place goes on from
+        // the head, about 2 m, not back to the 23 m the estimate had reached.
         t.update(at(13, 1335.0));
-        Test.assertMessage(near(t.d, d), "after the sync: d " + t.d + ", was " + d);
+        Test.assertMessage(t.d > 1.0 && t.d < 3.0, "from the head: d " + t.d);
         return true;
     }
 
+    // The review of #114: after an At altitude start partway, the pace counts only the guidebook
+    // minutes from where the climb started, not those before it.
+    (:test)
+    function paceFromAnAltitudeStart(logger as Logger) as Boolean {
+        // Three walls of 100 m up, 10 guidebook minutes each; started 150 m up, at minute 15.
+        var t = new Tracker(RouteTest.made([[100, 100], [100, 100], [100, 100]]));
+        t.startAt(1150.0, at(0, 1150.0));
+        Test.assertMessage(near(t.d, 150.0), "150 m up, d " + t.d);
+        t.update(at(1, 1160.0));
+        // One minute for one guidebook minute: too few to trust a pace yet, so 1, and 14 minutes left.
+        Test.assertMessage(near(t.pace, 1.0), "pace " + t.pace);
+        Test.assertMessage(near(t.state().left(), 14.0), "left " + t.state().left());
+        t.update(at(20, 1250.0));
+        // 20 minutes for the 10 guidebook minutes from 150 m to 250 m: pace 2, 10 minutes left.
+        Test.assertMessage(near(t.pace, 2.0), "pace " + t.pace);
+        Test.assertMessage(near(t.state().left(), 10.0), "left " + t.state().left());
+        return true;
+    }
+
+    // Ending at the top checks its altitude (a drift, the offset unchanged) and puts the place at the
+    // top; Resume undoes both and pauses (#51).
     (:test)
     function endAtTopRecordsDrift(logger as Logger) as Boolean {
         var t = climbing(90);
@@ -224,7 +249,101 @@ module TrackerTest {
         Test.assertEqualMessage(t.phase, Tracker.ENDED, "ended");
         Test.assertMessage(near(t.drifts[0], 10.0), "drift " + t.drifts);
         Test.assertMessage(near(t.offset as Float, 0.0), "the offset is not changed");
-        Test.assertMessage(near(t.d, d) && near(t.u, u), "place and height kept");
+        Test.assertMessage(near(t.d, 640.0), "at the top, d " + t.d);
+        Test.assertEqualMessage(t.state().climbed(), 400, "the whole climb");
+        t.unend();
+        Test.assertEqualMessage(t.phase, Tracker.PAUSED, "paused");
+        Test.assertMessage(t.pausedFrom == Tracker.ASCENT, "from the ascent");
+        Test.assertMessage(near(t.d, d) && near(t.u, u), "place and height as before");
+        Test.assertEqualMessage(t.drifts.size(), 0, "the check undone");
+        return true;
+    }
+
+    // End here checks nothing.
+    (:test)
+    function endHereNoCheck(logger as Logger) as Boolean {
+        var t = climbing(60);
+        var d = t.d;
+        t.end(-1, at(20, 1500.0));
+        Test.assertEqualMessage(t.phase, Tracker.ENDED, "ended");
+        Test.assertEqualMessage(t.drifts.size(), 0, "no drift");
+        Test.assertMessage(near(t.d, d), "the place kept");
+        return true;
+    }
+
+    // At altitude (#51): a start at an entered altitude is on the approach, calibrated to it without a
+    // drift, and the head's calibration after it is no drift either: the entry was a guess.
+    (:test)
+    function startAtAltitudeIsAGuess(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:head, at(0, 1290.0));
+        t.syncAt(BENCH, at(1, 1300.0));
+        t.startAt(1280.0, at(2, 1275.0));
+        Test.assertEqualMessage(t.phase, Tracker.APPROACH, "on the approach");
+        Test.assertMessage(near(t.offset as Float, 5.0), "offset " + t.offset);
+        Test.assertEqualMessage(t.drifts.size(), 0, "a new climb, no drift");
+        Test.assertEqualMessage(t.calibratedAt.size(), 0, "nothing calibrated at");
+        // 10 m above the Car park: half way up the approach's 20 m, 60 m along.
+        Test.assertMessage(near(t.d, 60.0), "the place at that altitude, d " + t.d);
+        t.startAscent(at(14, 1281.0));
+        Test.assertMessage(near(t.offset as Float, 9.0), "calibrated at the head, offset " + t.offset);
+        Test.assertEqualMessage(t.drifts.size(), 0, "no drift from a guess");
+        // From the head on, a known point's change is drift again.
+        t.syncAt(BENCH, at(20, 1300.0));
+        Test.assertMessage(t.drifts.size() == 1 && near(t.drifts[0], 1.0), "drift " + t.drifts);
+        return true;
+    }
+
+    // Without an approach, At altitude starts on the ferrata at the point at that altitude nearest the
+    // head.
+    (:test)
+    function startAtAltitudeWithoutApproach(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.made([[100, 100], [100, 100]]));
+        t.startAt(1150.0, at(0, 1100.0));
+        Test.assertEqualMessage(t.phase, Tracker.ASCENT, "on the ferrata");
+        Test.assertMessage(near(t.d, 150.0), "150 m up, d " + t.d);
+        Test.assertMessage(near(t.offset as Float, 50.0), "offset " + t.offset);
+        return true;
+    }
+
+    // Calibrating to an entered altitude moves the place to the point at it nearest the estimate,
+    // back if need be, and changes the offset without a drift.
+    (:test)
+    function calibrateToMovesPlace(logger as Logger) as Boolean {
+        var t = climbing(90);
+        Test.assertMessage(near(t.d, 35.0), "at the top of the first wall");
+        // 1300 m is 10 m up: on the first wall at 35 x 10 / 90 m, or at the Dihedral's foot (210 m).
+        t.calibrateTo(1300.0, at(20, 1380.0));
+        Test.assertMessage(near(t.d, 35.0 * 10 / 90), "back on the first wall, d " + t.d);
+        Test.assertMessage(near(t.offset as Float, -80.0), "offset " + t.offset);
+        Test.assertEqualMessage(t.drifts.size(), 0, "no drift");
+        Test.assertEqualMessage(t.band(), 10, "the band starts again");
+        return true;
+    }
+
+    // The activity's time runs on the approach and the ferrata, not while paused.
+    (:test)
+    function activeTimeExcludesPauses(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:approachPoint, at(0, 1270.0));
+        t.update(at(10, 1280.0));
+        t.pause(at(12, 1282.0));
+        t.update(at(40, 1282.0));
+        t.resume(at(42, 1282.0));
+        t.startAscent(at(50, 1290.0));
+        t.update(at(55, 1300.0));
+        Test.assertEqualMessage(t.activeS, (12 + 8 + 5) * 60, "25 minutes: " + t.activeS);
+        return true;
+    }
+
+    // The points calibrated at in a climb, for Calibrate not to suggest them again.
+    (:test)
+    function calibratedAtKept(logger as Logger) as Boolean {
+        var t = new Tracker(RouteTest.demo());
+        t.start(:head, at(0, 1290.0));
+        Test.assertMessage(t.calibratedAt.size() == 1 && t.calibratedAt[0] == HEAD, "the head");
+        t.syncAt(BENCH, at(30, 1310.0));
+        Test.assertMessage(t.calibratedAt.size() == 2 && t.calibratedAt[1] == BENCH, "and the Bench");
         return true;
     }
 
@@ -381,15 +500,19 @@ module TrackerTest {
         return true;
     }
 
+    // A calibration at a point while the watch has no altitude: the place is the point's at once, and
+    // the band starts again with it, as the climber said where they are; the offset waits for the next
+    // reading with an altitude. (Before #51 the head moved no place, so the band waited too.)
     (:test)
-    function syncWithoutAltitudeKeepsBand(logger as Logger) as Boolean {
+    function syncWithoutAltitudeWaitsForOffset(logger as Logger) as Boolean {
         var t = new Tracker(RouteTest.demo());
         t.start(:head, at(0, 1290.0));
         t.update(at(65, 1300.0));
-        var b = t.band();
+        Test.assertMessage(t.band() > 10, "the band has grown, " + t.band());
         t.syncAt(HEAD, at(65, null));
-        Test.assertEqualMessage(t.band(), b, "no sync, no reset");
-        // The sync is applied at the next reading with an altitude, and the band starts again.
+        Test.assertMessage(near(t.offset as Float, 0.0), "the offset waits, " + t.offset);
+        Test.assertMessage(near(t.d, 0.0), "at the head, d " + t.d);
+        Test.assertEqualMessage(t.band(), 10, "the place fixed");
         t.update(at(66, 1300.0));
         Test.assertMessage(near(t.offset as Float, -10.0), "offset " + t.offset);
         Test.assertEqualMessage(t.band(), 10, "synced");

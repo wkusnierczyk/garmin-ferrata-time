@@ -58,9 +58,10 @@ module FeedTest {
     (:test)
     function resumeReadsWhilePaused(logger as Logger) as Boolean {
         var f = new TestFeed(RouteTest.demo(), false, true);
-        f.togglePause();
+        f.start(:head);
+        f.pause();
         Test.assertMessage(f.paused(), "paused");
-        f.togglePause();
+        f.resume();
         Test.assertMessage(!f.paused(), "resumed");
         var phases = (f.made[0] as FakeInput).phases;
         Test.assertEqualMessage(phases[phases.size() - 1], Tracker.PAUSED as Number, "read while paused");
@@ -71,34 +72,81 @@ module FeedTest {
     (:test)
     function demoClockStopsWhilePaused(logger as Logger) as Boolean {
         var f = new TestFeed(RouteTest.demo(), true, false);
+        f.start(:head);
         for (var k = 0; k < 40; k++) { f.tick(); }
         Test.assertEqualMessage(f.demoMs, 40 * Feed.DEMO_TICK_MS, "the clock ran");
-        f.togglePause();
+        f.pause();
         var lastT = f.tracker.lastT, d = f.tracker.d;
         for (var k = 0; k < 40; k++) { f.tick(); }
         Test.assertEqualMessage(f.demoMs, 40 * Feed.DEMO_TICK_MS, "the clock stopped");
         Test.assertEqualMessage(f.tracker.lastT, lastT, "the climb's time stopped");
         Test.assertMessage(near(f.tracker.d, d, 0.001), "the place held");
-        f.togglePause();
+        f.resume();
         f.tick();
         Test.assertEqualMessage(f.demoMs, 41 * Feed.DEMO_TICK_MS, "the clock runs again");
         Test.assertMessage(f.tracker.d > d, "the place moves again");
         return true;
     }
 
-    // After the climb and the hold at the top, the demo starts again on a new input.
+    // A climb waits on the ready screen: nothing is read until it starts (#51), so a replay plays from
+    // its first entry when the climb starts.
     (:test)
-    function demoStartsAgainAfterHold(logger as Logger) as Boolean {
-        var f = new TestFeed(RouteTest.demo(), true, true);
-        var first = f.tracker;
-        var ticks = (DemoInput.LOOP_MS + DemoInput.HOLD_MS) / Feed.DEMO_TICK_MS;
-        for (var k = 0; k < ticks; k++) { f.tick(); }
-        Test.assertMessage(f.tracker == first, "still the first climb at the end of the hold");
+    function nothingReadBeforeStart(logger as Logger) as Boolean {
+        var f = new TestFeed(RouteTest.demo(), false, true);
+        for (var k = 0; k < 10; k++) { f.tick(); }
+        Test.assertEqualMessage(f.tracker.phase, Tracker.IDLE, "ready");
+        Test.assertEqualMessage((f.made[0] as FakeInput).phases.size(), 0, "nothing read");
+        f.start(:head);
         f.tick();
-        Test.assertMessage(f.tracker != first, "a new climb");
-        Test.assertEqualMessage(f.demoMs, 0, "the clock from 0");
-        Test.assertEqualMessage(f.made.size(), 2, "a new input");
-        Test.assertMessage((f.made[0] as FakeInput).stopped, "the old input let go");
+        Test.assertEqualMessage(f.tracker.phase, Tracker.ASCENT, "started");
+        Test.assertMessage((f.made[0] as FakeInput).phases.size() > 0, "read once started");
+        return true;
+    }
+
+    // The demo holds at the top until the climber ends the climb (#51); it no longer starts again.
+    (:test)
+    function demoHoldsAtTheTop(logger as Logger) as Boolean {
+        var f = new TestFeed(RouteTest.demo(), true, false);
+        f.start(:head);
+        var first = f.tracker;
+        var ticks = (DemoInput.LOOP_MS + 4000) / Feed.DEMO_TICK_MS;
+        for (var k = 0; k < ticks; k++) { f.tick(); }
+        Test.assertMessage(f.tracker == first, "the same climb");
+        Test.assertMessage(near(f.tracker.d, Climb.totalD().toFloat(), 0.01), "at the top, d " + f.tracker.d);
+        Test.assertEqualMessage(f.made.size(), 1, "the same input");
+        return true;
+    }
+
+    // The demo plays the approach from its start, then the ferrata from the head, each calibrated at
+    // its start against the demo's watch, 12 m low: the offset 12 m both times, so no drift; its clock
+    // goes on from the approach's end.
+    (:test)
+    function demoApproachThenFerrata(logger as Logger) as Boolean {
+        var f = new TestFeed(RouteTest.demo(), true, false);
+        f.start(:approachPoint);
+        Test.assertMessage(!Climb.FERRATA, "the approach in use");
+        Test.assertMessage(near(f.tracker.offset as Float, 12.0, 0.01), "offset " + f.tracker.offset);
+        for (var k = 0; k < 40; k++) { f.tick(); }
+        var t = f.tracker.lastT;
+        f.startAscent();
+        Test.assertMessage(Climb.FERRATA, "the ferrata in use");
+        Test.assertMessage(near(f.tracker.offset as Float, 12.0, 0.01), "offset " + f.tracker.offset);
+        Test.assertEqualMessage(f.tracker.drifts.size(), 1, "a calibration at the head");
+        Test.assertMessage(near(f.tracker.drifts[0], 0.0, 0.01), "no drift: " + f.tracker.drifts);
+        Test.assertMessage(f.tracker.lastT >= t, "the clock goes on, " + f.tracker.lastT + " after " + t);
+        return true;
+    }
+
+    // Save and Discard leave a new climb on the ready screen.
+    (:test)
+    function saveLeavesReadyClimb(logger as Logger) as Boolean {
+        var f = new TestFeed(RouteTest.demo(), false, true);
+        f.start(:head);
+        f.end(-1);
+        var first = f.tracker;
+        f.save();
+        Test.assertMessage(f.tracker != first && f.tracker.phase == Tracker.IDLE, "a new climb, ready");
+        Test.assertEqualMessage(f.made.size(), 1, "the same input");
         return true;
     }
 
@@ -124,6 +172,7 @@ module FeedTest {
     (:test)
     function demoTimeLeftMatches010(logger as Logger) as Boolean {
         var f = new TestFeed(RouteTest.demo(), true, false);
+        f.start(:head);
         var input = f.input as DemoInput;
         var marks = [2.0, 12.0] as Array<Float>;
         for (var i = 0; i < marks.size(); i++) {

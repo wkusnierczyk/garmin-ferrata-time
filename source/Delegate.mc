@@ -3,8 +3,9 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Up and down change page, start pauses the climb, holding Up opens Ask (and Settings), back leaves.
-// On page 9 a tap on a chevron steps the previewed section.
+// The buttons go to the climb flow (#51) first: Start and Back open its menus (and before the start
+// Back leaves), and Up and Down move in them while one is open, else change page. Holding Up opens Ask
+// (and Settings). On page 9 a tap on a chevron steps the previewed section; other taps do nothing.
 class Delegate extends WatchUi.BehaviorDelegate {
 
     var view as View;
@@ -14,12 +15,15 @@ class Delegate extends WatchUi.BehaviorDelegate {
         view = v;
     }
 
+    // Up and Down as behaviours (a swipe; the buttons come to onKey first).
     function onNextPage() as Boolean {
+        if (view.flowOnScreen()) { return view.press(:down); }
         view.nextPage(1);
         return true;
     }
 
     function onPreviousPage() as Boolean {
+        if (view.flowOnScreen()) { return view.press(:up); }
         view.nextPage(-1);
         return true;
     }
@@ -28,7 +32,7 @@ class Delegate extends WatchUi.BehaviorDelegate {
     // are shares of the screen's width, in whole pixels as the page draws them (a share is a decimal a
     // hair off its pixel).
     function onTap(evt as WatchUi.ClickEvent) as Boolean {
-        if (view.page != Pages.SECTION_PAGE) { return false; }
+        if (view.page != Pages.SECTION_PAGE || view.flowOnScreen()) { return false; }
         var xy = evt.getCoordinates(), w = System.getDeviceSettings().screenWidth;
         var x = xy[0], y = xy[1];
         var mid = Math.round(0.5 * w), half = Math.round((Pages.SECTION_BW / 2 + 0.024038) * w);
@@ -38,18 +42,28 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // Start pauses or resumes the climb. A tap on a touchscreen also comes as select, possibly before
-    // onTap sees it, so on page 9 select is left to the tap and the Start key itself pauses (onKey).
-    function onSelect() as Boolean {
-        if (view.page == Pages.SECTION_PAGE) { return false; }
-        view.togglePause();
-        return true;
+    // The buttons. Up and Down go to the flow only while it has the screen; else they come back as
+    // onNextPage and onPreviousPage and change page. Back the flow does not take (before the start)
+    // comes back as onBack, which leaves the app.
+    function onKey(evt as WatchUi.KeyEvent) as Boolean {
+        var k = evt.getKey();
+        if (k == WatchUi.KEY_ENTER) { return view.press(:start); }
+        if (k == WatchUi.KEY_ESC) { return view.press(:back); }
+        if ((k == WatchUi.KEY_UP || k == WatchUi.KEY_DOWN) && view.flowOnScreen()) {
+            return view.press(k == WatchUi.KEY_UP ? :up : :down);
+        }
+        return false;
     }
 
-    function onKey(evt as WatchUi.KeyEvent) as Boolean {
-        if (view.page != Pages.SECTION_PAGE || evt.getKey() != WatchUi.KEY_ENTER) { return false; }
-        view.togglePause();
-        return true;
+    // A tap on a touchscreen also comes as select, possibly before onTap sees it: it does nothing, so a
+    // touch never pauses the climb or picks a row. The Start button comes to onKey.
+    function onSelect() as Boolean {
+        return view.page != Pages.SECTION_PAGE || view.flowOnScreen();
+    }
+
+    // Back as a behaviour (a swipe, or the Back button the flow did not take): the same as the button.
+    function onBack() as Boolean {
+        return view.press(:back);
     }
 
     function onMenu() as Boolean {

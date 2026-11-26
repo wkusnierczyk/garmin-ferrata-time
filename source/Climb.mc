@@ -420,6 +420,29 @@ module Climb {
         return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
     }
 
+    // The point at net height n (above the start of the part, up and down) nearest distance d0: where
+    // an altitude the climber enters puts them (#51). n is kept within the part's range; on a flat
+    // stretch at that height, its point nearest d0. Goes through every section: for a calibration,
+    // never for a frame.
+    function distanceAtNet(n as Float, d0 as Float) as Float {
+        if (n < netLow()) { n = netLow().toFloat(); }
+        if (n > netHigh()) { n = netHigh().toFloat(); }
+        var best = d0, off = -1.0;
+        for (var i = 0; i < count(); i++) {
+            var a = netAt(i), b = netAt(i + 1);
+            if (n < (a < b ? a : b) || n > (a > b ? a : b)) { continue; }
+            var x0 = dAt(i).toFloat(), x1 = dAt(i + 1).toFloat(), x = 0.0;
+            if (UP[i] == 0) {
+                x = d0 < x0 ? x0 : (d0 > x1 ? x1 : d0);
+            } else {
+                x = x0 + (n - a) / UP[i] * LEN[i];
+            }
+            var e = (x - d0).abs();
+            if (off < 0 || e < off) { best = x; off = e; }
+        }
+        return best;
+    }
+
     // The first distance at which the route reaches height u.
     function firstDistanceAt(u as Float) as Float {
         if (u <= 0) { return 0.0; }

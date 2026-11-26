@@ -6,8 +6,9 @@ using Toybox.WatchUi;
 import Toybox.Lang;
 
 // Draws the climb the tracker follows, fed by the input the demo setting chooses: the demo plays the
-// made-up climb (the whole route in about two minutes, a pause at the top, then again), the sensors
-// read the watch.
+// made-up climb (a part of the route in about two minutes, then a hold at its end), the sensors read
+// the watch. The climb flow (#51) has the screen before the start, after the end and while a menu of
+// it is open; the pages have it during the climb.
 class View extends WatchUi.View {
 
     // The page dots show for this long after the view appears (the app opening, or coming back from
@@ -15,17 +16,25 @@ class View extends WatchUi.View {
     const DOTS_MS = 2000;
 
     var page as Number = 0;
-    // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons.
+    // The section page 9 shows: -1 for the climber's, until the user steps with the chevrons. Reset
+    // when the part shown changes (the approach or the ferrata), whose sections are others.
     var sel as Number = -1;
+    var ferrataShown as Boolean = true;
+    var climbShown as Tracker? = null;
     var timer as Timer.Timer?;
     var dotsMs as Number = 0;
 
-    // The input feeding the tracker; null without a route.
+    // The input feeding the tracker, and the climb flow's menus; null without a route.
     var feed as Feed?;
+    var flow as FlowMenus?;
 
     function initialize(r as Route?) {
         View.initialize();
-        if (r != null) { feed = new Feed(r); }
+        if (r != null) {
+            var f = new Feed(r);
+            feed = f;
+            flow = new FlowMenus(f);
+        }
     }
 
     function onShow() as Void {
@@ -56,6 +65,8 @@ class View extends WatchUi.View {
         var f = feed;
         if (f == null || !f.restart()) { return; }
         sel = -1;
+        var fl = flow;
+        if (fl != null) { fl.reset(); }
         if (timer != null) { startTimer(); }
     }
 
@@ -69,12 +80,14 @@ class View extends WatchUi.View {
         if (dotsMs > 0) { dotsMs -= tickMs(); }
         var f = feed;
         if (f != null) { f.tick(); }
+        var fl = flow;
+        if (fl != null) { fl.tick(tickMs()); }
         WatchUi.requestUpdate();
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        var f = feed;
-        if (f == null) {
+        var f = feed, fl = flow;
+        if (f == null || fl == null) {
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
             dc.clear();
             dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, "No route",
@@ -82,6 +95,8 @@ class View extends WatchUi.View {
             return;
         }
         var d = new Draw(dc);
+        if (FlowDraw.draw(d, fl)) { return; }
+        followPart();
         Pages.selected = sel;
         Pages.draw(page, d, f.tracker.state());
         if (dotsMs > 0) { pageDots(d); }
@@ -116,11 +131,32 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // Start pauses or resumes the climb; in the demo, its clock stops with it.
-    function togglePause() as Void {
+    // From the approach to the ferrata or back, the sections are others, and a new climb starts with
+    // the climber's own: page 9 follows the climber's again (the reviews of #88 and #114).
+    function followPart() as Void {
+        if (Climb.FERRATA != ferrataShown) {
+            ferrataShown = Climb.FERRATA;
+            sel = -1;
+        }
         var f = feed;
-        if (f == null) { return; }
-        f.togglePause();
+        if (f != null && f.tracker != climbShown) {
+            climbShown = f.tracker;
+            sel = -1;
+        }
+    }
+
+    // Whether the climb flow has the screen, and with it Up and Down.
+    function flowOnScreen() as Boolean {
+        var fl = flow;
+        return fl != null && fl.onScreen();
+    }
+
+    // A button for the climb flow (:start, :back, :up, :down); false when it does not take it.
+    function press(key as Symbol) as Boolean {
+        var fl = flow;
+        if (fl == null) { return key != :back; }
+        var taken = fl.press(key);
         WatchUi.requestUpdate();
+        return taken;
     }
 }
