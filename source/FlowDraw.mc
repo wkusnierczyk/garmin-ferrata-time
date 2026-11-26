@@ -76,13 +76,13 @@ module FlowDraw {
 
     // ---------------------------------------------------------------- the screens
 
-    // F1: the route's name, then its path, ascent and guidebook time after their symbols, and a green
-    // play mark by Start.
+    // F1: the route's name, then its path, ascent and guidebook time after their symbols, and a thin
+    // green arc by Start.
     function ready(d as Draw, f as FlowMenus) as Void {
         title(d, f.feed.route.name.toUpper(), Flow.WHITE);
         symbolRows(d, [new SymRow(:path, f.figures[0], "m"), new SymRow(:ascent, f.figures[1], "m"),
             new SymRow(:watch, f.figures[2], "")] as Array<SymRow>, 0.4);
-        Symbols.play(d, Widgets.GREEN);
+        Symbols.startArc(d, Widgets.GREEN);
     }
 
     // F4, F20: on the approach, the distance and the time left to the head, then "to HEAD", HEAD green

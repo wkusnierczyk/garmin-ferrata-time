@@ -126,11 +126,15 @@ module Symbols {
         d.shade(cx - MARK_BOX / 2, cy - MARK_BOX / 2, MARK_BOX, MARK_BOX, 0.018, 0x99);
     }
 
-    // A filled play symbol by Start (the ready screen's, in place of the word START).
-    function play(d as Draw, c as Number) as Void {
-        var cx = markX(), cy = markY(true), r = 0.028;
-        box(d, cx, cy);
-        d.roundPoly([[cx - r * 0.7, cy - r], [cx + r, cy], [cx - r * 0.7, cy + r]] as Array<Array<Float>>, 0.004, c);
+    // A thin arc along the edge by Start, as Garmin's own activities mark Start before one begins (the
+    // ready screen's; owner, 2026-11-26, in place of a play symbol): centred on the button's 30
+    // degrees, 24 degrees long, 0.012 thick with round ends, its outer edge 0.02 in from the screen's.
+    function startArc(d as Draw, c as Number) as Void {
+        var pen = 0.012, r = 0.5 - 0.02 - pen / 2;
+        d.arc(r, 42, 18, c, pen);
+        var p0 = d.onCircle(r, 42), p1 = d.onCircle(r, 18);
+        d.dot(p0[0], p0[1], pen / 2, c);
+        d.dot(p1[0], p1[1], pen / 2, c);
     }
 
     // A check by Start (set, calibrate or end there).
