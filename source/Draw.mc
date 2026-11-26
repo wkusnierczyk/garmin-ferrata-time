@@ -126,6 +126,23 @@ class Draw {
         return (r.toNumber() << 16) | (g.toNumber() << 8) | b.toNumber();
     }
 
+    // The colour of what is drawn next, its fill opaque too where the API has fills: after shade() the
+    // fill is half-transparent, and the SDK's docs say setFill wins over setColor; only the simulator
+    // was seen to make the next setColor's fill opaque again (the review of #124). The opaque colour is
+    // made once per change.
+    var fillOf as Number = -1;
+    var fillIs as Number = 0;
+
+    function ink(c as Number) as Void {
+        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        if (!(dc has :setFill) || !(Graphics has :createColor)) { return; }
+        if (c != fillOf) {
+            fillOf = c;
+            fillIs = Graphics.createColor(0xff, (c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff);
+        }
+        dc.setFill(fillIs);
+    }
+
     function clear() as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -135,7 +152,7 @@ class Draw {
     const ROUND_PEN = 0.009615;
 
     function line(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, c as Number, pen as Numeric) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.setPenWidth(s(pen) < 1 ? 1 : s(pen));
         dc.drawLine(s(x1), s(y1), s(x2), s(y2));
         if (pen >= ROUND_PEN) {
@@ -149,7 +166,7 @@ class Draw {
     function poly(pts as Array<Array<Float>>, c as Number) as Void {
         var a = new Array<[Numeric, Numeric]>[pts.size()];
         for (var i = 0; i < pts.size(); i++) { a[i] = [s(pts[i][0]), s(pts[i][1])]; }
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.fillPolygon(a);
     }
 
@@ -165,7 +182,7 @@ class Draw {
     }
 
     function rect(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.fillRectangle(s(x), s(y), s(wd) < 1 ? 1 : s(wd), s(h) < 1 ? 1 : s(h));
     }
 
@@ -191,7 +208,7 @@ class Draw {
             out.add([Math.round(px[i] + nx * R).toNumber(), Math.round(py[i] + ny * R).toNumber()]);
             out.add([Math.round(px[j] + nx * R).toNumber(), Math.round(py[j] + ny * R).toNumber()]);
         }
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         if (out.size() >= 3) { dc.fillPolygon(out); }
         if (R > 0) {
             for (var i = 0; i < n; i++) { dc.fillCircle(px[i], py[i], R); }
@@ -199,7 +216,7 @@ class Draw {
     }
 
     function roundRect(x as Numeric, y as Numeric, wd as Numeric, h as Numeric, r as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.fillRoundedRectangle(s(x), s(y), s(wd), s(h), s(r));
     }
 
@@ -219,12 +236,12 @@ class Draw {
     }
 
     function dot(x as Numeric, y as Numeric, r as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.fillCircle(s(x), s(y), s(r));
     }
 
     function ring(x as Numeric, y as Numeric, r as Numeric, c as Number, pen as Numeric) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.setPenWidth(s(pen));
         dc.drawCircle(s(x), s(y), s(r));
     }
@@ -237,12 +254,12 @@ class Draw {
 
     // Text centred on (x, y).
     function text(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function textRight(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.drawText(s(x), s(y), font, str, Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
@@ -253,7 +270,7 @@ class Draw {
         // as a full circle: round both ends, and leave out an arc shorter than a degree.
         var i0 = Math.round(a0).toNumber(), i1 = Math.round(a1).toNumber();
         if (i0 - i1 < 1) { return; }
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.setPenWidth(s(pen));
         dc.drawArc(s(0.5), s(0.5), s(r), Graphics.ARC_CLOCKWISE, i0, i1);
     }
@@ -275,7 +292,7 @@ class Draw {
 
     // Text with its top at y, justified as given (Graphics.TEXT_JUSTIFY_LEFT, _RIGHT or _CENTER).
     function textTop(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         dc.drawText(s(x), s(y), font, str, justify);
     }
 
@@ -346,7 +363,7 @@ class Draw {
     const BRUSH_STEP = 0.004807692;
 
     function brush(x1 as Numeric, y1 as Numeric, x2 as Numeric, y2 as Numeric, r as Numeric, c as Number) as Void {
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        ink(c);
         var dx = x2 - x1, dy = y2 - y1;
         var n = (Math.sqrt(dx * dx + dy * dy) / BRUSH_STEP).toNumber() + 1;
         for (var i = 0; i <= n; i++) {
