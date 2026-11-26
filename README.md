@@ -109,7 +109,7 @@ The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its s
 | `SemiBold40` | SemiBold | 0.0962 (9.62 %) | 40 | text |
 | `SemiBold44` | SemiBold | 0.1058 (10.58 %) | 44 | text |
 | `SemiBold46` | SemiBold | 0.1106 (11.06 %) | 46 | text |
-| `SemiBold52` | SemiBold | 0.1250 (12.50 %) | 52 | numbers |
+| `SemiBold52` | SemiBold | 0.1250 (12.50 %) | 52 | values |
 | `SemiBold58` | SemiBold | 0.1394 (13.94 %) | 58 | numbers |
 | `SemiBold64` | SemiBold | 0.1538 (15.38 %) | 64 | numbers |
 | `SemiBold84` | SemiBold | 0.2019 (20.19 %) | 84 | numbers |
@@ -126,7 +126,7 @@ The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its s
 | `Bold70` | Bold | 0.1683 (16.83 %) | 70 | grades |
 <!-- font sizes: end -->
 
-Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z and a to z, the digits, the space and `' ( ) + , - . / : > ? ~ ° · – …`, the punctuation the code and the mock pages use (parentheses, comma and period come from route names such as "Grosser Spalt (var. E)"; the question mark from a call sign where the route has no emergency number, the en dash from a time not known yet, `–:––`). Route names cannot be predicted, so the route tool folds accented letters to plain ones and rejects anything else the fonts lack (#84); `make check-fonts` fails on a string literal in `source/` outside this set. Number fonts hold the digits, `:`, `-`, `–` and the space; grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`).
+Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z and a to z, the digits, the space and `' ( ) + , - . / : > ? ~ ° · – …`, the punctuation the code and the mock pages use (parentheses, comma and period come from route names such as "Grosser Spalt (var. E)"; the question mark from a call sign where the route has no emergency number, the en dash from a time not known yet, `–:––`). Route names cannot be predicted, so the route tool folds accented letters to plain ones and rejects anything else the fonts lack (#84); `make check-fonts` fails on a string literal in `source/` outside this set. Number fonts hold the digits, `:`, `-`, `–` and the space; the 52 px one, which the flow's rows of figures share with the pages (owner, 2026-11-26), also `.` and the letters of "here" (`values`); grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`).
 
 The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
 
