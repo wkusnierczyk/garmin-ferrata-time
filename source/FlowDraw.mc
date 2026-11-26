@@ -94,7 +94,7 @@ module FlowDraw {
         to.colour = Widgets.GREEN;
         to.bold = true;
         to.word = "to";
-        to.share = 0.065;
+        to.share = 0.065 * GROW;
         symbolRows(d, [new SymRow(:path, ((left > 0 ? left : 0) / 1000.0).format("%.1f"), "km"),
             new SymRow(:watch, Flow.hours(Math.round(minutes > 0 ? minutes : 0).toNumber()), ""), to] as Array<SymRow>, 0.44);
     }
@@ -328,26 +328,33 @@ module FlowDraw {
         titleParts(d, [[text, colour, true]]);
     }
 
-    // Rows of a symbol and a value with its unit, as page 16 draws them at the size the owner gave
-    // (2026-11-26): the values 0.1 of the width, the symbols 0.87 of that, the units 0.616 of it, grey,
-    // on the values' baseline, rows 1.4 values apart; the block centred on its widest row, the first
-    // row's middle at y0. A row without a symbol is a word row: its value at the values' left, its word
-    // grey and right-aligned with the symbols, 0.75 of a pitch under the row before.
-    const ROW = 0.1;
+    // Rows of a symbol and a value with its unit, as page 16 draws them: the values at page 16's and
+    // 28's size, 0.125 of the width (52 px at 416; owner, 2026-11-26: 1.2 of the first 0.1, then the
+    // pages' font), the symbols 0.87 of that, the units the table's 0.0769, grey, on the values'
+    // baseline, rows 1.4 values apart; gaps and a word row's size GROW times the first design's. The
+    // block is centred on its widest row, and its middle stays where the first design's 0.1 rows had
+    // it, whose first row's middle was at y0. A row without a symbol is a word row: its value at the
+    // values' left, its word grey and right-aligned with the symbols, 0.75 of a pitch under the row
+    // before.
+    const ROW = 0.125;
+    const GROW = 1.25;
 
     function symbolRows(d as Draw, list as Array<SymRow>, y0 as Float) as Void {
-        var sym = ROW * 0.87, gap = 0.023, pitch = ROW * 1.4, ugap = 0.008;
-        var vk = size(false, ROW), uk = size(false, ROW * 0.616), widest = 0.0;
+        var sym = ROW * 0.87, gap = 0.023 * GROW, pitch = ROW * 1.4, ugap = 0.008 * GROW;
+        var vk = size(false, ROW), uk = size(false, 0.0769), widest = 0.0;
         for (var i = 0; i < list.size(); i++) {
             var r = list[i];
             var w = sym + gap + width(d, r.bold, size(r.bold, r.share), r.value)
                 + (r.unit.length() > 0 ? ugap + width(d, false, uk, r.unit) : 0.0);
             if (w > widest) { widest = w; }
         }
-        var left = 0.5 - widest / 2, y = y0 - pitch, half = d.capHeight(font(d, false, vk)) / 2;
+        // The last row's offset from the first; the block scaled about its middle.
+        var last = 0.0;
+        for (var i = 1; i < list.size(); i++) { last += list[i].sym == null ? pitch * 0.75 : pitch; }
+        var left = 0.5 - widest / 2, y = y0 + last / GROW / 2 - last / 2, half = d.capHeight(font(d, false, vk)) / 2;
         for (var i = 0; i < list.size(); i++) {
             var r = list[i], k = size(r.bold, r.share);
-            y += i > 0 && r.sym == null ? pitch * 0.75 : pitch;
+            if (i > 0) { y += r.sym == null ? pitch * 0.75 : pitch; }
             var vx = left + sym + gap, base = y + half;
             var s = r.sym;
             if (s != null) { Symbols.row(d, s, left + sym / 2, y, sym); }
@@ -361,7 +368,8 @@ module FlowDraw {
     }
 
     // An altitude large (F3, F10, F11): the number 0.2 of the width, bold, white (the table's largest
-    // bold, 0.1683), the number centred across and its digits on cy; the unit right after it, grey, 0.07, on its baseline.
+    // bold, 0.1683), the number centred across and its digits on cy; the unit right after it, grey,
+    // 0.07, on its baseline.
     function bigAltitude(d as Draw, v as Number, cy as Float) as Void {
         var vk = size(true, 0.2), uk = size(false, 0.07), str = v.format("%d");
         // The number centred, its unit after it (owner, 2026-11-26), not the two together.
