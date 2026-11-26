@@ -8,8 +8,8 @@ import Toybox.Lang;
 
 // Draws the climb the tracker follows, fed by the input the demo setting chooses: the demo plays the
 // made-up climb (a part of the route in about two minutes, then a hold at its end), the sensors read
-// the watch. The climb flow (#51) has the screen before the start, after the end and while a menu of
-// it is open; the pages have it during the climb.
+// the watch. The climb flow (#51) has the screen before the start, on the approach (#121), after the
+// end and while anything of it is open; the pages have it on the ferrata.
 class View extends WatchUi.View {
 
     // The page dots show for this long after the view appears (the app opening, or coming back from
