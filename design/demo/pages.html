@@ -1,0 +1,195 @@
+<title>Ferrata Daubenhorn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* All ten dials in one grid, each the page's own settled mock, driven by one clock. */
+:root {
+  --bg: #f3f4f2; --fg: #16191b; --muted: #5b6366; --line: #d6dad6;
+  --screen: #000000; --bezel: #2a2d30; --bezel-edge: #45494d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #121416; --fg: #e8eae8; --muted: #9ba2a5; --line: #2c3033; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+main { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 36px; line-height: 1.05; margin: 0; }
+.lede { max-width: 75ch; color: var(--muted); margin: -12px 0 0; }
+.bar { position: sticky; top: 0; z-index: 1; background: var(--bg); padding-block: 10px;
+  display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; border-bottom: 1px solid var(--line); }
+.bar input[type=range] { flex: 1 1 240px; max-width: 520px; }
+.readout { font: 600 20px/1 var(--display); font-variant-numeric: tabular-nums; min-width: 22ch; }
+button { font: 600 15px var(--body); padding: 8px 18px; border: 1px solid var(--fg); background: var(--fg); color: var(--bg); border-radius: 4px; cursor: pointer; min-width: 7em; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+select { font: 15px var(--body); padding: 4px 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px 24px; }
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+figure { margin: 0; display: grid; gap: 10px; justify-items: center; min-width: 0; }
+.dial { width: 100%; max-width: 260px; aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--screen);
+  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 8px var(--bezel-edge); }
+/* On the epix the lit screen is about 84 % of the black glass: a black ring around it, the bezel outside. */
+.dial { padding: 8%; box-sizing: border-box; }
+.dial iframe { display: block; width: 100%; height: 100%; border: 0; border-radius: 50%; }
+/* A parked page (owner, 2026-11-25): kept in the mock, left out of the builds. */
+figure.parked { border: 2px solid #e5484d; border-radius: 18px; padding: 10px; }
+figure.parked figcaption b { color: #e5484d; font-weight: 600; }
+figcaption { font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; text-align: center; }
+details.ap { max-width: 95ch; color: var(--muted); font-size: 14px; }
+details.ap summary { cursor: pointer; color: var(--fg); font-weight: 500; }
+details.ap table { border-collapse: collapse; margin-top: 8px; }
+details.ap th, details.ap td { text-align: left; vertical-align: top; padding: 4px 10px 4px 0; border-top: 1px solid var(--line); }
+details.ap th { white-space: nowrap; color: var(--fg); font-weight: 500; }
+</style>
+<main>
+  <h1>Daubenhorn · Ferrata · pages 1 to 37</h1>
+  <p class="lede">One section descends (owner, 2026-11-23): the demo's Dihedral, as in the app's demo route (section 4 now that the approach is no longer the demo's first section); on the Daubenhorn and the Sulzfluh, which climb there, section 5 is a stand-in descent of its own height, to show how the pages draw one. Altitudes and positions follow the real height, down there; the stacks, the gauge by ascent's arcs and the climbed totals count height gained, flat there.</p>
+  <details class="ap">
+    <summary>On the approach (#90): what each page shows</summary>
+    <p>"Start on the approach" (on by default) puts the walk to the ferrata's head on the slider's first stretch: the demo's 120 m, the Daubenhorn's 2.4 km down from the Gemmi, the Sulzfluh's 3.3 km up from Partnun. There the ferrata reads not started, nothing shows a height from the approach, and the head appears as the next point: a green HEAD with the distance and the time to it at the climber's pace. Off, the slider covers the ferrata only.</p>
+    <table>
+      <tr><th>1</th><td>Profile whole and undimmed, no climber outline; ascent ring at the foot (0 / all to go); the altitude gives way to HEAD with distance and time; boxes W, then the first grade.</td></tr>
+      <tr><th>2</th><td>As 1, zoomed on the ferrata's first 100 m; HEAD on the half-transparent box.</td></tr>
+      <tr><th>3, 4</th><td>Front view undimmed, no outline; box W; HEAD and time to the head above it, the first grade and the distance to it (the head) below.</td></tr>
+      <tr><th>5, 6</th><td>Column: W box in the current slot, the first sections above; the ferrata's border altitudes (6: relative to the head); one line "HEAD in 2.4 km 0:36" in the empty slot below (owner, 2026-11-25).</td></tr>
+      <tr><th>7</th><td>Ascent not started, column as 5; one line "HEAD in 2.4 km 0:36" in place of the NOW altitude.</td></tr>
+      <tr><th>8–11</th><td>Stacks not started: the head on the climber's line, the first sections above, no ring, ticks without altitudes; HEAD mark under the foot; 9 and 11 in a not-started gauge.</td></tr>
+      <tr><th>12–14</th><td>Gauge undimmed, no outline; time to the head above the W box, the first grade and its distance below, a green HEAD in the point word's place; ascent not started.</td></tr>
+      <tr><th>15</th><td>Preview of the first section; its foot altitude replaced by distance and time to the head; HEAD · REST kept.</td></tr>
+      <tr><th>16</th><td>0 of the ferrata's distance, ascent and time. No HEAD on this page or any after it (owner, 2026-11-25).</td></tr>
+      <tr><th>17, 19</th><td>0 of the distance / 0:00 of the time.</td></tr>
+      <tr><th>18</th><td>Height only: 0 of the ascent.</td></tr>
+      <tr><th>20, 21</th><td>Every grade at 0:00 / 0 m, none current; no row for the head (owner, 2026-11-25: the approach is not a grade).</td></tr>
+      <tr><th>22–27</th><td>Now before the head; every forecast (top, arrival, margin, daylight, battery) includes the rest of the approach.</td></tr>
+      <tr><th>28–31</th><td>The target as before, counted from here: distance and time include the rest of the approach, ascent only the ferrata's.</td></tr>
+      <tr><th>32–34</th><td>Vertical speed is height: current and average as en dashes; the reference box stays.</td></tr>
+      <tr><th>35, 36</th><td>Moving time counts the approach walk (the activity runs from Start); rests from the head.</td></tr>
+      <tr><th>37</th><td>The whole ferrata ahead, as at the head; no approach row.</td></tr>
+    </table>
+  </details>
+  <div class="bar">
+    <button id="play" type="button">Start</button>
+    <input id="pos" type="range" min="0" max="1000" step="any" value="0" aria-label="Point of the climb">
+    <div class="readout" id="readout"></div>
+    <label for="run">Run</label>
+    <select id="run">
+      <option value="once" selected>One pass</option>
+      <option value="loop">Rolling</option>
+    </select>
+    <label class="check"><input id="approach" type="checkbox" checked> Start on the approach</label>
+    <label>The whole climb in 50 s (the approach included)</label>
+    <label for="face">Font</label>
+    <select id="face">
+      <option value="condensed">Barlow Condensed</option>
+      <option value="semi" selected>Barlow Semi Condensed</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+<script>
+// Each dial is the page's own mock, cut down to its live dial; the shared clock sets its point of the climb.
+// Grouped and numbered from 1 (owner, 2026-11-23): the profiles, the vertical stacks, the central
+// grade, then the rest.
+// "parked" (owner, 2026-11-25): pages 8 to 11, the stacks, framed red and left out of the builds.
+const PAGES = [
+  ["page-1.html", "live", "Page 1 · profile and ascent"],
+  ["page-1.html", "livez", "Page 2 · profile, 100 m zoom"],
+  ["page-3.html", "live", "Page 3 · front view"],
+  ["page-3.html", "livez", "Page 4 · front view, 100 m zoom"],
+  ["page-5.html", "live", "Page 5 · difficulty column"],
+  ["page-5.html", "liveb", "Page 6 · difficulty column, relative altitudes"],
+  ["page-7.html", "live", "Page 7 · ascent and column"],
+  ["pages-8-11.html", "live", "Page 8 · stack by ascent", "parked"],
+  ["pages-8-11.html", "live4g", "Page 9 · stack by ascent, ascent gauge", "parked"],
+  ["pages-8-11.html", "live5", "Page 10 · stack by path", "parked"],
+  ["pages-8-11.html", "live5g", "Page 11 · stack by path, ascent gauge", "parked"],
+  ["page-12.html", "live", "Page 12 · gauge by length"],
+  ["page-12.html", "live5", "Page 13 · gauge by ascent"],
+  ["page-14.html", "live", "Page 14 · current difficulty"],
+  ["page-15.html", "live", "Page 15 · section preview"],
+  ["page-16.html", "liveb", "Page 16 · numbers"],
+  ["page-16.html", "livec", "Page 17 · distance"],
+  ["page-16.html", "lived", "Page 18 · ascent"],
+  ["page-16.html", "livee", "Page 19 · time"],
+  ["page-20.html", "live", "Page 20 · time per difficulty"],
+  ["page-21.html", "live", "Page 21 · ascent per difficulty"],
+  ["page-22.html", "liveb", "Page 22 · margin to the last departure"],
+  ["page-22.html", "livei", "Page 23 · margin, as durations"],
+  ["page-24.html", "live", "Page 24 · daylight"],
+  ["page-24.html", "livei", "Page 25 · daylight, as durations"],
+  ["page-26.html", "live", "Page 26 · battery"],
+  ["page-26.html", "livei", "Page 27 · battery, as durations"],
+  ["page-28.html", "live", "Page 28 · next exit"],
+  ["page-28.html", "livea", "Page 29 · next rest"],
+  ["page-28.html", "liveb", "Page 30 · next danger"],
+  ["page-28.html", "livet", "Page 31 · to the top"],
+  ["page-32.html", "live", "Page 32 · vertical speed"],
+  ["page-32.html", "liveq", "Page 33 · against the previous climb"],
+  ["page-32.html", "liver", "Page 34 · against a partner"],
+  ["page-35.html", "live", "Page 35 · moving and resting"],
+  ["page-35.html", "livetwo", "Page 36 · moving and resting, total below"],
+  ["page-37.html", "live", "Page 37 · ahead"],
+];
+const run = document.getElementById("run");
+// The dials' face (owner, 2026-11-23): Barlow Semi Condensed, more readable, by default, or Barlow Condensed
+// to compare; sent with each frame's point of the climb.
+const face = document.getElementById("face");
+const grid = document.getElementById("grid"), pos = document.getElementById("pos"),
+  play = document.getElementById("play"), readout = document.getElementById("readout");
+const frames = PAGES.map(([src, svg, caption, parked]) => {
+  grid.insertAdjacentHTML("beforeend", `<figure${parked ? ' class="parked"' : ""}><div class="dial"><iframe src="${src}" title="${caption}" scrolling="no"></iframe></div><figcaption>${parked ? "<b>Parked</b> · " : ""}${caption}</figcaption></figure>`);
+  const f = grid.lastElementChild.querySelector("iframe");
+  return { f, svg };
+});
+// The frames are driven by message, so the grid works whether or not they share its origin.
+function drive(x, i) {
+  x.f.contentWindow?.postMessage({ grid: "ferrata", svg: x.svg, pos: +pos.value, font: face.value, approach: approach.checked, reply: i === 0 }, "*");
+}
+const show = () => frames.forEach(drive);
+addEventListener("message", e => {
+  const m = e.data; if (!m || m.grid !== "ferrata") return;
+  if (m.ready) { const i = frames.findIndex(x => x.f.contentWindow === e.source); if (i >= 0) drive(frames[i], i); }
+  if (m.readout) readout.textContent = m.readout;
+  if (m.rests) rests = m.rests;
+});
+let timer = null;
+pos.addEventListener("input", () => { restDone = null; show(); });
+face.addEventListener("change", show);
+// "Start on the approach" (#90): the slider walks the approach to the head first, then the ferrata.
+const approach = document.getElementById("approach");
+approach.addEventListener("change", () => { restDone = null; show(); });
+// 1 step of 1000 every 50 ms: the whole climb in 50 s, plus a 3 s stop at each rest point (a rest's middle).
+const REST_STOP = 3000;
+let rests = [], restUntil = 0, restDone = null;
+play.addEventListener("click", () => {
+  if (timer) { clearInterval(timer); timer = null; play.textContent = "Start"; return; }
+  play.textContent = "Stop";
+  // One pass starts again from the bottom when it is started at the top.
+  if (run.value === "once" && +pos.value >= 1000) { pos.value = 0; restDone = null; show(); }
+  // Advance by the time that has passed, not by ticks, so the climb takes 50 s however often the timer fires.
+  let last = Date.now();
+  timer = setInterval(() => {
+    const now = Date.now(), dt = now - last;
+    last = now;
+    if (now < restUntil) return;
+    const f0 = +pos.value;
+    let f1 = f0 + dt / 50;
+    // A rest stops the clock once: the slider may hand back the stopped value a hair short of the rest,
+    // so the rest just stopped at is skipped rather than found again.
+    const rest = rests.find(r => r !== restDone && f0 < r && r <= f1);
+    if (rest !== undefined) { f1 = rest; restDone = rest; restUntil = Date.now() + REST_STOP; }
+    else if (f1 > 1000) restDone = null;
+    // At the top, a rolling run starts again from the bottom; a single pass stops there.
+    if (f1 > 1000 && run.value === "once") {
+      pos.value = 1000; show();
+      clearInterval(timer); timer = null; play.textContent = "Start";
+      return;
+    }
+    pos.value = f1 > 1000 ? 0 : f1;
+    show();
+  }, 50);
+});
+</script>
