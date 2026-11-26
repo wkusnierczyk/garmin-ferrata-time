@@ -13,7 +13,8 @@ class App extends Application.AppBase {
     var route as Route?;
     var view as View?;
 
-    // The pages count from the ferrata head: the approach is a part of its own, shown only while on it.
+    // The pages count from the ferrata head: the approach is a part of its own, shown only while on it
+    // (its screen first, then the pages, #121).
     function onStart(state as Dictionary?) as Void {
         var r = Route.fromJson(WatchUi.loadResource(Rez.JsonData.route) as Dictionary);
         route = r;

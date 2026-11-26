@@ -4,6 +4,7 @@
   "glyphs": {
     "text": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:>?~°·–…",
     "numbers": " -–:0123456789",
+    "values": " -–.:0123456789ehr",
     "grades": "/0123456789ABCDEFGKRW"
   },
   "fonts": [
@@ -19,7 +20,7 @@
     {"weight": "SemiBold", "share": 0.0962, "px": 40, "glyphs": "text"},
     {"weight": "SemiBold", "share": 0.1058, "px": 44, "glyphs": "text"},
     {"weight": "SemiBold", "share": 0.1106, "px": 46, "glyphs": "text"},
-    {"weight": "SemiBold", "share": 0.125, "px": 52, "glyphs": "numbers"},
+    {"weight": "SemiBold", "share": 0.125, "px": 52, "glyphs": "values"},
     {"weight": "SemiBold", "share": 0.1394, "px": 58, "glyphs": "numbers"},
     {"weight": "SemiBold", "share": 0.1538, "px": 64, "glyphs": "numbers"},
     {"weight": "SemiBold", "share": 0.2019, "px": 84, "glyphs": "numbers"},

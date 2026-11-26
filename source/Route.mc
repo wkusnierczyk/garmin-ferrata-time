@@ -72,7 +72,8 @@ class Route {
     }
 
     // A dictionary with a string kind; a point of a known kind also has a whole-number at and a name,
-    // and alt, lat and lon are numbers when there. Unknown kinds are not checked: they are ignored.
+    // the approach's start and a landmark a type, and alt, lat and lon are numbers when there. Unknown
+    // kinds are not checked: they are ignored.
     static function pointValid(p as Object?) as Boolean {
         if (!(p instanceof Dictionary)) { return false; }
         var d = p as Dictionary;
@@ -81,6 +82,11 @@ class Route {
         if (!isKnownKind(kind as String)) { return true; }
         if (!(d["at"] instanceof Number) || !(d["name"] instanceof String)) { return false; }
         if (d["alt"] != null && !(d["alt"] instanceof Number)) { return false; }
+        // The approach's start and a landmark say what they are (#121), which the Start menu and the
+        // details show. A landmark's type the app does not know (the tool has rest, bridge, sign) shows
+        // as it is, in grey.
+        var typed = "approach".equals(kind) || "landmark".equals(kind), type = d["type"];
+        if (typed && (!(type instanceof String) || type.length() == 0)) { return false; }
         if (d["lat"] != null && !isNumeric(d["lat"] as Object?)) { return false; }
         if (d["lon"] != null && !isNumeric(d["lon"] as Object?)) { return false; }
         return true;
@@ -120,6 +126,13 @@ class Route {
         var i = point("approach");
         if (i < 0) { return false; }
         return (points[i]["alt"] as Object?) != null;
+    }
+
+    // What the approach's start is, "Top station" or "Car park" (the route tool requires it): the Start
+    // menu names the point by it, never by its own name (#121). Empty without one.
+    function approachType() as String {
+        var i = point("approach");
+        return i >= 0 ? points[i]["type"] as String : "";
     }
 
     // The ferrata's figures for the ready screen (#51): the height it gains (the sum of the positive

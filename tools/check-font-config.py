@@ -48,6 +48,9 @@ CHARSETS = {font_config.font_id(f): SIZES['glyphs'][f['glyphs']] for f in SIZES[
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 TEXT = LETTERS + " '()+,-./:>?~°·–…"
 NUMBERS = ' -–:0123456789'
+# The flow's rows of figures share the pages' 52 px numbers (owner, 2026-11-26), and need a decimal
+# point and the letters of "here" there: four glyphs more than numbers.
+VALUES = ' -–.:0123456789ehr'
 GRADES = '/0123456789ABCDEFGKRW'
 
 # Barlow Semi Condensed, in font units (Barlow Condensed's too): ascender and descender (hhea) and cap height (OS/2). ttf2bmp's
@@ -175,8 +178,8 @@ def size_at(fid, w, h):
 # ---------------------------------------------------------------------- chain
 print("\nCHAIN")
 want_ids = [i for ws in IDS.values() for i in ws]
-ok(SIZES['glyphs'] == {'text': TEXT, 'numbers': NUMBERS, 'grades': GRADES},
-   "sizes.json's glyph sets are the owner's: text, numbers, grades")
+ok(SIZES['glyphs'] == {'text': TEXT, 'numbers': NUMBERS, 'values': VALUES, 'grades': GRADES},
+   "sizes.json's glyph sets are the owner's: text, numbers, values, grades")
 bad_table = font_config.problems(SIZES)
 ok(not bad_table, "sizes.json: each share is its pixels over the reference to four places, the sizes rise, "
    "each glyph set exists" + (f" ({bad_table[:3]})" if bad_table else ""))

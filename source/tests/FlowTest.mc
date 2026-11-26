@@ -120,6 +120,12 @@ module FlowTest {
         return x <= e && x >= -e;
     }
 
+    // Selects the open menu's row i.
+    function pick(f as FlowMenus, i as Number) as Void {
+        var m = f.menu as FlowMenu;
+        m.sel = i;
+    }
+
     // Opens the row with this id in the open menu.
     function choose(f as FlowMenus, id as Symbol) as Void {
         var m = f.menu as FlowMenu;
@@ -140,9 +146,11 @@ module FlowTest {
         var m = f.menu as FlowMenu;
         Test.assertEqualMessage(m.id, :start, "the Start menu");
         Test.assertMessage(rows(m, [:atHead, :atApproach, :atAltitude]), "head, the approach's start, at altitude: " + ids(m));
-        text(m.items[0].sub, "at 1290 m", "the head's altitude");
-        Test.assertEqualMessage(m.items[1].label, "Car park", "the approach's start by name");
-        text(m.items[2].sub, "barometer 1290 m", "the barometer's reading");
+        // #121: HEAD (green), the approach's start by its type, ALTITUDE; one line each.
+        Test.assertEqualMessage(m.items[0].label, "Head", "the head");
+        Test.assertEqualMessage(m.items[0].colour, Widgets.GREEN, "the head's green");
+        Test.assertEqualMessage(m.items[1].label, "Car park", "the approach's start by its type");
+        Test.assertEqualMessage(m.items[2].label, "Altitude", "an altitude");
         return true;
     }
 
@@ -154,12 +162,14 @@ module FlowTest {
         return true;
     }
 
+    // Back on the ready screen closes the app at once, with nothing shown (owner, 2026-11-26, #121).
     (:test)
-    function backBeforeStartLeaves(logger as Logger) as Boolean {
+    function backBeforeStartClosesApp(logger as Logger) as Boolean {
         var f = flow();
-        Test.assertMessage(!f.press(:back), "Back on the ready screen leaves the app");
         f.press(:start);
-        Test.assertMessage(f.press(:back) && f.menu == null, "Back in the Start menu returns to the ready screen");
+        Test.assertMessage(f.press(:back) && f.menu == null && !f.quit, "Back in the Start menu returns to the ready screen");
+        Test.assertMessage(f.press(:back), "Back on the ready screen taken");
+        Test.assertMessage(f.toast == null && f.quit, "the app closes at once, no toast");
         return true;
     }
 
@@ -193,7 +203,7 @@ module FlowTest {
         f.press(:start);
         choose(f, :atAltitude);
         var e = f.entry as FlowEntry;
-        Test.assertMessage(e.start && e.known && e.est == 1283 && e.value == 1283, "from the barometer, " + e.value);
+        Test.assertMessage(e.start && e.est == 1283 && e.value == 1283, "from the barometer, " + e.value);
         f.press(:back);
         Test.assertMessage(f.entry == null && (f.menu as FlowMenu).id == :start, "Back to the Start menu");
         choose(f, :atAltitude);
@@ -228,6 +238,39 @@ module FlowTest {
         return true;
     }
 
+    // On the approach its screen (F4) is the first page, the pages after it (owner, 2026-11-26): Up and
+    // Down on it go on to the pages, and past either end of them back to it.
+    (:test)
+    function approachPages(logger as Logger) as Boolean {
+        var f = flow();
+        f.feed.start(:approachPoint);
+        Test.assertMessage(f.onScreen() && f.approachShown, "the approach's screen first");
+        Test.assertEqualMessage(f.press(:down), false, "Down on it is the pages'");
+        Test.assertEqualMessage(f.stepPage(5, 1, 33), 0, "Down: the first page");
+        Test.assertMessage(!f.onScreen(), "the pages have the screen");
+        Test.assertEqualMessage(f.stepPage(0, 1, 33), 1, "the pages step on");
+        Test.assertEqualMessage(f.stepPage(1, -1, 33), 0, "and back");
+        Test.assertEqualMessage(f.stepPage(0, -1, 33), 0, "Up from the first page: the approach's screen");
+        Test.assertMessage(f.onScreen() && f.approachShown, "the approach's screen again");
+        Test.assertEqualMessage(f.stepPage(0, -1, 33), 32, "Up from it: the last page");
+        Test.assertEqualMessage(f.stepPage(32, 1, 33), 32, "Down from the last: the approach's screen");
+        Test.assertMessage(f.approachShown, "the approach's screen");
+        // Paused on a page, the pause menu opens over it; closed, the page is back.
+        f.stepPage(32, 1, 33);
+        f.press(:start);
+        Test.assertMessage(f.onScreen() && f.menu != null, "the pause menu over the page");
+        f.press(:back);
+        Test.assertMessage(!f.onScreen() && f.feed.paused(), "the page, paused");
+        // On the ferrata the pages wrap, and a new climb starts on the approach's screen again.
+        f.press(:start);
+        choose(f, :startAscent);
+        Test.assertEqualMessage(f.stepPage(32, 1, 33), 0, "the ferrata's pages wrap");
+        var g = flow();
+        g.feed.start(:approachPoint);
+        Test.assertMessage(g.onScreen() && g.approachShown, "a new climb: the approach's screen");
+        return true;
+    }
+
     // ---------------------------------------------------------------- the pause menus
 
     (:test)
@@ -237,8 +280,11 @@ module FlowTest {
         f.press(:start);
         Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "Start pauses");
         var m = f.menu as FlowMenu;
-        Test.assertMessage(rows(m, [:continue, :startAscent, :endAt]), "Continue approach, Start ferrata, End here: " + ids(m));
+        Test.assertMessage(rows(m, [:continue, :startAscent, :endHere]), "Continue approach, Start from head, End here: " + ids(m));
         Test.assertEqualMessage(m.items[0].label, "Continue approach", "Continue approach");
+        Test.assertEqualMessage(m.items[1].label, "Start from head", "Start from head, green");
+        Test.assertEqualMessage(m.items[1].colour, Widgets.GREEN, "green");
+        Test.assertEqualMessage(m.items[2].colour, Widgets.RED, "End here red");
         choose(f, :startAscent);
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "on the ferrata");
         Test.assertMessage(Climb.FERRATA && f.menu == null, "the ferrata, nothing open");
@@ -264,7 +310,8 @@ module FlowTest {
         Test.assertEqualMessage((f.menu as FlowMenu).id, :paused, "the pause menu");
         f.press(:back);
         Test.assertMessage(f.menu == null && f.phase() == Tracker.PAUSED, "menu closed, still paused");
-        Test.assertMessage(!f.onScreen(), "the pages, with PAUSED");
+        Test.assertMessage(!f.onScreen(), "the pages, under the pause symbol");
+        Test.assertMessage(FlowDraw.banded(f), "the pause symbol over them");
         f.press(:back);
         Test.assertEqualMessage((f.menu as FlowMenu).id, :paused, "Back opens it again");
         f.press(:back);
@@ -282,11 +329,10 @@ module FlowTest {
         var f = ascentAt(500.0);
         Test.assertEqualMessage(Flow.exitsInReach(f.feed.tracker).size(), 0, "no exit in reach");
         f.press(:start);
-        text((f.menu as FlowMenu).items[2].sub, "Top or here", "End's line");
         choose(f, :end);
         var m = f.menu as FlowMenu;
-        Test.assertEqualMessage(m.title, "END", "the End menu");
-        Test.assertMessage(same(points(m), [TOP, -1]), "End at top, End here: " + points(m));
+        Test.assertEqualMessage(m.id, :end, "the End menu");
+        Test.assertMessage(same(points(m), [TOP, -1]), "TOP, HERE: " + points(m));
         return true;
     }
 
@@ -297,10 +343,13 @@ module FlowTest {
         choose(f, :end);
         var m = f.menu as FlowMenu;
         Test.assertMessage(same(points(m), [TOP, BAND_EXIT, LAST_EXIT, -1]), "top, both exits, here: " + points(m));
-        Test.assertEqualMessage(m.items[3].label, "End here", "End here last");
-        Test.assertEqualMessage(m.items[1].label, "End at exit", "an exit's row");
-        text(m.items[1].sub, "Band exit", "its name; no altitude in the demo route");
-        text(m.items[0].sub, "1580 m", "the top's altitude");
+        // #121: the places alone, TOP red, EXIT green, HERE white.
+        Test.assertEqualMessage(m.items[0].label, "Top", "the top");
+        Test.assertEqualMessage(m.items[0].colour, Widgets.RED, "red");
+        Test.assertEqualMessage(m.items[1].label, "Exit", "an exit's row");
+        Test.assertEqualMessage(m.items[1].colour, Widgets.GREEN, "green");
+        Test.assertEqualMessage(m.items[3].label, "Here", "Here last");
+        Test.assertEqualMessage(m.items[3].colour, Flow.WHITE, "white");
         return true;
     }
 
@@ -341,9 +390,10 @@ module FlowTest {
     function noLandmarkHidesSuggestion(logger as Logger) as Boolean {
         var f = ascentAt(120.0);
         f.press(:start);
-        text((f.menu as FlowMenu).items[1].sub, "Landmark or altitude", "Calibrate's line");
         choose(f, :calibrate);
-        Test.assertMessage(rows(f.menu, [:landmarks, :calAltitude]), "At landmark, At altitude: " + ids(f.menu));
+        Test.assertMessage(rows(f.menu, [:landmarks, :calAltitude]), "LANDMARK, ALTITUDE: " + ids(f.menu));
+        Test.assertEqualMessage((f.menu as FlowMenu).items[0].label, "Landmark", "LANDMARK");
+        Test.assertEqualMessage((f.menu as FlowMenu).items[1].label, "Altitude", "ALTITUDE");
         return true;
     }
 
@@ -351,14 +401,12 @@ module FlowTest {
     function nearLandmarkSuggested(logger as Logger) as Boolean {
         var f = ascentAt(380.0);
         f.press(:start);
-        text((f.menu as FlowMenu).items[1].sub, "Near Bench", "Calibrate's line");
         choose(f, :calibrate);
         var m = f.menu as FlowMenu;
         Test.assertMessage(rows(m, [:calAt, :landmarks, :calAltitude]), "the Bench first: " + ids(m));
         Test.assertEqualMessage(m.items[0].point, BENCH, "the Bench");
-        text(m.items[0].sub, "LANDMARK at 1310 m in 10 m", "its kind, altitude and distance");
-        text(m.items[0].kind, "LANDMARK", "its kind's word in colour");
-        text(m.items[1].sub, "3 on the route", "the head, the Bench and the top");
+        Test.assertEqualMessage(m.items[0].label, "Bench", "its name alone");
+        Test.assertEqualMessage(m.items[0].colour, Widgets.REST, "outlined in a rest's blue");
         return true;
     }
 
@@ -372,14 +420,15 @@ module FlowTest {
         choose(f, :landmarks);
         var m = f.menu as FlowMenu;
         Test.assertMessage(same(points(m), [BENCH, TOP, HEAD]), "Bench, top, head: " + points(m));
-        text(m.items[2].sub, "HEAD at 1290 m 380 m back", "the head, behind");
+        Test.assertEqualMessage(m.items[2].colour, Widgets.GREEN, "the head's green");
+        Test.assertEqualMessage(m.items[1].colour, Widgets.RED, "the top's red");
         f.press(:back);
         Test.assertEqualMessage((f.menu as FlowMenu).id, :calibrate, "Back to Calibrate");
         return true;
     }
 
-    // Calibrating at the Bench: the place moves to it, the climb goes on, CALIBRATED shows until Start
-    // or Back; the Bench is not suggested again.
+    // Calibrating at the Bench: its details first; Start there moves the place to it, the climb goes
+    // on, CALIBRATED shows until Start or Back; the Bench is not suggested again.
     (:test)
     function calibrateAtLandmark(logger as Logger) as Boolean {
         var f = ascentAt(380.0);
@@ -387,16 +436,21 @@ module FlowTest {
         f.press(:start);
         choose(f, :calibrate);
         choose(f, :calAt);
+        Test.assertMessage(f.detail != null && f.phase() == Tracker.PAUSED, "its details, still paused");
+        f.press(:start);
         var t = f.feed.tracker;
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
         Test.assertMessage(near(t.d, 390.0, 0.01), "at the Bench, d " + t.d);
         Test.assertMessage(near(t.offset as Float, 5.0, 0.01), "offset " + t.offset);
-        text(f.calibrated, "at Bench 1310 m", "CALIBRATED at the Bench");
+        Test.assertEqualMessage(f.calibrated as Number, 1310, "CALIBRATED at the Bench's 1310 m");
+        Test.assertEqualMessage(f.calibratedPoint, BENCH, "the Bench named");
+        Test.assertMessage(f.detail == null && f.menu == null, "nothing open under it");
         Test.assertMessage(f.press(:up) && f.calibrated != null, "Up does nothing under it");
         f.press(:back);
         Test.assertMessage(f.calibrated == null && f.phase() == Tracker.ASCENT, "Back closes it, the climb running");
         f.press(:start);
-        text((f.menu as FlowMenu).items[1].sub, "Landmark or altitude", "the Bench not suggested again");
+        choose(f, :calibrate);
+        Test.assertMessage(rows(f.menu, [:landmarks, :calAltitude]), "the Bench not suggested again: " + ids(f.menu));
         return true;
     }
 
@@ -407,17 +461,16 @@ module FlowTest {
         var f = ascentAt(120.0);
         f.press(:start);
         choose(f, :calibrate);
-        text((f.menu as FlowMenu).items[1].sub, "estimate 1396 m", "the estimate: 106 m up the traverse");
         choose(f, :calAltitude);
         var e = f.entry as FlowEntry;
-        Test.assertMessage(!e.start && e.est == 1396, "from the estimate, " + e.est);
+        Test.assertMessage(!e.start && e.est == 1396, "from the estimate, 106 m up the traverse: " + e.est);
         f.press(:up);
         Test.assertEqualMessage(e.value, 1400, "to the mark");
-        // 110 m up is on the traverse at 45 + 20 / 30 x 140 m.
-        Test.assertMessage(near(e.at, 138.33, 0.01), "where 1400 m is: " + e.at);
         f.press(:start);
         var t = f.feed.tracker;
-        text(f.calibrated, "at 1400 m", "CALIBRATED at the altitude");
+        Test.assertEqualMessage(f.calibrated as Number, 1400, "CALIBRATED at the altitude");
+        Test.assertEqualMessage(f.calibratedPoint, -1, "no point named");
+        // 110 m up is on the traverse at 45 + 20 / 30 x 140 m.
         Test.assertMessage(near(t.d, 138.33, 0.01), "the place moved, d " + t.d);
         Test.assertMessage(near(t.offset as Float, 110.0, 0.01), "offset " + t.offset);
         Test.assertEqualMessage(t.drifts.size(), 0, "no drift from a guess");
@@ -435,6 +488,7 @@ module FlowTest {
         watchReads(f, 1560.0);
         choose(f, :end);
         choose(f, :endAt);
+        f.press(:start);
         Test.assertEqualMessage(f.phase(), Tracker.ENDED, "ended");
         var m = f.menu as FlowMenu;
         Test.assertMessage(rows(m, [:save, :resume, :discard]), "Save, Resume, Discard: " + ids(m));
@@ -456,18 +510,21 @@ module FlowTest {
         f.press(:start);
         choose(f, :end);
         choose(f, :endAt);
+        f.press(:start);
         choose(f, :discard);
         Test.assertEqualMessage((f.menu as FlowMenu).id, :confirm, "asks");
+        Test.assertMessage(rows(f.menu, [:no, :yes]), "NO, DISCARD: " + ids(f.menu));
+        Test.assertMessage((f.menu as FlowMenu).items[1].fill && !(f.menu as FlowMenu).items[0].fill, "DISCARD's pill filled");
         choose(f, :no);
         Test.assertEqualMessage((f.menu as FlowMenu).id, :summary, "No: back to the summary");
         choose(f, :discard);
         choose(f, :yes);
         Test.assertEqualMessage(f.phase(), Tracker.IDLE, "a new climb, ready");
         text(f.toast, "DISCARDED", "DISCARDED shows");
-        f.tick(1000);
-        Test.assertMessage(f.toast != null, "for a while");
-        f.tick(1000);
-        Test.assertMessage(f.toast == null, "then the ready screen");
+        f.tick(2999);
+        Test.assertMessage(f.toast != null, "for 3 s");
+        f.tick(1);
+        Test.assertMessage(f.toast == null && !f.quit, "then the ready screen");
         return true;
     }
 
@@ -476,11 +533,193 @@ module FlowTest {
         var f = flow();
         f.feed.start(:approachPoint);
         f.press(:start);
-        choose(f, :endAt);
-        Test.assertEqualMessage(f.phase(), Tracker.ENDED, "an approach may end");
+        choose(f, :endHere);
+        Test.assertEqualMessage(f.phase(), Tracker.ENDED, "an approach may end, at once");
         choose(f, :save);
         Test.assertEqualMessage(f.phase(), Tracker.IDLE, "ready");
         text(f.toast, "SAVED", "SAVED shows");
+        f.tick(2000);
+        f.press(:start);
+        Test.assertMessage(f.toast != null && f.menu == null, "Start does nothing under it");
+        f.press(:back);
+        Test.assertMessage(f.toast == null && !f.quit, "Back closes it at once");
+        Test.assertEqualMessage(f.phase(), Tracker.IDLE, "on the ready screen");
+        return true;
+    }
+
+    // ---------------------------------------------------------------- a point's details (#121)
+
+    // Picking a landmark, from the list or Calibrate's suggestion, opens its details: its altitude and
+    // how far it is. Back returns to the list, Start calibrates there.
+    (:test)
+    function landmarkOpensDetails(logger as Logger) as Boolean {
+        var f = ascentAt(380.0);
+        f.press(:start);
+        choose(f, :calibrate);
+        choose(f, :landmarks);
+        var list = f.menu as FlowMenu;
+        list.sel = 2;
+        f.press(:start);
+        var dt = f.detail as FlowDetail;
+        Test.assertMessage(dt.point == HEAD && !dt.end, "the head's details");
+        Test.assertEqualMessage(dt.alt, 1290, "its altitude");
+        Test.assertMessage(near(dt.at - dt.d, -380.0, 0.01), "380 m back");
+        Test.assertMessage(f.onScreen() && f.isOpen(), "the flow has the screen");
+        Test.assertMessage(f.press(:up) && f.press(:down) && f.detail == dt, "Up and Down do nothing");
+        f.press(:back);
+        Test.assertMessage(f.detail == null && f.menu == list && f.calibrated == null, "Back to the list, nothing calibrated");
+        Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "still paused");
+        f.press(:start);
+        f.press(:start);
+        Test.assertEqualMessage(f.calibrated as Number, 1290, "Start calibrates at the head");
+        Test.assertMessage(near(f.feed.tracker.d, 0.0, 0.01), "the place at the head");
+        return true;
+    }
+
+    // END at's TOP, EXIT and HERE each open their details; Back returns to END at, Start ends there.
+    (:test)
+    function endPlacesOpenDetails(logger as Logger) as Boolean {
+        var f = ascentAt(220.0);
+        f.press(:start);
+        choose(f, :end);
+        var end = f.menu as FlowMenu;
+        var want = [TOP, BAND_EXIT, LAST_EXIT, -1] as Array<Number>;
+        for (var i = 0; i < want.size(); i++) {
+            end.sel = i;
+            f.press(:start);
+            var dt = f.detail as FlowDetail;
+            Test.assertMessage(dt.point == want[i] && dt.end, "the details of " + want[i]);
+            f.press(:back);
+            Test.assertMessage(f.detail == null && f.menu == end, "Back to END at");
+            Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "not ended");
+        }
+        end.sel = 0;
+        f.press(:start);
+        Test.assertEqualMessage((f.detail as FlowDetail).alt, 1580, "the top's altitude");
+        var how = Flow.ahead((f.detail as FlowDetail).at, (f.detail as FlowDetail).d);
+        Test.assertMessage("420".equals(how[0]) && "m ahead".equals(how[1]), "420 m ahead: " + how);
+        f.press(:start);
+        Test.assertEqualMessage(f.phase(), Tracker.ENDED, "Start ends there");
+        Test.assertEqualMessage((f.menu as FlowMenu).id, :summary, "the summary");
+        Test.assertMessage(near(f.feed.tracker.d, 640.0, 0.01), "at the top");
+        return true;
+    }
+
+    // An exit without an altitude shows the route's there; here shows the estimate and the place.
+    (:test)
+    function endDetailsAltitudes(logger as Logger) as Boolean {
+        var f = ascentAt(220.0);
+        f.press(:start);
+        choose(f, :end);
+        pick(f, 1);
+        f.press(:start);
+        // The Band exit at 210 m: the head's 1290 m, 90 + 0 + 30 - 110 m on.
+        Test.assertEqualMessage((f.detail as FlowDetail).alt, 1300, "the Band exit's, from the route");
+        f.press(:back);
+        pick(f, 3);
+        f.press(:start);
+        var dt = f.detail as FlowDetail;
+        Test.assertEqualMessage(dt.alt, f.feed.tracker.state().altitude(), "here: the estimate");
+        Test.assertMessage(near(dt.d, 220.0, 0.01), "220 m along");
+        f.press(:start);
+        Test.assertEqualMessage(f.phase(), Tracker.ENDED, "ended here");
+        return true;
+    }
+
+    // A point's details are titled by what it is (#121): a landmark by its type, REST blue, BRIDGE and
+    // SIGN grey; the head and exits green, the top red. CALIBRATED's name takes the same colour.
+    (:test)
+    function pointWordsAndColours(logger as Logger) as Boolean {
+        var r = RouteTest.demo();
+        Test.assertEqualMessage(Flow.word(r.points[BENCH]), "REST", "the Bench is a rest");
+        Test.assertEqualMessage(Flow.colour(r.points[BENCH]), Widgets.REST, "blue");
+        var kinds = ["bridge", "sign"] as Array<String>;
+        for (var i = 0; i < kinds.size(); i++) {
+            var p = {"kind" => "landmark", "type" => kinds[i]} as Dictionary;
+            Test.assertEqualMessage(Flow.word(p), kinds[i].toUpper(), "its type");
+            Test.assertEqualMessage(Flow.colour(p), Flow.GREY, "grey");
+        }
+        Test.assertEqualMessage(Flow.word(r.points[HEAD]), "HEAD", "the head");
+        Test.assertEqualMessage(Flow.colour(r.points[HEAD]), Widgets.GREEN, "green");
+        Test.assertEqualMessage(Flow.word(r.points[BAND_EXIT]), "EXIT", "an exit");
+        Test.assertEqualMessage(Flow.colour(r.points[BAND_EXIT]), Widgets.GREEN, "green");
+        Test.assertEqualMessage(Flow.word(r.points[TOP]), "TOP", "the top");
+        Test.assertEqualMessage(Flow.colour(r.points[TOP]), Widgets.RED, "red");
+        return true;
+    }
+
+    // Each step beside Up and Down shows the change it makes, with its own sign: the demo's watch reads
+    // 1258 m, under the route's 1270 m, so both bring it up by 12 m (the review of #124).
+    (:test)
+    function altitudeStepsSigned(logger as Logger) as Boolean {
+        var range = RouteTest.demo().altRange();
+        var cases = [[1258, "+12", "+12"], [1293, "+7", "–3"], [1300, "+10", "–10"], [1270, "+10", "–0"],
+            [1580, "+0", "–10"], [1650, "–70", "–70"]] as Array<Array>;
+        for (var i = 0; i < cases.size(); i++) {
+            var v = cases[i][0] as Number, s = Flow.steps(v, range);
+            Test.assertMessage((cases[i][1] as String).equals(s[0]) && (cases[i][2] as String).equals(s[1]),
+                v + ": " + s);
+        }
+        return true;
+    }
+
+    // A new climb from the settings leaves no toast, and no quit (the review of #124).
+    (:test)
+    function resetClearsToasts(logger as Logger) as Boolean {
+        var f = flow();
+        f.showToast("SAVED", Flow.WHITE);
+        f.reset();
+        Test.assertMessage(f.toast == null && !f.quit, "nothing left");
+        f.tick(5000);
+        Test.assertMessage(!f.quit, "the app stays");
+        f.quit = true;
+        f.reset();
+        Test.assertMessage(!f.quit, "nor a quit");
+        return true;
+    }
+
+    // A narrowed two-part title keeps its grey "at" no larger than the bold part (the review of #124).
+    (:test)
+    function titleSemiNotAboveBold(logger as Logger) as Boolean {
+        for (var b = 0; b < FontSizes.BOLD.size(); b++) {
+            var s = FlowDraw.semiAtMost(FontSizes.BOLD[b]);
+            Test.assertMessage(FontSizes.SEMI[s] <= FontSizes.BOLD[b] + 0.0001, "not above " + FontSizes.BOLD[b]);
+            Test.assertMessage(s == FontSizes.SEMI.size() - 1 || FontSizes.SEMI[s + 1] > FontSizes.BOLD[b] + 0.0001,
+                "the largest so: " + FontSizes.SEMI[s]);
+        }
+        return true;
+    }
+
+    // The summary's line of three figures fits the round screen whatever the climb (Codex on #124): a
+    // typical climb's at the mock's size (owner), a long one's smaller, its symbols and gaps with it.
+    (:test)
+    function summaryLineFits(logger as Logger) as Boolean {
+        var d = PagesTest.draw();
+        var cases = [["374", "0:06", "+0"], ["1500", "10:00", "+100"], ["12345", "10:00", "+0"],
+            ["12345", "100:00", "-1234"], ["841", "5:17", "+19"]] as Array<Array<String>>;
+        for (var i = 0; i < cases.size(); i++) {
+            var line = FlowDraw.summaryLine(d, cases[i]);
+            var room = FlowDraw.lineRoom(d, line);
+            Test.assertMessage(line.total <= room, cases[i] + ": " + line.total + " in " + room);
+        }
+        var mock = Fonts.nearest(0.085, FontSizes.SEMI);
+        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[0]).vk, mock, "a short climb at the mock's size");
+        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[4]).vk, mock, "the mock's own example too");
+        Test.assertMessage(FlowDraw.summaryLine(d, cases[1]).vk < mock, "1500 m, 10:00, +100 m smaller");
+        Test.assertMessage(FlowDraw.summaryLine(d, cases[2]).vk < mock, "12345 m smaller");
+        return true;
+    }
+
+    (:test)
+    function aheadOrBack(logger as Logger) as Boolean {
+        var a = Flow.ahead(420.0, 400.0);
+        Test.assertMessage("20".equals(a[0]) && "m ahead".equals(a[1]), "20 m ahead: " + a);
+        a = Flow.ahead(100.0, 400.0);
+        Test.assertMessage("300".equals(a[0]) && "m back".equals(a[1]), "300 m back: " + a);
+        a = Flow.ahead(402.0, 400.0);
+        Test.assertMessage("here".equals(a[0]) && "".equals(a[1]), "here: " + a);
+        a = Flow.ahead(1660.0, 400.0);
+        Test.assertMessage("1.3".equals(a[0]) && "km ahead".equals(a[1]), "1.3 km ahead: " + a);
         return true;
     }
 
@@ -495,7 +734,7 @@ module FlowTest {
         Test.assertMessage(f.offerHead(), "offered");
         var m = f.menu as FlowMenu;
         Test.assertEqualMessage(m.id, :head, "the head's offer");
-        Test.assertMessage(rows(m, [:continue, :startAscent]), "Continue approach, Start ferrata: " + ids(m));
+        Test.assertMessage(rows(m, [:continue, :startAscent]), "Continue approach, Start from head: " + ids(m));
         Test.assertEqualMessage(f.phase(), Tracker.APPROACH, "not paused");
         f.press(:back);
         Test.assertMessage(f.menu == null && f.phase() == Tracker.APPROACH, "closed, the approach going on");
@@ -536,8 +775,8 @@ module FlowTest {
         Test.assertMessage(f.nearLandmark(LEDGE), "prompted");
         Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "paused");
         var m = f.menu as FlowMenu;
+        Test.assertEqualMessage(m.id, :paused, "the pause menu");
         Test.assertEqualMessage(m.items[m.sel].id, :calibrate, "Calibrate selected");
-        text(m.items[1].sub, "Near Ledge", "Calibrate's line");
         f.press(:start);
         Test.assertEqualMessage((f.menu as FlowMenu).items[0].point, LEDGE, "the Ledge first");
         f.press(:back);
@@ -553,6 +792,7 @@ module FlowTest {
         f.press(:start);
         choose(f, :calibrate);
         choose(f, :calAt);
+        f.press(:start);
         f.press(:back);
         Test.assertMessage(!f.nearLandmark(BENCH), "not at the landmark calibrated at");
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
@@ -575,14 +815,14 @@ module FlowTest {
         var r = Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
             "sections" => [{"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S", "side" => 0.0}],
             "points" => [{"kind" => "head", "at" => 0, "name" => "Head"},
-                {"kind" => "landmark", "at" => 50, "name" => "Bench"},
+                {"kind" => "landmark", "at" => 50, "type" => "rest", "name" => "Bench"},
                 {"kind" => "top", "at" => 100, "name" => "Top"}]}) as Route;
         var f = new FlowMenus(new FlowFeed(r));
         f.feed.start(:head);
         f.press(:start);
         choose(f, :calibrate);
         Test.assertMessage(rows(f.menu, [:calAltitude]), "At altitude only: " + ids(f.menu));
-        var empty = new FlowMenu(:landmarks, "LANDMARKS", Flow.SYNC, [] as Array<FlowItem>);
+        var empty = new FlowMenu(:landmarks, [] as Array<FlowItem>);
         f.open(empty, null);
         f.press(:up);
         f.press(:down);
@@ -609,9 +849,8 @@ module FlowTest {
         var f = new FlowMenus(new ReplayFeed(RouteTest.demo()));
         var input = f.feed.input as ReplayInput;
         f.press(:start);
-        text((f.menu as FlowMenu).items[2].sub, "barometer 1000 m", "the recording's first altitude");
         choose(f, :atAltitude);
-        Test.assertEqualMessage((f.entry as FlowEntry).est, 1000, "the entry from it");
+        Test.assertEqualMessage((f.entry as FlowEntry).est, 1000, "the entry from the recording's first altitude");
         Test.assertMessage(input.startMs == null, "the replay not started");
         f.press(:start);
         Test.assertMessage(input.startMs != null, "started with the climb");
@@ -655,45 +894,129 @@ module FlowTest {
 
     // ---------------------------------------------------------------- the screens
 
-    // Every screen of the flow draws, and the pages have the screen only during the climb with nothing
-    // open (a crash check; the look is the owner's, on the watch).
+    // Every screen of the flow draws, F1 to F26, and the pages have the screen only on the ferrata with
+    // nothing open (a crash check; the look is the owner's, on the watch).
     (:test)
     function everyScreenDraws(logger as Logger) as Boolean {
         var d = PagesTest.draw(), f = flow();
-        Test.assertMessage(FlowDraw.draw(d, f), "the ready screen");
+        Test.assertMessage(FlowDraw.draw(d, f), "F1, the ready screen");
         f.press(:start);
-        Test.assertMessage(FlowDraw.draw(d, f), "the Start menu");
+        Test.assertMessage(FlowDraw.draw(d, f), "F2, the Start menu");
         choose(f, :atAltitude);
-        Test.assertMessage(FlowDraw.draw(d, f), "the entry before a start");
+        f.press(:down);
+        Test.assertMessage(FlowDraw.draw(d, f), "F3, the entry before a start");
         f.press(:back);
         choose(f, :atApproach);
-        Test.assertMessage(!FlowDraw.draw(d, f), "the pages on the approach");
+        Test.assertMessage(FlowDraw.draw(d, f) && f.onScreen(), "F4, the approach");
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f) && !FlowDraw.banded(f), "F5, the approach paused, the symbol its title");
+        f.press(:back);
+        Test.assertMessage(FlowDraw.draw(d, f) && FlowDraw.banded(f), "F20, the approach under the pause symbol");
+        f.press(:start);
+        choose(f, :continue);
         f.offerHead();
-        Test.assertMessage(FlowDraw.draw(d, f), "the head's offer");
+        Test.assertMessage(FlowDraw.draw(d, f), "F6, the head's offer");
         choose(f, :startAscent);
+        Test.assertMessage(!FlowDraw.draw(d, f) && !f.onScreen(), "the pages on the ferrata");
         f.feed.tracker.d = 380.0;
         f.press(:start);
-        Test.assertMessage(FlowDraw.draw(d, f), "the pause menu");
+        Test.assertMessage(FlowDraw.draw(d, f), "F7, the pause menu");
+        f.press(:back);
+        Test.assertMessage(!FlowDraw.draw(d, f) && FlowDraw.banded(f), "F21, the pages under the pause symbol (View)");
+        f.press(:start);
         choose(f, :calibrate);
-        Test.assertMessage(FlowDraw.draw(d, f), "Calibrate");
+        Test.assertMessage(FlowDraw.draw(d, f), "F8, Calibrate with the Bench near");
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f), "F18, the Bench's details");
+        f.press(:back);
         choose(f, :landmarks);
-        Test.assertMessage(FlowDraw.draw(d, f), "the landmarks");
+        Test.assertMessage(FlowDraw.draw(d, f), "F9, the landmarks");
         f.press(:back);
         choose(f, :calAltitude);
-        Test.assertMessage(FlowDraw.draw(d, f), "the entry");
+        f.press(:up);
+        Test.assertMessage(FlowDraw.draw(d, f), "F10, the entry");
+        f.press(:back);
+        choose(f, :calAt);
         f.press(:start);
-        Test.assertMessage(FlowDraw.draw(d, f), "CALIBRATED");
+        Test.assertMessage(FlowDraw.draw(d, f), "F11, CALIBRATED at the Bench");
         f.press(:start);
-        Test.assertMessage(!FlowDraw.draw(d, f), "the pages");
+        Test.assertMessage(f.nearLandmark(TOP), "a passing point prompts");
+        Test.assertMessage(FlowDraw.draw(d, f), "F12, the pause menu from a passing landmark");
+        f.press(:back);
+        f.feed.tracker.d = 220.0;
         f.press(:start);
         choose(f, :end);
-        Test.assertMessage(FlowDraw.draw(d, f), "End");
+        Test.assertMessage(FlowDraw.draw(d, f), "F13, End with exits in reach");
         choose(f, :endAt);
-        Test.assertMessage(FlowDraw.draw(d, f), "the summary");
+        Test.assertMessage(FlowDraw.draw(d, f), "F24, the top's details");
+        f.press(:back);
+        pick(f, 1);
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f), "F25, an exit's details");
+        f.press(:back);
+        pick(f, 3);
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f), "F26, here's details");
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f), "F14, the summary");
         choose(f, :discard);
-        Test.assertMessage(FlowDraw.draw(d, f), "Discard's question");
+        pick(f, 1);
+        Test.assertMessage(FlowDraw.draw(d, f), "F15, Discard's question, DISCARD selected");
         choose(f, :yes);
-        Test.assertMessage(FlowDraw.draw(d, f), "DISCARDED over the ready screen");
+        Test.assertMessage(FlowDraw.draw(d, f), "F17, DISCARDED over the ready screen");
+        f.press(:back);
+        f.feed.start(:head);
+        f.feed.tracker.d = 600.0;
+        f.press(:start);
+        choose(f, :calibrate);
+        Test.assertMessage(FlowDraw.draw(d, f), "F22, Calibrate with no landmark near");
+        f.press(:back);
+        choose(f, :end);
+        Test.assertMessage(FlowDraw.draw(d, f), "F23, End with no exit in reach");
+        choose(f, :endAt);
+        f.press(:start);
+        choose(f, :save);
+        Test.assertMessage(FlowDraw.draw(d, f), "F16, SAVED");
+        return true;
+    }
+
+    // A long name on a point's details is cut with an ellipsis to the round screen's width, once.
+    (:test)
+    function longNameCut(logger as Logger) as Boolean {
+        var d = PagesTest.draw(), f = ascentAt(380.0);
+        var name = "The very long name of a ledge with a bench and a view";
+        var bench = f.feed.route.points[BENCH];
+        bench["name"] = name;
+        f.press(:start);
+        choose(f, :calibrate);
+        choose(f, :calAt);
+        FlowDraw.draw(d, f);
+        var shown = (f.detail as FlowDetail).shown as String;
+        Test.assertMessage(shown.length() < name.length() && shown.find("…") == shown.length() - 1, "cut: " + shown);
+        Test.assertMessage(d.width(d.bold(0.0577), shown) <= FlowDraw.chord(0.28) * 0.8, "within the screen");
+        var dt = f.detail as FlowDetail;
+        dt.shown = "KEPT";
+        FlowDraw.draw(d, f);
+        text(dt.shown, "KEPT", "cut once, then reused");
+        // The same name as a menu row: cut once per place it is drawn in, the pill and beside it.
+        f.press(:back);
+        var m = f.menu as FlowMenu;
+        FlowDraw.draw(d, f);
+        var cut = m.items[0].shown[2] as String;
+        Test.assertMessage(cut.find("…") == cut.length() - 1, "the pill's label cut: " + cut);
+        Test.assertMessage(d.width(FlowDraw.font(d, true, m.items[0].fonts[2]), cut) <= 0.72, "within the pill");
+        var below = m.items[1].shown[3] as String;
+        Test.assertMessage(d.width(FlowDraw.font(d, true, m.items[1].fonts[3]), below) <= FlowDraw.chord(0.73) * 0.8, "the row below within the screen");
+        var pill = m.items[0].shown;
+        pill[2] = "KEPT";
+        FlowDraw.draw(d, f);
+        text(m.items[0].shown[2], "KEPT", "the label cut once");
+        // CALIBRATED's name too.
+        f.press(:start);
+        f.press(:start);
+        FlowDraw.draw(d, f);
+        var named = f.calibratedName as String;
+        Test.assertMessage(named.find("…") == named.length() - 1, "CALIBRATED's name cut: " + named);
         return true;
     }
 
@@ -735,6 +1058,22 @@ module FlowTest {
         Climb.use(r, :ferrata);
         v.followPart();
         Test.assertEqualMessage(v.sel, -1, "reset for a new climb");
+        (v.feed as Feed).stop();
+        return true;
+    }
+
+    // On the approach its own screen has the display: Up and Down leave the page as it was (the review
+    // of #124).
+    (:test)
+    function approachKeepsPage(logger as Logger) as Boolean {
+        var v = new View(RouteTest.demo()), del = new Delegate(v);
+        var fl = v.flow as FlowMenus;
+        fl.feed.start(:approachPoint);
+        Test.assertMessage(v.flowOnScreen(), "the approach's screen");
+        del.onNextPage();
+        del.onPreviousPage();
+        del.onNextPage();
+        Test.assertEqualMessage(v.page, 0, "the page kept");
         (v.feed as Feed).stop();
         return true;
     }

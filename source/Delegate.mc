@@ -3,8 +3,9 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// The buttons go to the climb flow (#51) first: Start and Back open its menus (and before the start
-// Back leaves), and Up and Down move in them while one is open, else change page. Holding Up opens Ask
+// The buttons go to the climb flow (#51) first: Start and Back open its menus (before the start Back
+// closes the app at once, #121), and Up and Down move in them while the flow has the
+// screen, else change page. Holding Up opens Ask
 // (and Settings). On page 9 a tap on a chevron steps the previewed section; other taps do nothing.
 // A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns
 // false (BehaviorDelegate's documented order, #117).
@@ -23,15 +24,16 @@ class Delegate extends WatchUi.BehaviorDelegate {
         view = v;
     }
 
-    // Up and Down as behaviours (a swipe; the buttons come to onKey first).
+    // Up and Down as behaviours (a swipe; the buttons come to onKey first). What the flow does not take
+    // changes page: on the approach, Up and Down on its screen (F4) go on to the pages.
     function onNextPage() as Boolean {
-        if (view.flowOnScreen()) { return view.press(:down); }
+        if (view.flowOnScreen() && view.press(:down)) { return true; }
         view.nextPage(1);
         return true;
     }
 
     function onPreviousPage() as Boolean {
-        if (view.flowOnScreen()) { return view.press(:up); }
+        if (view.flowOnScreen() && view.press(:up)) { return true; }
         view.nextPage(-1);
         return true;
     }
@@ -51,8 +53,8 @@ class Delegate extends WatchUi.BehaviorDelegate {
     }
 
     // The buttons. Up and Down go to the flow only while it has the screen; else they come back as
-    // onNextPage and onPreviousPage and change page. Back the flow does not take (before the start)
-    // comes back as onBack, which leaves the app.
+    // onNextPage and onPreviousPage and change page. Back the flow does not take (none, since #121:
+    // before the start it closes the app itself) would come back as onBack.
     function onKeyPressed(evt as WatchUi.KeyEvent) as Boolean {
         startDownMs = evt.getKey() == WatchUi.KEY_ENTER ? System.getTimer() : null;
         return false;

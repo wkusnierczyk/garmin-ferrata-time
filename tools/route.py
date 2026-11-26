@@ -21,7 +21,9 @@ import xml.etree.ElementTree as ET
 FORMAT = 1
 TOP_KEYS = ["format", "id", "name", "short", "place", "source", "approach", "sections", "points"]
 SECTION_KEYS = ["len", "up", "grade", "min", "name", "side"]
-POINT_KEYS = ["kind", "at", "alt", "lat", "lon", "name"]
+POINT_KEYS = ["kind", "at", "alt", "type", "lat", "lon", "name"]
+LANDMARK_TYPES = ("rest", "bridge", "sign")  # what a landmark is; its details show it (#121)
+LANDMARK_TYPES_TEXT = "rest, bridge or sign"
 KINDS = {"approach", "head", "landmark", "danger", "exit", "top"}
 SHORT_MAX = 15  # the SDK's suggested maximum for a session name
 ALT_TOLERANCE = 15  # metres between the sections' height and the known altitudes
@@ -130,8 +132,9 @@ def check_shape(r):
                 for k in ("kind", "at", "name"):
                     if k not in p:
                         out.append(f"{label}: {k} is missing")
-                if "name" in p and not isinstance(p["name"], str):
-                    out.append(f"{label}: name is a string")
+                for k in ("name", "type"):
+                    if k in p and not isinstance(p[k], str):
+                        out.append(f"{label}: {k} is a string")
                 for k in ("at", "alt"):
                     if k in p and not is_int(p[k]):
                         out.append(f"{label}: {k} is an integer")
@@ -191,6 +194,21 @@ def check_rules(r):
         out.append(f"at most one approach point ({len(approach_pts)} found)")
     elif approach_pts and approach_pts[0]["at"] != -approach_len:
         out.append(f"the approach point is at {-approach_len} (minus the approach's length)")
+
+    # The approach point and the landmarks say what they are (#121): the Start menu names the approach
+    # point by its type, a Top station or a Car park, never by its own name; a landmark's details are
+    # titled by its type, a rest, a bridge or a sign. No other point has one.
+    for p in pts:
+        if p["kind"] == "approach" and "type" not in p:
+            out.append(f"{point_label(p)}: type is missing (what the point is, as Top station or Car park)")
+        elif p["kind"] == "approach" and not p["type"].strip():
+            out.append(f"{point_label(p)}: type is not empty")
+        elif p["kind"] == "landmark" and "type" not in p:
+            out.append(f"{point_label(p)}: type is missing ({LANDMARK_TYPES_TEXT})")
+        elif p["kind"] == "landmark" and p["type"] not in LANDMARK_TYPES:
+            out.append(f"{point_label(p)}: type is {LANDMARK_TYPES_TEXT}, not {p['type']!r}")
+        elif p["kind"] not in ("approach", "landmark") and "type" in p:
+            out.append(f"{point_label(p)}: type is for the approach point and landmarks only")
 
     # 2. Exits and landmarks on a boundary of the ferrata's sections.
     bounds = {0}
@@ -266,8 +284,8 @@ def fold(text):
 
 def fold_names(r):
     """A copy of route r with every name, short and place folded, points of unknown kinds included,
-    and a problem for each character left outside TEXT_CHARSET. Fields of the wrong type stay as
-    they are, for check_shape to report."""
+    and every point's type, with a problem for each character left outside TEXT_CHARSET. Fields of
+    the wrong type stay as they are, for check_shape to report."""
     if not isinstance(r, dict):
         return r, []
     r = copy.deepcopy(r)
@@ -292,8 +310,10 @@ def fold_names(r):
         for i, p in enumerate(r["points"], 1):
             if isinstance(p, dict):
                 kind, name = p.get("kind"), p.get("name")
-                one(p, "name", f"{kind if isinstance(kind, str) else 'point'} {i}"
-                    + (f" '{name}'" if isinstance(name, str) else "") + ": ")
+                label = (f"{kind if isinstance(kind, str) else 'point'} {i}"
+                         + (f" '{name}'" if isinstance(name, str) else "") + ": ")
+                one(p, "name", label)
+                one(p, "type", label)
     return r, out
 
 
