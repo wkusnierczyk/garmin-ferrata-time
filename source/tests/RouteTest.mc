@@ -326,7 +326,7 @@ module RouteTest {
                 {"len" => 40, "up" => 30, "grade" => 6, "min" => 10, "name" => "S1", "side" => 0.5},
                 {"len" => 60, "up" => 50, "grade" => 7, "min" => 10, "name" => "S2", "side" => -0.5}],
             "points" => [
-                {"kind" => "approach", "at" => -150, "alt" => 1000, "name" => "Start"},
+                {"kind" => "approach", "at" => -150, "alt" => 1000, "type" => "Top station", "name" => "Start"},
                 {"kind" => "exit", "at" => -50, "name" => "Approach exit"},
                 {"kind" => "danger", "at" => -60, "name" => "Approach danger"},
                 {"kind" => "head", "at" => 0, "alt" => 1020, "name" => "Head"},
@@ -453,6 +453,18 @@ module RouteTest {
         Test.assertMessage(Route.fromJson(data) == null, "lat a string");
         data = source(); (data["points"] as Array<Dictionary>).add({"kind" => 3, "at" => 0});
         Test.assertMessage(Route.fromJson(data) == null, "kind not a string");
+        data = source(); point(data, "approach").remove("type");
+        Test.assertMessage(Route.fromJson(data) == null, "an approach point without its type");
+        data = source(); point(data, "approach")["type"] = 3;
+        Test.assertMessage(Route.fromJson(data) == null, "type not a string");
+        return true;
+    }
+
+    // The approach's start by what it is (#121): the Start menu's row reads its type.
+    (:test)
+    function approachStartType(logger as Logger) as Boolean {
+        Test.assertEqualMessage((Route.fromJson(source()) as Route).approachType(), "Top station", "its type");
+        Test.assertEqualMessage(demo().approachType(), "Car park", "the demo's");
         return true;
     }
 }

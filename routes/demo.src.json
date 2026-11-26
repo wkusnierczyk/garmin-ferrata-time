@@ -23,7 +23,7 @@
     {"len": 70, "up": 45, "grade": 3, "min": 12, "name": "Exit gully", "side": 0.6}
   ],
   "points": [
-    {"kind": "approach", "at": -120, "alt": 1270, "name": "Car park"},
+    {"kind": "approach", "at": -120, "alt": 1270, "type": "Car park", "name": "Car park"},
     {"kind": "head", "at": 0, "alt": 1290, "name": "Ferrata head"},
     {"kind": "danger", "at": 55, "name": "Rockfall"},
     {"kind": "exit", "at": 210, "name": "Band exit"},
