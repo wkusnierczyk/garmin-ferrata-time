@@ -5,7 +5,8 @@ import Toybox.Lang;
 
 // One row of a menu: what it does (its id, and the point it calibrates at or ends at, -1 for none),
 // its label, one line (#121), and its colour, the selected pill's outline; a destructive row (fill)
-// has its pill filled in it.
+// has its pill filled in it. The label as drawn, cut to its room, and its size, at each place it is
+// drawn (a row from the selected one, -2 to 2), worked out once (FlowDraw).
 class FlowItem {
 
     var id as Symbol;
@@ -13,6 +14,8 @@ class FlowItem {
     var colour as Number;
     var point as Number = -1;
     var fill as Boolean = false;
+    var shown as Array<String?> = new Array<String?>[5];
+    var fonts as Array<Number> = [0, 0, 0, 0, 0] as Array<Number>;
 
     function initialize(i as Symbol, l as String, c as Number) {
         id = i;
@@ -103,6 +106,9 @@ class FlowMenus {
     var detail as FlowDetail? = null;
     var calibrated as Number? = null;
     var calibratedPoint as Number = -1;
+    // The point's name under CALIBRATED as drawn, cut to its room once (FlowDraw), and its size.
+    var calibratedName as String? = null;
+    var calibratedFont as Number = 0;
     var toast as String? = null;
     var toastColour as Number = Flow.WHITE;
     var toastMs as Number = 0;
@@ -127,12 +133,15 @@ class FlowMenus {
         figures = [Math.round(path).toNumber().format("%d"), r.ascent().format("%d"), Flow.hours(r.guideMinutes())];
     }
 
-    // A new climb from the settings: the ready screen, nothing open.
+    // A new climb from the settings: the ready screen, nothing open, no toast (nor APP CLOSED's exit).
     function reset() as Void {
         menu = null;
         entry = null;
         detail = null;
         calibrated = null;
+        toast = null;
+        closing = false;
+        quit = false;
         newClimb();
     }
 
@@ -314,6 +323,7 @@ class FlowMenus {
             quietNear();
             calibrated = dt.alt;
             calibratedPoint = dt.point;
+            calibratedName = null;
         }
     }
 

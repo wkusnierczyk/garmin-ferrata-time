@@ -42,8 +42,7 @@ module FlowDraw {
         } else {
             drew = false;
         }
-        // Every paused screen but the pause menu, whose title it is, has the pause symbol at the top.
-        if (drew && f.feed.paused() && !onPauseMenu(f)) { band(d); }
+        if (drew && banded(f)) { band(d); }
         var c = f.calibrated;
         if (c != null) {
             d.clear();
@@ -58,6 +57,12 @@ module FlowDraw {
             drew = true;
         }
         return drew;
+    }
+
+    // Whether the screen has the pause symbol at the top: every paused screen but the pause menu, whose
+    // title it is (the view draws it over the pages).
+    function banded(f as FlowMenus) as Boolean {
+        return f.feed.paused() && !onPauseMenu(f);
     }
 
     // Whether the pause menu itself is on the screen. (One test a line: the type checker, as in
@@ -127,12 +132,13 @@ module FlowDraw {
     // A menu's rows (owner, 2026-11-26, F2 and F5): the selected one in a pill 0.2 of the screen tall and
     // 0.84 wide, its text 0.085, white, the outline alone in the row's colour (a destructive row's pill
     // filled in it, its text black); the rows beside it 0.18 away, white, the next ones smaller and dim.
-    // The selected row's middle at yc.
+    // The selected row's middle at yc. A label too wide for its room is drawn smaller, down to 0.8 of
+    // its size, then cut with an ellipsis, once (label).
     function rows(d as Draw, m as FlowMenu, yc as Float, above as Number, below as Number) as Void {
         for (var r = -above; r <= below; r++) {
             var i = m.sel + r;
             if (i < 0 || i >= m.items.size()) { continue; }
-            var it = m.items[i], y = yc + r * 0.18, label = it.label.toUpper();
+            var it = m.items[i], y = yc + r * 0.18;
             if (r == 0) {
                 var h = 0.2;
                 if (it.fill) {
@@ -140,12 +146,12 @@ module FlowDraw {
                 } else {
                     outline(d, 0.08, y - h / 2, 0.84, h, h / 2, it.colour, 0.009);
                 }
-                var k = fit(d, true, 0.085, label, 0.72);
-                d.textCapCentre(0.5, y, font(d, true, k), label, it.fill ? Graphics.COLOR_BLACK : Flow.WHITE);
+                var k = label(d, it, r, 0.085, 0.72);
+                d.textCapCentre(0.5, y, font(d, true, k), it.shown[2] as String, it.fill ? Graphics.COLOR_BLACK : Flow.WHITE);
             } else {
                 var near = r == -1 || r == 1, ty = y + (r > 0 ? 0.02 : -0.02);
-                var k = fit(d, true, near ? 0.055 : 0.044, label, chord(ty) * 0.8);
-                d.textCapCentre(0.5, ty, font(d, true, k), label, near ? Flow.WHITE : Flow.DIM);
+                var k = label(d, it, r, near ? 0.055 : 0.044, chord(ty) * 0.8);
+                d.textCapCentre(0.5, ty, font(d, true, k), it.shown[r + 2] as String, near ? Flow.WHITE : Flow.DIM);
             }
         }
     }
@@ -156,10 +162,10 @@ module FlowDraw {
     function entry(d as Draw, f as FlowMenus, e as FlowEntry) as Void {
         titleParts(d, [["at ", Flow.GREY, false], ["ALTITUDE", Flow.WHITE, true]]);
         bigAltitude(d, e.value, 0.5);
-        var up = Flow.altUp(e.value, f.range) - e.value, down = e.value - Flow.altDown(e.value, f.range);
-        var big = font(d, true, size(true, 0.08));
-        d.textCapMiddle(0.06, 0.5, big, "+" + up.format("%d"), up != 0 ? Flow.WHITE : Flow.DIM, LEFT);
-        d.textCapMiddle(0.12, 0.72, big, "–" + down.format("%d"), down != 0 ? Flow.WHITE : Flow.DIM, LEFT);
+        var steps = Flow.steps(e.value, f.range), big = font(d, true, size(true, 0.08));
+        var up = Flow.altUp(e.value, f.range) != e.value, down = Flow.altDown(e.value, f.range) != e.value;
+        d.textCapMiddle(0.06, 0.5, big, steps[0], up ? Flow.WHITE : Flow.DIM, LEFT);
+        d.textCapMiddle(0.12, 0.72, big, steps[1], down ? Flow.WHITE : Flow.DIM, LEFT);
         Symbols.check(d, Widgets.GREEN);
         Symbols.cross(d, Widgets.RED);
     }
@@ -230,9 +236,14 @@ module FlowDraw {
         bigAltitude(d, alt, 0.47);
         var p = f.calibratedPoint;
         if (p < 0) { return; }
-        var pt = f.feed.route.points[p], name = (pt["name"] as String).toUpper();
-        var k = fit(d, true, 0.06, name, chord(0.66) * 0.8);
-        d.textCapCentre(0.5, 0.66, font(d, true, k), name, Flow.colour(pt));
+        var pt = f.feed.route.points[p], name = f.calibratedName;
+        if (name == null) {
+            var k = shrink(d, 0.06, (pt["name"] as String).toUpper(), chord(0.66) * 0.8);
+            name = k[1] as String;
+            f.calibratedName = name;
+            f.calibratedFont = k[0] as Number;
+        }
+        d.textCapCentre(0.5, 0.66, font(d, true, f.calibratedFont), name, Flow.colour(pt));
     }
 
     // Over the pages, the approach and the screens under the pause menu while paused: the pause symbol
@@ -247,7 +258,7 @@ module FlowDraw {
     // A title in parts, each [text, colour, bold], together centred at F1's title place and size; the
     // whole narrowed, both weights a size down at a time, until it fits the round screen there.
     function titleParts(d as Draw, parts as Array<Array>) as Void {
-        var max = chord(TITLE_Y) * 0.85, b = size(true, TITLE), s = size(false, TITLE), total = 0.0;
+        var max = chord(TITLE_Y) * 0.85, b = size(true, TITLE), s = semiAtMost(FontSizes.BOLD[b]), total = 0.0;
         while (true) {
             total = 0.0;
             for (var i = 0; i < parts.size(); i++) {
@@ -256,7 +267,7 @@ module FlowDraw {
             }
             if (total <= max || b == 0) { break; }
             b--;
-            s = size(false, FontSizes.BOLD[b]);
+            s = semiAtMost(FontSizes.BOLD[b]);
         }
         var x = 0.5 - total / 2;
         for (var i = 0; i < parts.size(); i++) {
@@ -326,14 +337,42 @@ module FlowDraw {
         return (t.substring(0, 1) as String) + "…";
     }
 
+    // A menu row's label, at row r from the selected one: its size, its text kept in the row (shown).
+    function label(d as Draw, it as FlowItem, r as Number, share as Float, max as Float) as Number {
+        var i = r + 2;
+        if (it.shown[i] == null) {
+            var k = shrink(d, share, it.label.toUpper(), max);
+            it.shown[i] = k[1] as String;
+            it.fonts[i] = k[0] as Number;
+        }
+        return it.fonts[i];
+    }
+
+    // Bold text in max: at the size nearest share, or smaller down to 0.8 of it, then cut with an
+    // ellipsis; [the size's index, the text]. Measured as it goes, so done once and kept.
+    function shrink(d as Draw, share as Float, str as String, max as Float) as Array {
+        var k = size(true, share), floor = size(true, share * 0.8);
+        while (k > floor && width(d, true, k, str) > max) { k--; }
+        return [k, cut(d, font(d, true, k), str, max)];
+    }
+
     // A rounded rectangle's outline, pen wide.
     function outline(d as Draw, x as Float, y as Float, w as Float, h as Float, r as Float, c as Number, pen as Float) as Void {
-        d.dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        d.ink(c);
         d.dc.setPenWidth(d.s(pen) < 1 ? 1 : d.s(pen));
         d.dc.drawRoundedRectangle(d.s(x), d.s(y), d.s(w), d.s(h), d.s(r));
     }
 
     // ---------------------------------------------------------------- fonts and widths
+
+    // The largest SemiBold no larger than share: a title's grey "at" beside its bold part.
+    function semiAtMost(share as Float) as Number {
+        var i = 0;
+        for (var k = 0; k < FontSizes.SEMI.size(); k++) {
+            if (FontSizes.SEMI[k] <= share + 0.0001) { i = k; }
+        }
+        return i;
+    }
 
     // The size table's index nearest share, in a weight.
     function size(bold as Boolean, share as Float) as Number {
@@ -342,13 +381,6 @@ module FlowDraw {
 
     function font(d as Draw, bold as Boolean, k as Number) as Graphics.FontType {
         return bold ? d.bold(FontSizes.BOLD[k]) : d.semi(FontSizes.SEMI[k]);
-    }
-
-    // The index of the size nearest share, or the largest smaller one in which str fits in max.
-    function fit(d as Draw, bold as Boolean, share as Float, str as String, max as Float) as Number {
-        var k = size(bold, share);
-        while (k > 0 && width(d, bold, k, str) > max) { k--; }
-        return k;
     }
 
     // Text widths, measured once each and kept (a few dozen at most, then started again): a screen

@@ -94,6 +94,18 @@ module Flow {
         return v < range[0] ? range[0] : (v > range[1] ? range[1] : v);
     }
 
+    // The steps beside Up and Down: the change each press would make, with its own sign, "+4" and
+    // "–6", "+0" or "–0" where it makes none; out of range both bring the altitude in, so both may read
+    // "+12" (the review of #124). The fonts have the en dash, not the minus sign.
+    function steps(v as Number, range as [Number, Number]) as [String, String] {
+        return [step(altUp(v, range) - v, true), step(altDown(v, range) - v, false)];
+    }
+
+    function step(change as Number, up as Boolean) as String {
+        if (change == 0) { return up ? "+0" : "–0"; }
+        return (change > 0 ? "+" : "–") + change.abs().format("%d");
+    }
+
     // How far a point at at is from the place d, as a value and its unit for a details screen (#121):
     // "here", or metres under a kilometre, else kilometres to one place, ahead or back.
     function ahead(at as Float, d as Float) as [String, String] {

@@ -289,7 +289,8 @@ module FlowTest {
         Test.assertEqualMessage((f.menu as FlowMenu).id, :paused, "the pause menu");
         f.press(:back);
         Test.assertMessage(f.menu == null && f.phase() == Tracker.PAUSED, "menu closed, still paused");
-        Test.assertMessage(!f.onScreen(), "the pages, with PAUSED");
+        Test.assertMessage(!f.onScreen(), "the pages, under the pause symbol");
+        Test.assertMessage(FlowDraw.banded(f), "the pause symbol over them");
         f.press(:back);
         Test.assertEqualMessage((f.menu as FlowMenu).id, :paused, "Back opens it again");
         f.press(:back);
@@ -574,7 +575,8 @@ module FlowTest {
         end.sel = 0;
         f.press(:start);
         Test.assertEqualMessage((f.detail as FlowDetail).alt, 1580, "the top's altitude");
-        Test.assertMessage(near((f.detail as FlowDetail).at, 640.0, 0.01), "420 m ahead");
+        var how = Flow.ahead((f.detail as FlowDetail).at, (f.detail as FlowDetail).d);
+        Test.assertMessage("420".equals(how[0]) && "m ahead".equals(how[1]), "420 m ahead: " + how);
         f.press(:start);
         Test.assertEqualMessage(f.phase(), Tracker.ENDED, "Start ends there");
         Test.assertEqualMessage((f.menu as FlowMenu).id, :summary, "the summary");
@@ -622,6 +624,49 @@ module FlowTest {
         Test.assertEqualMessage(Flow.colour(r.points[BAND_EXIT]), Widgets.GREEN, "green");
         Test.assertEqualMessage(Flow.word(r.points[TOP]), "TOP", "the top");
         Test.assertEqualMessage(Flow.colour(r.points[TOP]), Widgets.RED, "red");
+        return true;
+    }
+
+    // Each step beside Up and Down shows the change it makes, with its own sign: the demo's watch reads
+    // 1258 m, under the route's 1270 m, so both bring it up by 12 m (the review of #124).
+    (:test)
+    function altitudeStepsSigned(logger as Logger) as Boolean {
+        var range = RouteTest.demo().altRange();
+        var cases = [[1258, "+12", "+12"], [1293, "+7", "–3"], [1300, "+10", "–10"], [1270, "+10", "–0"],
+            [1580, "+0", "–10"], [1650, "–70", "–70"]] as Array<Array>;
+        for (var i = 0; i < cases.size(); i++) {
+            var v = cases[i][0] as Number, s = Flow.steps(v, range);
+            Test.assertMessage((cases[i][1] as String).equals(s[0]) && (cases[i][2] as String).equals(s[1]),
+                v + ": " + s);
+        }
+        return true;
+    }
+
+    // A new climb from the settings leaves no toast, and no APP CLOSED to close the app after it (the
+    // review of #124).
+    (:test)
+    function resetClearsToasts(logger as Logger) as Boolean {
+        var f = flow();
+        f.press(:back);
+        f.reset();
+        Test.assertMessage(f.toast == null && !f.closing && !f.quit, "nothing left");
+        f.tick(5000);
+        Test.assertMessage(!f.quit, "the app stays");
+        f.quit = true;
+        f.reset();
+        Test.assertMessage(!f.quit, "nor a quit");
+        return true;
+    }
+
+    // A narrowed two-part title keeps its grey "at" no larger than the bold part (the review of #124).
+    (:test)
+    function titleSemiNotAboveBold(logger as Logger) as Boolean {
+        for (var b = 0; b < FontSizes.BOLD.size(); b++) {
+            var s = FlowDraw.semiAtMost(FontSizes.BOLD[b]);
+            Test.assertMessage(FontSizes.SEMI[s] <= FontSizes.BOLD[b] + 0.0001, "not above " + FontSizes.BOLD[b]);
+            Test.assertMessage(s == FontSizes.SEMI.size() - 1 || FontSizes.SEMI[s + 1] > FontSizes.BOLD[b] + 0.0001,
+                "the largest so: " + FontSizes.SEMI[s]);
+        }
         return true;
     }
 
@@ -824,9 +869,9 @@ module FlowTest {
         choose(f, :atApproach);
         Test.assertMessage(FlowDraw.draw(d, f) && f.onScreen(), "F4, the approach");
         f.press(:start);
-        Test.assertMessage(FlowDraw.draw(d, f), "F5, the approach paused");
+        Test.assertMessage(FlowDraw.draw(d, f) && !FlowDraw.banded(f), "F5, the approach paused, the symbol its title");
         f.press(:back);
-        Test.assertMessage(FlowDraw.draw(d, f), "F20, the approach under the pause symbol");
+        Test.assertMessage(FlowDraw.draw(d, f) && FlowDraw.banded(f), "F20, the approach under the pause symbol");
         f.press(:start);
         choose(f, :continue);
         f.offerHead();
@@ -837,7 +882,7 @@ module FlowTest {
         f.press(:start);
         Test.assertMessage(FlowDraw.draw(d, f), "F7, the pause menu");
         f.press(:back);
-        Test.assertMessage(!FlowDraw.draw(d, f), "F21, the pages under the pause symbol (View)");
+        Test.assertMessage(!FlowDraw.draw(d, f) && FlowDraw.banded(f), "F21, the pages under the pause symbol (View)");
         f.press(:start);
         choose(f, :calibrate);
         Test.assertMessage(FlowDraw.draw(d, f), "F8, Calibrate with the Bench near");
@@ -912,6 +957,29 @@ module FlowTest {
         var shown = (f.detail as FlowDetail).shown as String;
         Test.assertMessage(shown.length() < name.length() && shown.find("…") == shown.length() - 1, "cut: " + shown);
         Test.assertMessage(d.width(d.bold(0.0577), shown) <= FlowDraw.chord(0.28) * 0.8, "within the screen");
+        var dt = f.detail as FlowDetail;
+        dt.shown = "KEPT";
+        FlowDraw.draw(d, f);
+        text(dt.shown, "KEPT", "cut once, then reused");
+        // The same name as a menu row: cut once per place it is drawn in, the pill and beside it.
+        f.press(:back);
+        var m = f.menu as FlowMenu;
+        FlowDraw.draw(d, f);
+        var cut = m.items[0].shown[2] as String;
+        Test.assertMessage(cut.find("…") == cut.length() - 1, "the pill's label cut: " + cut);
+        Test.assertMessage(d.width(FlowDraw.font(d, true, m.items[0].fonts[2]), cut) <= 0.72, "within the pill");
+        var below = m.items[1].shown[3] as String;
+        Test.assertMessage(d.width(FlowDraw.font(d, true, m.items[1].fonts[3]), below) <= FlowDraw.chord(0.73) * 0.8, "the row below within the screen");
+        var pill = m.items[0].shown;
+        pill[2] = "KEPT";
+        FlowDraw.draw(d, f);
+        text(m.items[0].shown[2], "KEPT", "the label cut once");
+        // CALIBRATED's name too.
+        f.press(:start);
+        f.press(:start);
+        FlowDraw.draw(d, f);
+        var named = f.calibratedName as String;
+        Test.assertMessage(named.find("…") == named.length() - 1, "CALIBRATED's name cut: " + named);
         return true;
     }
 
@@ -953,6 +1021,22 @@ module FlowTest {
         Climb.use(r, :ferrata);
         v.followPart();
         Test.assertEqualMessage(v.sel, -1, "reset for a new climb");
+        (v.feed as Feed).stop();
+        return true;
+    }
+
+    // On the approach its own screen has the display: Up and Down leave the page as it was (the review
+    // of #124).
+    (:test)
+    function approachKeepsPage(logger as Logger) as Boolean {
+        var v = new View(RouteTest.demo()), del = new Delegate(v);
+        var fl = v.flow as FlowMenus;
+        fl.feed.start(:approachPoint);
+        Test.assertMessage(v.flowOnScreen(), "the approach's screen");
+        del.onNextPage();
+        del.onPreviousPage();
+        del.onNextPage();
+        Test.assertEqualMessage(v.page, 0, "the page kept");
         (v.feed as Feed).stop();
         return true;
     }
