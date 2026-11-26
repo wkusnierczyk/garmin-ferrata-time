@@ -670,21 +670,23 @@ module FlowTest {
         return true;
     }
 
-    // The summary's line of three figures fits the round screen whatever the climb (Codex on #124): the
-    // largest size from the mock's down that fits, its symbols and gaps with it.
+    // The summary's line of three figures fits the round screen whatever the climb (Codex on #124): a
+    // typical climb's at the mock's size (owner), a long one's smaller, its symbols and gaps with it.
     (:test)
     function summaryLineFits(logger as Logger) as Boolean {
         var d = PagesTest.draw();
         var cases = [["374", "0:06", "+0"], ["1500", "10:00", "+100"], ["12345", "10:00", "+0"],
-            ["12345", "100:00", "-1234"]] as Array<Array<String>>;
+            ["12345", "100:00", "-1234"], ["841", "5:17", "+19"]] as Array<Array<String>>;
         for (var i = 0; i < cases.size(); i++) {
             var line = FlowDraw.summaryLine(d, cases[i]);
             var room = FlowDraw.lineRoom(d, line);
             Test.assertMessage(line.total <= room, cases[i] + ": " + line.total + " in " + room);
         }
-        var short = FlowDraw.summaryLine(d, cases[0]).vk, long = FlowDraw.summaryLine(d, cases[1]).vk;
-        Test.assertMessage(short <= Fonts.nearest(0.085, FontSizes.SEMI), "never above the mock's size");
-        Test.assertMessage(long < short, "smaller on a long climb than a short one");
+        var mock = Fonts.nearest(0.085, FontSizes.SEMI);
+        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[0]).vk, mock, "a short climb at the mock's size");
+        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[4]).vk, mock, "the mock's own example too");
+        Test.assertMessage(FlowDraw.summaryLine(d, cases[1]).vk < mock, "1500 m, 10:00, +100 m smaller");
+        Test.assertMessage(FlowDraw.summaryLine(d, cases[2]).vk < mock, "12345 m smaller");
         return true;
     }
 

@@ -237,8 +237,9 @@ module FlowDraw {
     const UG = 0.007 / 0.085;
     const UNITS = ["m", "", "m"] as Array<String>;
     // The room a line may take: this share of the round screen's width at its glyphs' top and bottom,
-    // as a title's (Codex on #124: a long climb's figures ran off the screen).
-    const LINE_MARGIN = 0.85;
+    // enough to keep them off the edge (Codex on #124: a long climb's figures ran off the screen; the
+    // owner approved the mock's size for a typical climb, which 0.95 keeps).
+    const LINE_MARGIN = 0.95;
 
     // The line laid out: the largest SemiBold from the mock's size down whose whole block (symbols,
     // values, units and gaps, all at that size) fits its room, or the smallest. Measured as it goes, so
