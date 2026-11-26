@@ -361,11 +361,12 @@ module FlowDraw {
     }
 
     // An altitude large (F3, F10, F11): the number 0.2 of the width, bold, white (the table's largest
-    // bold, 0.1683), its digits centred on cy; the unit right after it, grey, 0.07, on its baseline.
+    // bold, 0.1683), the number centred across and its digits on cy; the unit right after it, grey, 0.07, on its baseline.
     function bigAltitude(d as Draw, v as Number, cy as Float) as Void {
         var vk = size(true, 0.2), uk = size(false, 0.07), str = v.format("%d");
-        var vw = width(d, true, vk, str), uw = width(d, false, uk, "m");
-        var vx = 0.5 - (vw + 0.01 + uw) / 2, base = cy + d.capHeight(font(d, true, vk)) / 2;
+        // The number centred, its unit after it (owner, 2026-11-26), not the two together.
+        var vw = width(d, true, vk, str);
+        var vx = 0.5 - vw / 2, base = cy + d.capHeight(font(d, true, vk)) / 2;
         d.textBase(vx, base, font(d, true, vk), str, Flow.WHITE, LEFT);
         d.textBase(vx + vw + 0.01, base, font(d, false, uk), "m", Flow.GREY, LEFT);
     }
