@@ -3,21 +3,31 @@ using Toybox.Math;
 
 import Toybox.Lang;
 
-// The climb flow's screens as the flow mock draws them (#51), in shares of the screen's width: the
-// ready screen, the menus (the selected row an outlined pill in its colour, the list scrolling with it
-// in the middle), the altitude entry, the summary, the CALIBRATED confirmation and the toast after
-// Save or Discard. Sizes are the mock's, each at the size table's nearest (FontSizes); text that does
-// not fit its room is drawn in a smaller size, as the mock shrinks it. Nothing here grows with the
-// route: the menus' rows are worked out when they open.
+// The climb flow's screens as the revised flow mock draws them (#121; F1 to F26), in shares of the
+// screen's width: the ready screen, the approach, the menus (the selected row in a large outlined
+// pill), the altitude entry, a point's details, the summary, the CALIBRATED confirmation and the
+// toasts; the pause symbol at the top of every paused screen. Sizes are the mock's, each at the size
+// table's nearest (FontSizes); text that does not fit its room is drawn in a smaller size, as the mock
+// shrinks it. Nothing here grows with the route, and text is measured once (widths, below).
 module FlowDraw {
 
     const CENTRE = Graphics.TEXT_JUSTIFY_CENTER;
+    const LEFT = Graphics.TEXT_JUSTIFY_LEFT;
+    const RIGHT = Graphics.TEXT_JUSTIFY_RIGHT;
+
+    // Every screen's title as F1's (owner, 2026-11-26): centred at 0.19 of the height, 0.087 of the
+    // width, bold, narrowed to fit the round screen there.
+    const TITLE_Y = 0.19;
+    const TITLE = 0.087;
 
     // Draws the flow's screen when it has one; false when the pages have the screen.
     function draw(d as Draw, f as FlowMenus) as Boolean {
         var drew = true;
-        var e = f.entry, m = f.menu;
-        if (e != null) {
+        var dt = f.detail, e = f.entry, m = f.menu;
+        if (dt != null) {
+            d.clear();
+            detail(d, f, dt);
+        } else if (e != null) {
             d.clear();
             entry(d, f, e);
         } else if (m != null) {
@@ -26,75 +36,81 @@ module FlowDraw {
         } else if (f.phase() == Tracker.IDLE) {
             d.clear();
             ready(d, f);
+        } else if (f.onApproach()) {
+            d.clear();
+            approach(d, f);
         } else {
             drew = false;
         }
+        // Every paused screen but the pause menu, whose title it is, has the pause symbol at the top.
+        if (drew && f.feed.paused() && !onPauseMenu(f)) { band(d); }
         var c = f.calibrated;
         if (c != null) {
             d.clear();
-            d.textCapCentre(0.5, 0.44, d.bold(0.0865), "CALIBRATED", Flow.SYNC);
-            d.textCapCentre(0.5, 0.56, fit(d, false, 0.0577, c, chord(0.56) * 0.8), c, Flow.WHITE);
+            calibrated(d, f, c);
             drew = true;
         }
         var t = f.toast;
         if (t != null) {
             if (!drew) { d.clear(); }
             d.shade(0, 0, 1, 1, 0, 0xd9);
-            d.textCapCentre(0.5, 0.5, d.bold(0.0865), t, f.toastColour);
+            d.textCapCentre(0.5, 0.5, font(d, true, size(true, 0.1)), t, f.toastColour);
             drew = true;
         }
         return drew;
     }
 
+    // Whether the pause menu itself is on the screen. (One test a line: the type checker, as in
+    // FlowMenus.onScreen.)
+    function onPauseMenu(f as FlowMenus) as Boolean {
+        if (f.detail != null) { return false; }
+        if (f.entry != null) { return false; }
+        var m = f.menu;
+        return m != null && m.id == :paused;
+    }
+
     // ---------------------------------------------------------------- the screens
 
-    // Before Start: the route's name and place, its length, ascent and guidebook time, its hardest
-    // grade, and the prompt beside the Start button.
+    // F1: the route's name, then its path, ascent and guidebook time after their symbols, and a green
+    // play mark by Start.
     function ready(d as Draw, f as FlowMenus) as Void {
-        var r = f.feed.route, name = r.name.toUpper();
-        d.textCapCentre(0.5, 0.17, fit(d, true, 0.0865, name, chord(0.17) * 0.85), name, Flow.WHITE);
-        var where = r.place.length() > 0 ? "Via ferrata · " + r.place : "Via ferrata";
-        d.textCapCentre(0.5, 0.245, fit(d, false, 0.0481, where, chord(0.245) * 0.85), where, Flow.GREY);
-        figure(d, 0.25, f.figures[0], "km", "LENGTH");
-        figure(d, 0.5, f.figures[1], "m", "ASCENT");
-        figure(d, 0.75, f.figures[2], "h:mm", "GUIDE");
-        var g = f.hardest;
-        outline(d, 0.39, 0.67, 0.22, 0.1, 0.012, Flow.DIM, 0.0048);
-        var box = Widgets.BOX_NAME[g];
-        d.textCapCentre(0.5, 0.72, fit(d, true, 0.0721, box, 0.19), box, d.grade(g, false));
-        d.textCapCentre(0.5, 0.81, d.semi(0.0433), "hardest", Flow.DIM);
-        buttonPrompt(d, "START", Widgets.CLIMBER, false);
+        title(d, f.feed.route.name.toUpper(), Flow.WHITE);
+        symbolRows(d, [new SymRow(:path, f.figures[0], "m"), new SymRow(:ascent, f.figures[1], "m"),
+            new SymRow(:watch, f.figures[2], "")] as Array<SymRow>, 0.4);
+        Symbols.play(d, Widgets.GREEN);
     }
 
-    // One of the ready screen's figures: the number, its unit and its label under it. The number's size
-    // is the largest with letters too (the larger ones are digits only, and a length has a point).
-    function figure(d as Draw, x as Float, value as String, unit as String, label as String) as Void {
-        d.textCapCentre(x, 0.45, fit(d, false, 0.1106, value, 0.22), value, Flow.WHITE);
-        d.textCapCentre(x, 0.545, d.semi(0.0481), unit, Flow.GREY);
-        d.textCapCentre(x, 0.6, d.semi(0.0433), label, Flow.DIM);
+    // F4, F20: on the approach, the distance and the time left to the head, then "to HEAD", HEAD green
+    // at the values' left and "to" right-aligned with the symbols; the two values at F26's place.
+    function approach(d as Draw, f as FlowMenus) as Void {
+        var st = f.feed.tracker.state(), left = Climb.totalD() - st.d, minutes = st.left();
+        title(d, "APPROACH", Flow.WHITE);
+        var to = new SymRow(null, "HEAD", "");
+        to.colour = Widgets.GREEN;
+        to.bold = true;
+        to.word = "to";
+        to.share = 0.065;
+        symbolRows(d, [new SymRow(:path, ((left > 0 ? left : 0) / 1000.0).format("%.1f"), "km"),
+            new SymRow(:watch, Flow.hours(Math.round(minutes > 0 ? minutes : 0).toNumber()), ""), to] as Array<SymRow>, 0.44);
     }
 
-    // A menu: its title in its colour; the selected row in the middle, an outlined pill in the row's
-    // colour, its second line under the label at the same size; a row above and two below, the farther
-    // smaller and dim; a dot per row on the right edge, the selected one lit.
+    // A menu: its title (the pause menu's the pause symbol), the selected row in the large pill with a
+    // row above and two below, and a dot per row on the right edge, the selected one lit.
     function menu(d as Draw, m as FlowMenu) as Void {
-        title(d, m.title, m.colour);
-        for (var r = -1; r <= 2; r++) {
-            var i = m.sel + r;
-            if (i < 0 || i >= m.items.size()) { continue; }
-            var it = m.items[i], y = 0.5 + r * 0.17, label = it.label.toUpper();
-            var sub = it.sub;
-            if (r == 0) {
-                var h = sub != null ? 0.19 : 0.15;
-                outline(d, 0.1, y - h / 2, 0.8, h, h / 2, it.colour, 0.0075);
-                d.textCapCentre(0.5, sub != null ? y - 0.036 : y, fit(d, true, ROW, label, 0.68), label, it.colour);
-                if (sub != null) { subLine(d, y + 0.04, it, sub); }
-            } else {
-                var near = r == -1 || r == 1, ty = y + (r > 0 ? 0.02 : -0.02);
-                d.textCapCentre(0.5, ty, fit(d, true, near ? 0.0577 : 0.0433, label, chord(ty) * 0.8), label,
-                    near ? it.colour : Flow.DIM);
-            }
+        var id = m.id;
+        if (id == :paused) {
+            Symbols.pause(d, 0.5, TITLE_Y, 0.06);
+        } else if (id == :head) {
+            titleParts(d, [["HEAD", Widgets.GREEN, true], ["?", Flow.GREY, true]]);
+        } else if (id == :confirm) {
+            titleParts(d, [["DISCARD", Flow.WHITE, true], ["?", Flow.GREY, true]]);
+        } else if (id == :landmarks) {
+            titleParts(d, [["at ", Flow.GREY, false], ["LANDMARK", Flow.WHITE, true]]);
+        } else {
+            titleParts(d, [[id == :start ? "START" : (id == :end ? "END" : "CALIBRATE"), Flow.WHITE, true],
+                [" at", Flow.GREY, false]]);
         }
+        rows(d, m, 0.53, 1, 2);
         var n = m.items.size(), step = dotStep(n);
         for (var i = 0; i < n; i++) {
             var a = Math.toRadians((i - (n - 1) / 2.0) * step);
@@ -108,90 +124,206 @@ module FlowDraw {
         return n > 21 ? 120.0 / (n - 1) : 6.0;
     }
 
-    // The selected row's two lines, the same size (the mock's 0.062; both weights have 0.0673).
-    const ROW = 0.0673;
-
-    // The selected row's second line: grey, or for a landmark white with its kind's word in colour.
-    function subLine(d as Draw, y as Float, it as FlowItem, sub as String) as Void {
-        var font = fit(d, false, ROW, sub, 0.68);
-        var kind = it.kind;
-        if (kind == null) {
-            d.textCapCentre(0.5, y, font, sub, Flow.GREY);
-            return;
+    // A menu's rows (owner, 2026-11-26, F2 and F5): the selected one in a pill 0.2 of the screen tall and
+    // 0.84 wide, its text 0.085, white, the outline alone in the row's colour (a destructive row's pill
+    // filled in it, its text black); the rows beside it 0.18 away, white, the next ones smaller and dim.
+    // The selected row's middle at yc.
+    function rows(d as Draw, m as FlowMenu, yc as Float, above as Number, below as Number) as Void {
+        for (var r = -above; r <= below; r++) {
+            var i = m.sel + r;
+            if (i < 0 || i >= m.items.size()) { continue; }
+            var it = m.items[i], y = yc + r * 0.18, label = it.label.toUpper();
+            if (r == 0) {
+                var h = 0.2;
+                if (it.fill) {
+                    d.roundRect(0.08, y - h / 2, 0.84, h, h / 2, it.colour);
+                } else {
+                    outline(d, 0.08, y - h / 2, 0.84, h, h / 2, it.colour, 0.009);
+                }
+                var k = fit(d, true, 0.085, label, 0.72);
+                d.textCapCentre(0.5, y, font(d, true, k), label, it.fill ? Graphics.COLOR_BLACK : Flow.WHITE);
+            } else {
+                var near = r == -1 || r == 1, ty = y + (r > 0 ? 0.02 : -0.02);
+                var k = fit(d, true, near ? 0.055 : 0.044, label, chord(ty) * 0.8);
+                d.textCapCentre(0.5, ty, font(d, true, k), label, near ? Flow.WHITE : Flow.DIM);
+            }
         }
-        var rest = sub.substring(kind.length(), sub.length()) as String;
-        var x = 0.5 - d.width(font, sub) / 2;
-        d.textCapMiddle(x, y, font, kind, it.kindColour, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(x + d.width(font, kind), y, font, rest, Flow.WHITE, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // F3, F10: "at ALTITUDE", going on from START at and CALIBRATE at; the altitude alone in the middle;
+    // beside Up and Down the step each makes (to the next 10 m mark, then 10 m); a green check by
+    // Start, a red cross by Back.
+    function entry(d as Draw, f as FlowMenus, e as FlowEntry) as Void {
+        titleParts(d, [["at ", Flow.GREY, false], ["ALTITUDE", Flow.WHITE, true]]);
+        bigAltitude(d, e.value, 0.5);
+        var up = Flow.altUp(e.value, f.range) - e.value, down = e.value - Flow.altDown(e.value, f.range);
+        var big = font(d, true, size(true, 0.08));
+        d.textCapMiddle(0.06, 0.5, big, "+" + up.format("%d"), up != 0 ? Flow.WHITE : Flow.DIM, LEFT);
+        d.textCapMiddle(0.12, 0.72, big, "–" + down.format("%d"), down != 0 ? Flow.WHITE : Flow.DIM, LEFT);
+        Symbols.check(d, Widgets.GREEN);
+        Symbols.cross(d, Widgets.RED);
+    }
+
+    // F18, F24, F25, F26: a point's details. Titled by its type, a grey "at" then the type in its colour
+    // (a name might not fit), a landmark's or an exit's own name under it; HERE keeps its plain title.
+    // Then its altitude after the peak, and how far it is after the path (here: how far along the
+    // route), the first at 0.44 of the height; the check by Start, the cross by Back.
+    function detail(d as Draw, f as FlowMenus, dt as FlowDetail) as Void {
+        var r = f.feed.route, p = dt.point;
+        var second = null as SymRow?;
+        if (p < 0) {
+            title(d, "HERE", Flow.WHITE);
+            second = new SymRow(:path, Math.round(dt.d).toNumber().format("%d"), "m along");
+        } else {
+            var kind = r.points[p]["kind"] as String;
+            titleParts(d, [["at ", Flow.GREY, false], [Flow.kindWord(kind), Flow.kindColour(kind), true]]);
+            if (kind.equals("landmark") || kind.equals("exit")) {
+                var k = size(true, 0.055), shown = dt.shown;
+                if (shown == null) {
+                    shown = cut(d, font(d, true, k), (r.points[p]["name"] as String).toUpper(), chord(0.28) * 0.8);
+                    dt.shown = shown;
+                }
+                d.textCapCentre(0.5, 0.28, font(d, true, k), shown, Flow.WHITE);
+            }
+            var how = Flow.ahead(dt.at, dt.d);
+            second = new SymRow(:path, how[0], how[1]);
+        }
+        symbolRows(d, [new SymRow(:peak, dt.alt.format("%d"), "m"), second as SymRow] as Array<SymRow>, 0.44);
+        Symbols.check(d, Widgets.GREEN);
+        Symbols.cross(d, Widgets.RED);
+    }
+
+    // F14: the route's name; one line of three figures, each after its symbol (the height climbed, the
+    // activity's time, the drift), units grey on the baseline; a rule; then Save, Resume and Discard.
+    function summary(d as Draw, f as FlowMenus, m as FlowMenu) as Void {
+        var t = f.feed.tracker;
+        title(d, f.feed.route.name.toUpper(), Flow.WHITE);
+        var climbed = Climb.FERRATA ? t.state().climbed() : 0;
+        var syms = [:ascent, :watch, :drift] as Array<Symbol>;
+        var values = [climbed.format("%d"), Flow.hours(t.activeS / 60), Flow.signed(Math.round(t.drift()).toNumber())] as Array<String>;
+        var units = ["m", "", "m"] as Array<String>;
+        var fs = 0.085, sym = fs * 0.87, sg = 0.013, ig = 0.045, ug = 0.007;
+        var vk = size(false, fs), uk = size(false, fs * 0.616);
+        var w = new Array<Float>[3], total = 2 * ig;
+        for (var i = 0; i < 3; i++) {
+            w[i] = sym + sg + width(d, false, vk, values[i]) + (units[i].length() > 0 ? ug + width(d, false, uk, units[i]) : 0.0);
+            total += w[i];
+        }
+        var x = 0.5 - total / 2, y = 0.34, base = y + d.capHeight(font(d, false, vk)) / 2;
+        for (var i = 0; i < 3; i++) {
+            Symbols.row(d, syms[i], x + sym / 2, y, sym);
+            var vx = x + sym + sg;
+            d.textBase(vx, base, font(d, false, vk), values[i], Flow.WHITE, LEFT);
+            if (units[i].length() > 0) {
+                d.textBase(vx + width(d, false, vk, values[i]) + ug, base, font(d, false, uk), units[i], Flow.GREY, LEFT);
+            }
+            x += w[i] + ig;
+        }
+        d.line(0.18, 0.45, 0.82, 0.45, 0x333333, 0.0036);
+        rows(d, m, 0.67, 1, 1);
+    }
+
+    // F11: "CALIBRATED at", the altitude calibrated to large in the middle, and under it the point's
+    // name in its colour when the calibration was at one. No mark by Back: it plainly goes back.
+    function calibrated(d as Draw, f as FlowMenus, alt as Number) as Void {
+        titleParts(d, [["CALIBRATED", Flow.WHITE, true], [" at", Flow.GREY, false]]);
+        bigAltitude(d, alt, 0.47);
+        var p = f.calibratedPoint;
+        if (p < 0) { return; }
+        var pt = f.feed.route.points[p], name = (pt["name"] as String).toUpper();
+        var k = fit(d, true, 0.06, name, chord(0.66) * 0.8);
+        d.textCapCentre(0.5, 0.66, font(d, true, k), name, Flow.kindColour(pt["kind"] as String));
+    }
+
+    // Over the pages, the approach and the screens under the pause menu while paused: the pause symbol
+    // at the top, on a black disk so it reads over a page (owner, 2026-11-26, in place of PAUSED).
+    function band(d as Draw) as Void {
+        d.dot(0.5, 0.085, 0.055, Graphics.COLOR_BLACK);
+        Symbols.pause(d, 0.5, 0.085, 0.045);
+    }
+
+    // ---------------------------------------------------------------- the parts
+
+    // A title in parts, each [text, colour, bold], together centred at F1's title place and size; the
+    // whole narrowed, both weights a size down at a time, until it fits the round screen there.
+    function titleParts(d as Draw, parts as Array<Array>) as Void {
+        var max = chord(TITLE_Y) * 0.85, b = size(true, TITLE), s = size(false, TITLE), total = 0.0;
+        while (true) {
+            total = 0.0;
+            for (var i = 0; i < parts.size(); i++) {
+                var bold = parts[i][2] as Boolean;
+                total += width(d, bold, bold ? b : s, parts[i][0] as String);
+            }
+            if (total <= max || b == 0) { break; }
+            b--;
+            s = size(false, FontSizes.BOLD[b]);
+        }
+        var x = 0.5 - total / 2;
+        for (var i = 0; i < parts.size(); i++) {
+            var bold = parts[i][2] as Boolean, k = bold ? b : s, str = parts[i][0] as String;
+            d.textCapMiddle(x, TITLE_Y, font(d, bold, k), str, parts[i][1] as Number, LEFT);
+            x += width(d, bold, k, str);
+        }
     }
 
     function title(d as Draw, text as String, colour as Number) as Void {
-        var max = chord(0.135) * 0.8, idx = Fonts.nearest(0.0577, FontSizes.BOLD);
-        var font = d.bold(FontSizes.BOLD[idx]);
-        while (idx > 0 && d.spacedWidth(font, text) > max) {
-            idx--;
-            font = d.bold(FontSizes.BOLD[idx]);
+        titleParts(d, [[text, colour, true]]);
+    }
+
+    // Rows of a symbol and a value with its unit, as page 16 draws them at the size the owner gave
+    // (2026-11-26): the values 0.1 of the width, the symbols 0.87 of that, the units 0.616 of it, grey,
+    // on the values' baseline, rows 1.4 values apart; the block centred on its widest row, the first
+    // row's middle at y0. A row without a symbol is a word row: its value at the values' left, its word
+    // grey and right-aligned with the symbols, 0.75 of a pitch under the row before.
+    const ROW = 0.1;
+
+    function symbolRows(d as Draw, list as Array<SymRow>, y0 as Float) as Void {
+        var sym = ROW * 0.87, gap = 0.023, pitch = ROW * 1.4, ugap = 0.008;
+        var vk = size(false, ROW), uk = size(false, ROW * 0.616), widest = 0.0;
+        for (var i = 0; i < list.size(); i++) {
+            var r = list[i];
+            var w = sym + gap + width(d, r.bold, size(r.bold, r.share), r.value)
+                + (r.unit.length() > 0 ? ugap + width(d, false, uk, r.unit) : 0.0);
+            if (w > widest) { widest = w; }
         }
-        d.spaced(0.5, 0.135 + d.capHeight(font) / 2, font, text, colour, CENTRE);
-    }
-
-    // The altitude entry: the altitude large in the middle, how far it is from where it started, where
-    // on the route it is; Up's and Down's next altitudes beside their buttons, Set and Cancel beside
-    // Start and Back.
-    function entry(d as Draw, f as FlowMenus, e as FlowEntry) as Void {
-        title(d, "ALTITUDE", Flow.SYNC);
-        var from = !e.known ? "No barometer reading" : (e.start ? "Barometer " : "Estimate ") + e.est.format("%d") + " m";
-        d.textCapCentre(0.5, 0.215, fit(d, false, 0.0433, from, chord(0.215) * 0.8), from, Flow.GREY);
-        var v = e.value.format("%d");
-        d.textCapCentre(0.5, 0.42, fit(d, false, 0.2019, v, 0.5), v, Flow.WHITE);
-        d.textCapCentre(0.5, 0.545, d.semi(0.0481), "m", Flow.GREY);
-        var delta = e.value - e.est, what = e.start ? "the barometer" : "the estimate";
-        var off = delta != 0 ? Flow.signed(delta) + " m from " + what : what;
-        d.textCapCentre(0.5, 0.625, fit(d, false, 0.0433, off, 0.6), off, delta != 0 ? Flow.SYNC : Flow.DIM);
-        var at = e.start && f.feed.route.hasApproach() ? "on the approach"
-            : Flow.km(e.at) + " along · " + Flow.away(e.at, e.d0);
-        d.textCapCentre(0.5, 0.78, fit(d, false, 0.0433, at, 0.52), at, Flow.GREY);
-        var font = d.bold(0.0481);
-        d.textCapMiddle(0.06, 0.5, font, Flow.altUp(e.value, f.range).format("%d"),
-            e.value < f.range[1] ? Flow.WHITE : Flow.DIM, Graphics.TEXT_JUSTIFY_LEFT);
-        d.textCapMiddle(0.12, 0.72, font, Flow.altDown(e.value, f.range).format("%d"),
-            e.value > f.range[0] ? Flow.WHITE : Flow.DIM, Graphics.TEXT_JUSTIFY_LEFT);
-        buttonPrompt(d, "SET", Flow.SYNC, false);
-        buttonPrompt(d, "CANCEL", Flow.GREY, true);
-    }
-
-    // After an end: the route's name, the height climbed, the activity's time and the drift, then Save,
-    // Resume and Discard.
-    function summary(d as Draw, f as FlowMenus, m as FlowMenu) as Void {
-        var t = f.feed.tracker, name = f.feed.route.name.toUpper();
-        var font = fit(d, true, 0.0577, name, chord(0.13) * 0.8);
-        d.spaced(0.5, 0.13 + d.capHeight(font) / 2, font, name, Flow.WHITE, CENTRE);
-        var climbed = Climb.FERRATA ? t.state().climbed() : 0;
-        var drift = Math.round(t.drift()).toNumber();
-        stat(d, 0.24, climbed.format("%d") + " m", "climbed");
-        stat(d, 0.5, Flow.hours(t.activeS / 60), "time");
-        stat(d, 0.76, (drift >= 0 ? "+" : "-") + drift.abs().format("%d") + " m", "drift");
-        d.line(0.18, 0.44, 0.82, 0.44, 0x333333, 0.0036);
-        for (var i = 0; i < m.items.size(); i++) {
-            var it = m.items[i], y = 0.53 + i * 0.115, on = i == m.sel, label = it.label.toUpper();
-            if (on) { outline(d, 0.25, y - 0.052, 0.5, 0.104, 0.052, it.colour, 0.0075); }
-            d.textCapCentre(0.5, y, fit(d, true, on ? 0.0673 : 0.0577, label, 0.4), label, it.colour);
+        var left = 0.5 - widest / 2, y = y0 - pitch, half = d.capHeight(font(d, false, vk)) / 2;
+        for (var i = 0; i < list.size(); i++) {
+            var r = list[i], k = size(r.bold, r.share);
+            y += i > 0 && r.sym == null ? pitch * 0.75 : pitch;
+            var vx = left + sym + gap, base = y + half;
+            var s = r.sym;
+            if (s != null) { Symbols.row(d, s, left + sym / 2, y, sym); }
+            var word = r.word;
+            if (word != null) { d.textBase(left + sym, base, font(d, false, uk), word, Flow.GREY, RIGHT); }
+            d.textBase(vx, base, font(d, r.bold, k), r.value, r.colour, LEFT);
+            if (r.unit.length() > 0) {
+                d.textBase(vx + width(d, r.bold, k, r.value) + ugap, base, font(d, false, uk), r.unit, Flow.GREY, LEFT);
+            }
         }
     }
 
-    function stat(d as Draw, x as Float, value as String, label as String) as Void {
-        d.textCapCentre(x, 0.29, fit(d, false, 0.0865, value, 0.24), value, Flow.WHITE);
-        d.textCapCentre(x, 0.37, d.semi(0.0385), label, Flow.GREY);
+    // An altitude large (F3, F10, F11): the number 0.2 of the width, bold, white (the table's largest
+    // bold, 0.1683), its digits centred on cy; the unit right after it, grey, 0.07, on its baseline.
+    function bigAltitude(d as Draw, v as Number, cy as Float) as Void {
+        var vk = size(true, 0.2), uk = size(false, 0.07), str = v.format("%d");
+        var vw = width(d, true, vk, str), uw = width(d, false, uk, "m");
+        var vx = 0.5 - (vw + 0.01 + uw) / 2, base = cy + d.capHeight(font(d, true, vk)) / 2;
+        d.textBase(vx, base, font(d, true, vk), str, Flow.WHITE, LEFT);
+        d.textBase(vx + vw + 0.01, base, font(d, false, uk), "m", Flow.GREY, LEFT);
     }
 
-    // ---------------------------------------------------------------- helpers
-
-    // A prompt beside a button on the right, START (at 2 o'clock) or, lower, BACK (at 4): its word and
-    // a short stroke towards the button.
-    function buttonPrompt(d as Draw, label as String, colour as Number, lower as Boolean) as Void {
-        d.textCapMiddle(0.82, lower ? 0.685 : 0.315, d.bold(0.0433), label, colour, Graphics.TEXT_JUSTIFY_RIGHT);
-        var y = lower ? 0.7 : 0.3;
-        d.seg(0.835, y, 0.875, y + (lower ? 0.023 : -0.023), 0.0072, colour, true);
+    // A name cut to max (a share of the width), with an ellipsis where it does not fit (F18's): measured
+    // letter by letter, so done once, when the screen opens.
+    function cut(d as Draw, f as Graphics.FontType, t as String, max as Float) as String {
+        if (d.width(f, t) <= max) { return t; }
+        var n = t.length();
+        while (n > 1) {
+            n--;
+            while (n > 1 && " ".equals(t.substring(n - 1, n))) { n--; }
+            var u = (t.substring(0, n) as String) + "…";
+            if (d.width(f, u) <= max) { return u; }
+        }
+        return (t.substring(0, 1) as String) + "…";
     }
 
     // A rounded rectangle's outline, pen wide.
@@ -201,21 +333,62 @@ module FlowDraw {
         d.dc.drawRoundedRectangle(d.s(x), d.s(y), d.s(w), d.s(h), d.s(r));
     }
 
-    // The font of this weight at the size nearest share, or the largest smaller one in which str fits
-    // in max (a share of the width).
-    function fit(d as Draw, bold as Boolean, share as Float, str as String, max as Float) as Graphics.FontType {
-        var sizes = bold ? FontSizes.BOLD : FontSizes.SEMI, idx = Fonts.nearest(share, sizes);
-        var font = bold ? d.bold(sizes[idx]) : d.semi(sizes[idx]);
-        while (idx > 0 && d.width(font, str) > max) {
-            idx--;
-            font = bold ? d.bold(sizes[idx]) : d.semi(sizes[idx]);
+    // ---------------------------------------------------------------- fonts and widths
+
+    // The size table's index nearest share, in a weight.
+    function size(bold as Boolean, share as Float) as Number {
+        return Fonts.nearest(share, bold ? FontSizes.BOLD : FontSizes.SEMI);
+    }
+
+    function font(d as Draw, bold as Boolean, k as Number) as Graphics.FontType {
+        return bold ? d.bold(FontSizes.BOLD[k]) : d.semi(FontSizes.SEMI[k]);
+    }
+
+    // The index of the size nearest share, or the largest smaller one in which str fits in max.
+    function fit(d as Draw, bold as Boolean, share as Float, str as String, max as Float) as Number {
+        var k = size(bold, share);
+        while (k > 0 && width(d, bold, k, str) > max) { k--; }
+        return k;
+    }
+
+    // Text widths, measured once each and kept (a few dozen at most, then started again): a screen
+    // measures its strings on its first frame, and later frames look them up.
+    const KEPT = 48;
+    var widths as Dictionary<String, Float> = {} as Dictionary<String, Float>;
+
+    function width(d as Draw, bold as Boolean, k as Number, str as String) as Float {
+        var key = (bold ? "b" : "s") + k.format("%d") + "~" + str;
+        var w = widths[key];
+        if (w == null) {
+            if (widths.size() >= KEPT) { widths = {} as Dictionary<String, Float>; }
+            w = d.width(font(d, bold, k), str);
+            widths[key] = w;
         }
-        return font;
+        return w;
     }
 
     // The width of the round screen at height y: text there must stay inside it.
     function chord(y as Float) as Float {
         var dy = y - 0.5;
         return 2 * Math.sqrt(0.25 - dy * dy).toFloat();
+    }
+}
+
+// One of symbolRows' rows: its symbol (null for a word row), value and unit; the value's colour, weight
+// and size; a word row's word.
+class SymRow {
+
+    var sym as Symbol?;
+    var value as String;
+    var unit as String;
+    var colour as Number = Flow.WHITE;
+    var bold as Boolean = false;
+    var word as String? = null;
+    var share as Float = FlowDraw.ROW;
+
+    function initialize(s as Symbol?, v as String, u as String) {
+        sym = s;
+        value = v;
+        unit = u;
     }
 }

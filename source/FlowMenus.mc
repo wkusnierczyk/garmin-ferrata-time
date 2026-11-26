@@ -4,41 +4,34 @@ using Toybox.Math;
 import Toybox.Lang;
 
 // One row of a menu: what it does (its id, and the point it calibrates at or ends at, -1 for none),
-// its label and the line under it, in its colour. A landmark's row starts that line with its kind's
-// word, in the kind's colour.
+// its label, one line (#121), and its colour, the selected pill's outline; a destructive row (fill)
+// has its pill filled in it.
 class FlowItem {
 
     var id as Symbol;
     var label as String;
-    var sub as String?;
     var colour as Number;
     var point as Number = -1;
-    var kind as String? = null;
-    var kindColour as Number = Flow.GREY;
+    var fill as Boolean = false;
 
-    function initialize(i as Symbol, l as String, s as String?, c as Number) {
+    function initialize(i as Symbol, l as String, c as Number) {
         id = i;
         label = l;
-        sub = s;
         colour = c;
     }
 }
 
-// A menu: which one (:start, :paused, :calibrate, :landmarks, :end, :head, :summary or :confirm), its
-// title in its colour, its rows, the one selected, and the menu Back returns to.
+// A menu: which one (:start, :paused, :calibrate, :landmarks, :end, :head, :summary or :confirm),
+// which also says its title (FlowDraw), its rows, the one selected, and the menu Back returns to.
 class FlowMenu {
 
     var id as Symbol;
-    var title as String;
-    var colour as Number;
     var items as Array<FlowItem>;
     var sel as Number = 0;
     var parent as FlowMenu? = null;
 
-    function initialize(i as Symbol, t as String, c as Number, rows as Array<FlowItem>) {
+    function initialize(i as Symbol, rows as Array<FlowItem>) {
         id = i;
-        title = t;
-        colour = c;
         items = rows;
     }
 
@@ -49,26 +42,44 @@ class FlowMenu {
     }
 }
 
-// The altitude entry: the altitude it started from (the barometer's before a start, else the
-// estimate; known false when the barometer had none), the altitude shown, and where on the route that
-// is, from the place d0; the menu Back returns to.
+// The altitude entry: whether it starts the climb, the altitude it started from (the barometer's
+// before a start, the head's when it has none, else the estimate), the altitude shown, and the menu
+// Back returns to. It shows the altitude alone (#121); the tracker works out where on the route it is.
 class FlowEntry {
 
     var start as Boolean;
     var est as Number;
-    var known as Boolean;
     var value as Number;
-    var d0 as Float;
-    var at as Float = 0.0;
     var parent as FlowMenu;
 
-    function initialize(s as Boolean, e as Number, k as Boolean, from as Float, p as FlowMenu) {
+    function initialize(s as Boolean, e as Number, p as FlowMenu) {
         start = s;
         est = e;
-        known = k;
         value = e;
-        d0 = from;
         parent = p;
+    }
+}
+
+// A point's details (#121), over the menu it was picked in: a landmark before calibrating there, or the
+// top, an exit or here (point -1) before ending there. What it shows is worked out when it opens, the
+// climb being paused: the point's altitude, and how far it is from the place (here: how far along the
+// route the place is). Start calibrates or ends there, Back returns to the menu.
+class FlowDetail {
+
+    var point as Number;
+    var end as Boolean;
+    var alt as Number;
+    var at as Float;
+    var d as Float;
+    // The name as drawn, cut to the screen's width once (FlowDraw).
+    var shown as String? = null;
+
+    function initialize(p as Number, e as Boolean, a as Number, pointAt as Float, place as Float) {
+        point = p;
+        end = e;
+        alt = a;
+        at = pointAt;
+        d = place;
     }
 }
 
@@ -78,41 +89,49 @@ class FlowEntry {
 // the tests drive it by press(); FlowDraw draws it, the view passes it the keys.
 class FlowMenus {
 
-    // How long SAVED or DISCARDED shows, in milliseconds.
-    const TOAST_MS = 1600;
+    // How long SAVED, DISCARDED or APP CLOSED shows, in milliseconds (#121): Back closes it sooner.
+    const TOAST_MS = 3000;
 
     var feed as Feed;
     var range as [Number, Number];
-    // What is open: a menu, the altitude entry over its menu, the calibration's confirmation (where it
-    // calibrated: "at Bench 1310 m", "at 1300 m"), a toast over the ready screen.
+    // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
+    // confirmation (the altitude calibrated to, and the point it was at, -1 for an altitude entered), a
+    // toast over the ready screen. APP CLOSED is the toast Back on the ready screen shows (#121): when
+    // it closes the app does (quit, which the view acts on).
     var menu as FlowMenu? = null;
     var entry as FlowEntry? = null;
-    var calibrated as String? = null;
+    var detail as FlowDetail? = null;
+    var calibrated as Number? = null;
+    var calibratedPoint as Number = -1;
     var toast as String? = null;
     var toastColour as Number = Flow.WHITE;
     var toastMs as Number = 0;
+    var closing as Boolean = false;
+    var quit as Boolean = false;
     // This climb: whether the head has been offered (once), and the landmarks the GPS prompted.
     var headOffered as Boolean = false;
     var prompted as Array<Number> = [] as Array<Number>;
-    // The ready screen's figures, worked out once: the length, the ascent and the guidebook time as
-    // shown, and the hardest grade.
+    // The ready screen's figures, worked out once (#121): the ferrata's path, its length and height
+    // together as page 16 counts it, its ascent and its guidebook time, as shown.
     var figures as Array<String>;
-    var hardest as Number;
 
     function initialize(f as Feed) {
         feed = f;
         var r = f.route;
         range = r.altRange();
-        figures = [(Route.lengthOf(r.sections) / 1000.0).format("%.1f"), r.ascent().format("%d"),
-            Flow.hours(r.guideMinutes())];
-        var g = r.hardest();
-        hardest = g < 0 ? 0 : (g > 12 ? 12 : g);
+        var path = 0.0;
+        for (var i = 0; i < r.sections.size(); i++) {
+            var len = r.sections[i]["len"] as Number, up = r.sections[i]["up"] as Number;
+            path += Math.sqrt(len * len + up * up);
+        }
+        figures = [Math.round(path).toNumber().format("%d"), r.ascent().format("%d"), Flow.hours(r.guideMinutes())];
     }
 
     // A new climb from the settings: the ready screen, nothing open.
     function reset() as Void {
         menu = null;
         entry = null;
+        detail = null;
         calibrated = null;
         newClimb();
     }
@@ -124,20 +143,25 @@ class FlowMenus {
 
     function phase() as Tracker.Phase { return feed.tracker.phase; }
 
-    // Whether the flow has the screen (and Up and Down): before the start, after the end, and while
-    // anything of it is open. Else the pages have it. (One test a line: a chain of them over the
-    // nullable fields runs the compiler's type checker out of memory.)
+    // Whether the flow has the screen (and Up and Down): before the start, on the approach (its own
+    // screen, #121), after the end, and while anything of it is open. Else the pages have it. (One test
+    // a line: a chain of them over the nullable fields runs the compiler's type checker out of memory.)
     function onScreen() as Boolean {
         if (isOpen()) { return true; }
         if (calibrated != null) { return true; }
         if (toast != null) { return true; }
+        if (onApproach()) { return true; }
         var p = phase();
         return p == Tracker.IDLE || p == Tracker.ENDED;
     }
 
-    // Whether a menu or the altitude entry is open.
+    // On the approach, going or paused.
+    function onApproach() as Boolean { return !Climb.FERRATA && feed.climbing(); }
+
+    // Whether a menu, the altitude entry or a point's details is open.
     function isOpen() as Boolean {
         if (menu != null) { return true; }
+        if (detail != null) { return true; }
         return entry != null;
     }
 
@@ -145,15 +169,34 @@ class FlowMenus {
     function tick(ms as Number) as Void {
         if (toast == null) { return; }
         toastMs -= ms;
-        if (toastMs <= 0) { toast = null; }
+        if (toastMs <= 0) { closeToast(); }
     }
 
-    // A button: :start, :back, :up or :down. False when the flow does not take it: Back before the
-    // start (the app closes), Up and Down during the climb (the pages change).
+    // The toast goes; after APP CLOSED, so does the app.
+    function closeToast() as Void {
+        toast = null;
+        if (closing) {
+            closing = false;
+            quit = true;
+        }
+    }
+
+    // A button: :start, :back, :up or :down. False when the flow does not take it: Up and Down during
+    // the climb (the pages change).
     function press(key as Symbol) as Boolean {
+        // SAVED, DISCARDED and APP CLOSED stay their time; Back closes them at once (#121).
+        if (toast != null) {
+            if (key == :back) { closeToast(); }
+            return true;
+        }
         // The confirmation stays until Start or Back; the climb goes on behind it.
         if (calibrated != null) {
             if (key == :start || key == :back) { calibrated = null; }
+            return true;
+        }
+        var dt = detail;
+        if (dt != null) {
+            pressDetail(dt, key);
             return true;
         }
         var e = entry;
@@ -169,8 +212,12 @@ class FlowMenus {
         var p = phase();
         if (p == Tracker.IDLE) {
             if (key == :start) { open(startMenu(), null); }
-            // Up and Down do nothing yet.
-            return key != :back;
+            // Back leaves the app, after APP CLOSED (#121). Up and Down do nothing yet.
+            if (key == :back) {
+                showToast("APP CLOSED", Flow.GREY);
+                closing = true;
+            }
+            return true;
         }
         if (p == Tracker.ENDED) {
             open(summaryMenu(), null);
@@ -227,14 +274,11 @@ class FlowMenus {
         } else if (id == :startAscent) {
             menu = null;
             feed.startAscent();
-        } else if (id == :calAt) {
-            menu = null;
-            feed.calibrateAt(it.point);
-            quietNear();
-            calibrated = "at " + pointName(it.point) + " " + pointAlt(it.point).format("%d") + " m";
-        } else if (id == :endAt) {
-            feed.end(it.point);
-            open(summaryMenu(), null);
+        } else if (id == :calAt || id == :endAt) {
+            // A point's details first (#121): Start there calibrates or ends.
+            openDetail(it.point, id == :endAt);
+        } else if (id == :endHere) {
+            endAt(-1);
         } else if (id == :save) {
             menu = null;
             feed.save();
@@ -255,13 +299,52 @@ class FlowMenus {
         }
     }
 
+    // A point's details: Start calibrates or ends there, Back returns to the menu it was picked in.
+    function pressDetail(dt as FlowDetail, key as Symbol) as Void {
+        if (key == :back) {
+            detail = null;
+        } else if (key == :start) {
+            detail = null;
+            if (dt.end) {
+                endAt(dt.point);
+                return;
+            }
+            menu = null;
+            feed.calibrateAt(dt.point);
+            quietNear();
+            calibrated = dt.alt;
+            calibratedPoint = dt.point;
+        }
+    }
+
+    function endAt(point as Number) as Void {
+        feed.end(point);
+        open(summaryMenu(), null);
+    }
+
+    // The details of a point (-1: here), from the paused climb's place.
+    function openDetail(point as Number, end as Boolean) as Void {
+        var t = feed.tracker;
+        if (point < 0) {
+            detail = new FlowDetail(point, end, t.state().altitude(), t.d, t.d);
+            return;
+        }
+        var at = (feed.route.points[point]["at"] as Number).toFloat();
+        detail = new FlowDetail(point, end, altOf(point), at, t.d);
+    }
+
+    // A point's altitude: its own, else the route's there (an exit or a top without one).
+    function altOf(point as Number) as Number {
+        var a = feed.route.points[point]["alt"] as Number?;
+        if (a != null) { return a; }
+        return Climb.START_ALT + Climb.netAtDistance((feed.route.points[point]["at"] as Number).toFloat()).toNumber();
+    }
+
     function pressEntry(e as FlowEntry, key as Symbol) as Void {
         if (key == :up) {
             e.value = Flow.altUp(e.value, range);
-            e.at = placeOf(e);
         } else if (key == :down) {
             e.value = Flow.altDown(e.value, range);
-            e.at = placeOf(e);
         } else if (key == :back) {
             entry = null;
         } else if (key == :start) {
@@ -273,7 +356,8 @@ class FlowMenus {
             } else {
                 feed.calibrateTo(e.value.toFloat());
                 quietNear();
-                calibrated = "at " + e.value.format("%d") + " m";
+                calibrated = e.value;
+                calibratedPoint = -1;
             }
         }
     }
@@ -285,25 +369,14 @@ class FlowMenus {
 
     // The altitude entry, from the barometer before a start, else from the estimated place's altitude.
     function openEntry(parent as FlowMenu, start as Boolean) as Void {
-        var est = 0, known = true, d0 = 0.0;
+        var est = 0;
         if (start) {
             var a = feed.peek();
-            known = a != null;
             est = a != null ? Math.round(a).toNumber() : feed.route.headAlt();
         } else {
             est = feed.tracker.state().altitude();
-            d0 = feed.tracker.d;
         }
-        var e = new FlowEntry(start, est, known, d0, parent);
-        e.at = placeOf(e);
-        entry = e;
-    }
-
-    // Where on the ferrata an entry's altitude is: the point at that altitude nearest the place (the
-    // head, before a start). Nothing on the approach, which shows only "on the approach".
-    function placeOf(e as FlowEntry) as Float {
-        if (!Climb.FERRATA) { return 0.0; }
-        return Climb.distanceAtNet((e.value - Climb.START_ALT).toFloat(), e.d0);
+        entry = new FlowEntry(start, est, parent);
     }
 
     function showToast(text as String, colour as Number) as Void {
@@ -357,60 +430,47 @@ class FlowMenus {
 
     // ---------------------------------------------------------------- the menus
 
+    // Where the climb starts (#121): HEAD (green), the approach's start by its type (TOP STATION, CAR
+    // PARK) when the route knows its altitude, or ALTITUDE.
     function startMenu() as FlowMenu {
         var r = feed.route;
-        var rows = [new FlowItem(:atHead, "Ferrata head", "at " + r.headAlt().format("%d") + " m", Flow.WHITE)];
-        if (r.approachKnown()) {
-            var a = r.point("approach");
-            rows.add(new FlowItem(:atApproach, pointName(a), "at " + pointAlt(a).format("%d") + " m", Flow.WHITE));
-        }
-        var baro = feed.peek();
-        rows.add(new FlowItem(:atAltitude, "At altitude",
-            baro != null ? "barometer " + Math.round(baro).toNumber().format("%d") + " m" : "no barometer yet", Flow.WHITE));
-        return new FlowMenu(:start, "START", Flow.WHITE, rows);
+        var rows = [new FlowItem(:atHead, "Head", Widgets.GREEN)];
+        if (r.approachKnown()) { rows.add(new FlowItem(:atApproach, r.approachType(), Flow.WHITE)); }
+        rows.add(new FlowItem(:atAltitude, "Altitude", Flow.WHITE));
+        return new FlowMenu(:start, rows);
     }
 
-    // On the approach: go on, onto the ferrata, or end. On the ferrata: go on, calibrate, or end.
+    // On the approach: go on, onto the ferrata, or end here. On the ferrata: go on, calibrate, or end.
     function pauseMenu() as FlowMenu {
         if (!Climb.FERRATA) {
-            return new FlowMenu(:paused, "PAUSED", Flow.PAUSED, [
-                new FlowItem(:continue, "Continue approach", null, Flow.WHITE),
+            return new FlowMenu(:paused, [
+                new FlowItem(:continue, "Continue approach", Flow.WHITE),
                 startAscentItem(),
-                endHereItem()]);
+                new FlowItem(:endHere, "End here", Widgets.RED)]);
         }
-        var t = feed.tracker;
-        var near = Flow.suggested(t, prompted), exits = Flow.exitsInReach(t).size();
-        return new FlowMenu(:paused, "PAUSED", Flow.PAUSED, [
-            new FlowItem(:continue, "Continue", null, Flow.WHITE),
-            new FlowItem(:calibrate, "Calibrate", near >= 0 ? "Near " + pointName(near) : "Landmark or altitude", Flow.SYNC),
-            new FlowItem(:end, "End", exits > 1 ? "Top, exits, or here" : (exits == 1 ? "Top, exit, or here" : "Top or here"),
-                Widgets.RED)]);
+        return new FlowMenu(:paused, [
+            new FlowItem(:continue, "Continue", Flow.WHITE),
+            new FlowItem(:calibrate, "Calibrate", Flow.SYNC),
+            new FlowItem(:end, "End", Widgets.RED)]);
     }
 
     function startAscentItem() as FlowItem {
-        return new FlowItem(:startAscent, "Start ferrata", "at " + feed.route.headAlt().format("%d") + " m", Widgets.CLIMBER);
+        return new FlowItem(:startAscent, "Start from head", Widgets.GREEN);
     }
 
-    function endHereItem() as FlowItem {
-        return new FlowItem(:endAt, "End here", "No altitude check", Flow.WHITE);
-    }
-
-    // End at the top, at each exit in reach, or here.
+    // End at the top, at each exit in reach, or here: the places alone, each opening its details.
     function endMenu() as FlowMenu {
-        var r = feed.route, top = r.point("top");
-        var topAlt = r.points[top]["alt"] as Number?;
-        var row = new FlowItem(:endAt, "End at top", topAlt != null ? topAlt.format("%d") + " m" : null, Widgets.RED);
-        row.point = top;
+        var row = new FlowItem(:endAt, "Top", Widgets.RED);
+        row.point = feed.route.point("top");
         var rows = [row] as Array<FlowItem>;
         var exits = Flow.exitsInReach(feed.tracker);
         for (var k = 0; k < exits.size(); k++) {
-            var i = exits[k], alt = r.points[i]["alt"] as Number?;
-            row = new FlowItem(:endAt, "End at exit", pointName(i) + (alt != null ? ", " + alt.format("%d") + " m" : ""), Widgets.GREEN);
-            row.point = i;
+            row = new FlowItem(:endAt, "Exit", Widgets.GREEN);
+            row.point = exits[k];
             rows.add(row);
         }
-        rows.add(endHereItem());
-        return new FlowMenu(:end, "END", Widgets.RED, rows);
+        rows.add(new FlowItem(:endAt, "Here", Flow.WHITE));
+        return new FlowMenu(:end, rows);
     }
 
     // The suggested point first, when there is one, then the list and the altitude entry.
@@ -418,51 +478,43 @@ class FlowMenus {
         var t = feed.tracker, rows = [] as Array<FlowItem>;
         var near = Flow.suggested(t, prompted);
         if (near >= 0) { rows.add(markItem(near)); }
-        var n = Flow.marks(t).size();
-        if (n > 0) { rows.add(new FlowItem(:landmarks, "At landmark", n.format("%d") + " on the route", Flow.WHITE)); }
-        rows.add(new FlowItem(:calAltitude, "At altitude", "estimate " + t.state().altitude().format("%d") + " m", Flow.WHITE));
-        return new FlowMenu(:calibrate, "CALIBRATE", Flow.SYNC, rows);
+        if (Flow.marks(t).size() > 0) { rows.add(new FlowItem(:landmarks, "Landmark", Flow.WHITE)); }
+        rows.add(new FlowItem(:calAltitude, "Altitude", Flow.WHITE));
+        return new FlowMenu(:calibrate, rows);
     }
 
     function landmarksMenu() as FlowMenu {
         var list = Flow.marks(feed.tracker), rows = [] as Array<FlowItem>;
         for (var k = 0; k < list.size(); k++) { rows.add(markItem(list[k])); }
-        return new FlowMenu(:landmarks, "LANDMARKS", Flow.SYNC, rows);
+        return new FlowMenu(:landmarks, rows);
     }
 
-    // A point as a row: its name, then its kind in colour, its altitude and how far it is.
+    // A point as a row: its name alone, outlined in its kind's colour.
     function markItem(i as Number) as FlowItem {
-        var p = feed.route.points[i], kind = p["kind"] as String, word = Flow.kindWord(kind);
-        var row = new FlowItem(:calAt, pointName(i),
-            word + " at " + pointAlt(i).format("%d") + " m " + Flow.inDistance((p["at"] as Number).toFloat(), feed.tracker.d),
-            Flow.WHITE);
+        var row = new FlowItem(:calAt, pointName(i), Flow.kindColour(feed.route.points[i]["kind"] as String));
         row.point = i;
-        row.kind = word;
-        row.kindColour = Flow.kindColour(kind);
         return row;
     }
 
     function headMenu() as FlowMenu {
-        return new FlowMenu(:head, "FERRATA HEAD", Widgets.CLIMBER, [
-            new FlowItem(:continue, "Continue approach", null, Flow.WHITE),
-            startAscentItem()]);
+        return new FlowMenu(:head, [new FlowItem(:continue, "Continue approach", Flow.WHITE), startAscentItem()]);
     }
 
     // Save, Resume or Discard, so Discard is last.
     function summaryMenu() as FlowMenu {
-        return new FlowMenu(:summary, "SUMMARY", Flow.WHITE, [
-            new FlowItem(:save, "Save", null, Widgets.GREEN),
-            new FlowItem(:resume, "Resume", null, Flow.WHITE),
-            new FlowItem(:discard, "Discard", null, Widgets.RED)]);
+        return new FlowMenu(:summary, [
+            new FlowItem(:save, "Save", Widgets.GREEN),
+            new FlowItem(:resume, "Resume", Flow.WHITE),
+            new FlowItem(:discard, "Discard", Widgets.RED)]);
     }
 
+    // DISCARD is the one destructive row: its pill filled red.
     function confirmMenu() as FlowMenu {
-        return new FlowMenu(:confirm, "DISCARD THE CLIMB?", Widgets.RED, [
-            new FlowItem(:no, "No", null, Flow.WHITE),
-            new FlowItem(:yes, "Yes, discard", null, Widgets.RED)]);
+        var yes = new FlowItem(:yes, "Discard", Widgets.RED);
+        yes.fill = true;
+        return new FlowMenu(:confirm, [new FlowItem(:no, "No", Flow.WHITE), yes]);
     }
 
     function pointName(i as Number) as String { return feed.route.points[i]["name"] as String; }
 
-    function pointAlt(i as Number) as Number { return feed.route.points[i]["alt"] as Number; }
 }

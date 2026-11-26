@@ -11,12 +11,11 @@ import Toybox.Lang;
 module Flow {
 
     // The menus' colours: the pages' (Widgets), calibration grade A's light blue, and the flow mock's
-    // own white, greys and the paused yellow.
+    // own white and greys.
     const WHITE = 0xffffff;
     const GREY = 0x9aa0a3;
     const DIM = 0x4a5050;
     const SYNC = 0x8ecae6;
-    const PAUSED = 0xffd166;
 
     // The GPS prompt's reach, in metres (#52): a landmark it prompted stays suggested this near.
     const GPS = 50;
@@ -95,28 +94,13 @@ module Flow {
         return v < range[0] ? range[0] : (v > range[1] ? range[1] : v);
     }
 
-    // A distance as the menus show it: metres under a kilometre, else kilometres to one place.
-    function metres(a as Float) as String {
-        return a < 1000 ? Math.round(a).toNumber().format("%d") + " m" : (a / 1000).format("%.1f") + " km";
-    }
-
-    // How far a point at at is from the place d, for a landmark's row: "in 60 m", "60 m back", "here".
-    function inDistance(at as Float, d as Float) as String {
-        var v = at - d, a = v.abs();
-        if (a < 5) { return "here"; }
-        return v > 0 ? "in " + metres(a) : metres(a) + " back";
-    }
-
-    // The same for the altitude entry: "60 m ahead", "60 m back", "here".
-    function away(at as Float, d as Float) as String {
-        var v = at - d, a = v.abs();
-        if (a < 5) { return "here"; }
-        return metres(a) + (v > 0 ? " ahead" : " back");
-    }
-
-    // Metres along the route in kilometres, to two places.
-    function km(d as Float) as String {
-        return (d / 1000).format("%.2f") + " km";
+    // How far a point at at is from the place d, as a value and its unit for a details screen (#121):
+    // "here", or metres under a kilometre, else kilometres to one place, ahead or back.
+    function ahead(at as Float, d as Float) as [String, String] {
+        var v = at - d, a = v.abs(), way = v > 0 ? " ahead" : " back";
+        if (a < 5) { return ["here", ""]; }
+        if (a < 1000) { return [Math.round(a).toNumber().format("%d"), "m" + way]; }
+        return [(a / 1000).format("%.1f"), "km" + way];
     }
 
     // A whole number of metres with its sign, + or - (the fonts have no minus sign).
@@ -129,9 +113,9 @@ module Flow {
         return (minutes / 60).format("%d") + ":" + (minutes % 60).format("%02d");
     }
 
-    // A point's kind as a landmark's row shows it, and its colour, the pages' (Widgets): the head
-    // orange, an exit green, the top red. A landmark's own kind (a rest, a bridge, a sign) is not in
-    // the route file yet: LANDMARK in grey, as the mock's bridge and sign.
+    // A point's kind as a details screen's title shows it, and its colour, the pages' (Widgets): the
+    // head and an exit green, the top red (#121). A landmark's own type (a rest, a bridge, a sign) is not
+    // in the route file yet: LANDMARK in grey, as the mock's bridge and sign.
     function kindWord(kind as String) as String {
         if (kind.equals("head")) { return "HEAD"; }
         if (kind.equals("exit")) { return "EXIT"; }
@@ -140,7 +124,7 @@ module Flow {
     }
 
     function kindColour(kind as String) as Number {
-        if (kind.equals("head")) { return Widgets.CLIMBER; }
+        if (kind.equals("head")) { return Widgets.GREEN; }
         if (kind.equals("exit")) { return Widgets.GREEN; }
         if (kind.equals("top")) { return Widgets.RED; }
         return GREY;

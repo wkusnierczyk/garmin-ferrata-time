@@ -1,5 +1,6 @@
 using Toybox.Graphics;
 using Toybox.Math;
+using Toybox.System;
 using Toybox.Timer;
 using Toybox.WatchUi;
 
@@ -81,8 +82,16 @@ class View extends WatchUi.View {
         var f = feed;
         if (f != null) { f.tick(); }
         var fl = flow;
-        if (fl != null) { fl.tick(tickMs()); }
+        if (fl != null) {
+            fl.tick(tickMs());
+            leaveIfClosed(fl);
+        }
         WatchUi.requestUpdate();
+    }
+
+    // After APP CLOSED (Back on the ready screen, #121), the app leaves.
+    function leaveIfClosed(fl as FlowMenus) as Void {
+        if (fl.quit) { System.exit(); }
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -100,7 +109,7 @@ class View extends WatchUi.View {
         Pages.selected = sel;
         Pages.draw(page, d, f.tracker.state());
         if (dotsMs > 0) { pageDots(d); }
-        if (f.paused()) { d.text(0.5, 0.052885, d.semi(0.0529), "PAUSED", 0xffd166); }
+        if (f.paused()) { FlowDraw.band(d); }
     }
 
     // Where this page sits among the others, as dots along the left edge.
@@ -156,6 +165,7 @@ class View extends WatchUi.View {
         var fl = flow;
         if (fl == null) { return key != :back; }
         var taken = fl.press(key);
+        leaveIfClosed(fl);
         WatchUi.requestUpdate();
         return taken;
     }
