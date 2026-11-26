@@ -357,11 +357,14 @@ module Widgets {
         // width (0, 1, 9, 10, 99, 100 ... above the head and below it, and as far from the top's height).
         // Each height once: the route's ends exactly, and the sides of a change only within the route
         // (clamped to an end, they repeated it many times over, and the first frame tripped the watchdog
-        // on the watch, #119).
+        // on the watch, #119). Next to an end needs no check of its own: lo + 0.49 and hi - 0.49 are
+        // either the sides of a change (the head's 0, the top) or drawn as the end itself, the climber's
+        // share clamped and the number rounded.
         var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh();
         var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>;
         for (var t = 1; t <= 10000; t *= 10) {
-            var pts = [t, t - 1, -t, 1 - t] as Array<Number>;
+            // At 1, 1 - 1 and 1 - 1 are both the head's 0: once.
+            var pts = (t == 1 ? [1, 0, -1] : [t, t - 1, -t, 1 - t]) as Array<Number>;
             for (var i = 0; i < pts.size(); i++) {
                 for (var j = 0; j < 2; j++) {
                     var a = j == 0 ? pts[i] : top + pts[i];
@@ -377,7 +380,7 @@ module Widgets {
             var n = heights[i];
             var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
             for (var k = 0; k < 2; k++) {
-                var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus);
+                var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus, true);
                 if (over > need) { need = over; }
             }
         }
@@ -392,24 +395,37 @@ module Widgets {
     // pixels) after the one before. The ink is each glyph's left side (DigitInk, from the font's
     // outlines), in ems: the bitmap's base, its ascent, is one em.
     function inkPastEdge(d as Draw, font as Graphics.FontType, nx as Float, y as Float, text as String,
-            digit as Number, minus as Number) as Float {
+            digit as Number, minus as Number, boxFirst as Boolean) as Float {
         var cs = text.toCharArray(), width = 0;
         for (var i = 0; i < cs.size(); i++) { width += cs[i] == '-' ? minus : digit; }
         var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2;
         var pen = d.s(nx) - width, base = d.s(y) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
-        // The ink lies within a box from 20 units below the baseline to an em above it, right of the
-        // pen less the outlines' 5-unit shift (DigitInk: x from 19, y from -11 to 712). When the box's
-        // left corners are on the screen so is the ink, and the box's overshoot (below 0) stands for it
-        // without tracing the outlines (#119); the edge cuts in furthest at one of those corners.
-        var bx = pen - 5 * em;
+        // The ink lies within a box INK_LEFT right of the pen, from INK_FOOT to INK_TOP above the
+        // baseline, in font units (a test holds DigitInk inside it). When the box's left corners are on
+        // the screen so is the ink, and the box's overshoot (below 0) stands for it without tracing the
+        // outlines (#119); the edge cuts in furthest at one of those corners, as it does more the
+        // further a row is from the screen's middle.
+        if (!boxFirst) { return inkTrace(cs, em, r, pen, base, digit, minus, -d.w); }
         var box = -d.w;
         for (var j = 0; j < 2; j++) {
-            var dy = base - (j == 0 ? -20 : 1000) * em - r, q = r * r - dy * dy;
-            var over = (r - Math.sqrt(q > 0 ? q : 0.0) - bx).toFloat();
+            var dy = base - (j == 0 ? INK_FOOT : INK_TOP) * em - r, q = r * r - dy * dy;
+            var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (pen + INK_LEFT * em)).toFloat();
             if (over > box) { box = over; }
         }
         if (box < 0) { return box; }
-        var worst = -d.w;
+        return inkTrace(cs, em, r, pen, base, digit, minus, -d.w);
+    }
+
+    // A box round every number glyph's ink, in font units: DigitInk's x from 19 and y from -11 to 712,
+    // with room to spare.
+    const INK_LEFT = -5;
+    const INK_FOOT = -20;
+    const INK_TOP = 1000;
+
+    // The ink's overshoot traced along each glyph's outline (DigitInk), the pen at the first glyph's
+    // left and the baseline at base, in pixels; worst is the floor to start from.
+    function inkTrace(cs as Array<Char>, em as Float, r as Float, pen as Numeric, base as Numeric,
+            digit as Number, minus as Number, worst as Float) as Float {
         for (var i = 0; i < cs.size(); i++) {
             var k = DigitInk.CHARS.find(cs[i].toString());
             if (k != null) {
