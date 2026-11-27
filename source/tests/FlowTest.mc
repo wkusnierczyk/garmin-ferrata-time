@@ -664,21 +664,6 @@ module FlowTest {
         return true;
     }
 
-    // A new climb from the settings leaves no toast, and no quit (the review of #124).
-    (:test)
-    function resetClearsToasts(logger as Logger) as Boolean {
-        var f = flow();
-        f.showToast("SAVED", Flow.WHITE);
-        f.reset();
-        Test.assertMessage(f.toast == null && !f.quit, "nothing left");
-        f.tick(5000);
-        Test.assertMessage(!f.quit, "the app stays");
-        f.quit = true;
-        f.reset();
-        Test.assertMessage(!f.quit, "nor a quit");
-        return true;
-    }
-
     // A narrowed two-part title keeps its grey "at" no larger than the bold part (the review of #124).
     (:test)
     function titleSemiNotAboveBold(logger as Logger) as Boolean {

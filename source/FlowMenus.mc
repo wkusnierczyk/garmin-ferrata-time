@@ -156,17 +156,6 @@ class FlowMenus {
         return [Flow.inUnit(path, ft).format("%d"), Flow.inUnit(ascent.toFloat(), ft).format("%d"), guide];
     }
 
-    // A new climb from the settings: the ready screen, nothing open, no toast, no quit.
-    function reset() as Void {
-        menu = null;
-        entry = null;
-        detail = null;
-        calibrated = null;
-        toast = null;
-        quit = false;
-        newClimb();
-    }
-
     function newClimb() as Void {
         headOffered = false;
         approachShown = true;
