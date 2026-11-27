@@ -1,32 +1,59 @@
-using Toybox.Math;
+using Toybox.System;
 
 import Toybox.Lang;
 import Toybox.Test;
 
-// Pages 16 to 19 (#67, design/page-16.md): progress as done and total, from the tracker's state, laid
-// out from the widest values so nothing moves, on the screen at every size the app builds for.
+// Pages 16 to 19 (#67, design/page-16.md): progress as done and total, from the tracker's state, in
+// the watch's units, laid out from the widest values so nothing moves, 6 % of the width clear of the
+// edge at every size the app builds for.
 module NumbersTest {
 
-    // The routes the pages are checked on: the demo, and the Daubenhorn (four-digit path, three-digit
-    // ascent, the widest the bundled routes get).
-    function routes() as Array<Route> {
-        return [RouteTest.demo(), PagesTest.daubenhorn(false)] as Array<Route>;
+    // A route with an approach of len metres, up gained, and a short ferrata.
+    function withApproach(len as Number, up as Number) as Route {
+        return Route.fromJson({"format" => 1, "id" => "a", "name" => "A", "short" => "A",
+            "approach" => [{"len" => len, "up" => up, "grade" => 0, "min" => 180, "name" => "Walk", "side" => 0.0}],
+            "sections" => [{"len" => 100, "up" => 100, "grade" => 3, "min" => 10, "name" => "Wall", "side" => 0.0}],
+            "points" => [{"kind" => "approach", "at" => -len, "type" => "Car park", "name" => "Car park"},
+                {"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
+                {"kind" => "top", "at" => 100, "name" => "Top"}]}) as Route;
     }
 
-    // Places along the part: the head, every section's end and middle, and the top.
-    function places() as Array<Float> {
-        var out = [] as Array<Float>;
+    // The parts the fit is checked on, [route, part]: the demo's ferrata and approach, the Daubenhorn's
+    // ferrata (four-digit path, three-digit ascent), and an approach of 12 km (a five-digit path in
+    // metres, 39370 ft).
+    function parts() as Array<Array> {
+        return [[RouteTest.demo(), :ferrata], [RouteTest.demo(), :approach], [PagesTest.daubenhorn(false), :ferrata],
+            [withApproach(12000, 0), :approach]] as Array<Array>;
+    }
+
+    // States along the part in use: the start, every section's end and middle, and the end; the active
+    // time a quarter of the metres done, the pace 1, and at the end once more with an estimate past
+    // ten hours (h:mm a digit wider).
+    function states() as Array<Climb.State> {
+        var out = [] as Array<Climb.State>;
         for (var i = 0; i <= Climb.count(); i++) {
             var b = Climb.dAt(i).toFloat();
-            out.add(b);
-            if (i < Climb.count()) { out.add((b + Climb.dAt(i + 1)) / 2); }
+            out.add(at(b, b / 4, 1.0));
+            if (i < Climb.count()) { var m = (b + Climb.dAt(i + 1)) / 2; out.add(at(m, m / 4, 1.0)); }
         }
+        out.add(at(Climb.totalD().toFloat(), 605.0, 1.0));
         return out;
     }
 
-    function at(d as Float, elapsed as Float) as Climb.State {
-        return Climb.State.placed(d, Climb.heightAtDistance(d), elapsed, 1.0, 480.0, 25);
+    // The state at distance d, active minutes in at pace (the clock as the active time: no pause), the
+    // active time set for the pages as the view sets it.
+    function at(d as Float, active as Float, pace as Float) as Climb.State {
+        Numbers.activeMin = active;
+        return Climb.State.placed(d, Climb.heightAtDistance(d), active, pace, 480.0, 25);
     }
+
+    // The state st as the view hands it to the pages: its active time set (the states here have no pause).
+    function shown(st as Climb.State) as Climb.State {
+        Numbers.activeMin = st.elapsed();
+        return st;
+    }
+
+    function text(r as Array<String>) as String { return r[0] + " of " + r[1] + " " + r[2]; }
 
     // Pages 16 to 19 follow page 15 in the cycle, page 19 the last; the tap zone stays page 15's.
     (:test)
@@ -39,125 +66,203 @@ module NumbersTest {
         return true;
     }
 
-    // The rows' values are the state's: the path along the route (length and height combined) done of
-    // its total, the height gained of the route's, and the time passed of the estimate (passed and left
-    // at the climber's pace), each to the metre or minute.
+    // The rows on a wall 300 m across and 400 m up (a path of 500 m) of 10 guidebook minutes, halfway, 75
+    // minutes in: 250 of 500 m, 200 of 400 m, and 1:15 of 1:20 at the guidebook's pace, of 1:25 at twice it.
     (:test)
-    function rowsMatchTheState(logger as Logger) as Boolean {
-        Climb.use(RouteTest.demo(), :ferrata);
-        var st = at(200.0, 75.0), path = Widgets.pathAtDistance(200.0), total = Widgets.pathAt(Climb.count());
-        Test.assertMessage(path > 200.0 && path < total, "the path at 200 m along: " + path);
-        var r = Numbers.row(st, 0);
-        Test.assertEqualMessage(r[0], Math.round(path).toNumber().format("%d"), "distance done");
-        Test.assertEqualMessage(r[1], Math.round(total).toNumber().format("%d"), "distance total");
-        Test.assertEqualMessage(r[2], "m", "distance unit");
-        r = Numbers.row(st, 1);
-        Test.assertEqualMessage(r[0], st.climbed().format("%d"), "ascent done");
-        Test.assertEqualMessage(r[1], Climb.totalU().format("%d"), "ascent total");
-        r = Numbers.row(st, 2);
-        Test.assertEqualMessage(r[0], "1:15", "75 minutes passed");
-        Test.assertEqualMessage(r[1], Numbers.hmm(75.0 + st.left()), "the estimate");
-        Test.assertEqualMessage(r[2], "", "no unit after a time");
-        // At the top, done is the total.
-        var top = at(Climb.totalD().toFloat(), 200.0);
-        for (var k = 0; k < 2; k++) {
-            var t = Numbers.row(top, k);
-            Test.assertEqualMessage(t[0], t[1], "row " + k + " at the top");
-        }
-        Test.assertEqualMessage(Numbers.hmm(59.6), "1:00", "rounded to the minute");
+    function rowsReadTheRoute(logger as Logger) as Boolean {
+        Climb.use(RouteTest.made([[300, 400]] as Array<Array<Number> >), :ferrata);
+        var st = at(150.0, 75.0, 1.0);
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 0, false)), "250 of 500 m", "distance");
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 1, false)), "200 of 400 m", "ascent");
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 2, false)), "1:15 of 1:20 ", "time");
+        Test.assertEqualMessage(Numbers.rowIn(at(150.0, 75.0, 2.0), 2, false)[1], "1:25", "the estimate at twice the guidebook");
+        Test.assertEqualMessage(Numbers.rowIn(at(0.0, 595.0, 1.0), 2, false)[1], "10:05", "an estimate past ten hours");
         Test.assertEqualMessage(Numbers.hmm(-3.0), "0:00", "never below 0");
         return true;
     }
 
-    // Driven by the tracker: the demo climb, its state each tick, the rows its climbed height and time.
+    // In feet (the watch's elevation units, owner 2026-11-27): the same wall, 820 of 1640 ft along, 656
+    // of 1312 ft up; the time as in metres. The page draws the watch's own units.
     (:test)
-    function rowsFollowTheTracker(logger as Logger) as Boolean {
-        var f = new TestFeed(RouteTest.demo(), true, false);
-        f.start(:head);
-        for (var k = 0; k < 40; k++) { f.tick(); }
-        var st = f.tracker.state();
-        Test.assertMessage(st.d > 0 && st.elapsed() > 0, "the climber moved: " + st.d + " m, " + st.elapsed() + " min");
-        Test.assertEqualMessage(Numbers.row(st, 0)[0], Math.round(Widgets.pathAtDistance(st.d)).toNumber().format("%d"), "distance");
-        Test.assertEqualMessage(Numbers.row(st, 1)[0], st.climbed().format("%d"), "ascent");
-        Test.assertEqualMessage(Numbers.row(st, 2)[0], Numbers.hmm(st.elapsed()), "time");
-        Test.assertEqualMessage(Numbers.row(st, 2)[1], Numbers.hmm(st.elapsed() + st.left()), "estimate");
+    function rowsInFeet(logger as Logger) as Boolean {
+        Climb.use(RouteTest.made([[300, 400]] as Array<Array<Number> >), :ferrata);
+        var st = at(150.0, 75.0, 1.0);
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 0, true)), "820 of 1640 ft", "distance");
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 1, true)), "656 of 1312 ft", "ascent");
+        Test.assertEqualMessage(text(Numbers.rowIn(st, 2, true)), "1:15 of 1:20 ", "time");
+        // Converted, not relabelled: a 100 m ascent is 328 ft, as Widgets converts (x 3.28084).
+        Climb.use(RouteTest.made([[100, 100]] as Array<Array<Number> >), :ferrata);
+        Test.assertEqualMessage(Numbers.rowIn(at(100.0, 10.0, 1.0), 1, true)[1], "328", "100 m up in feet");
+        Test.assertEqualMessage(Numbers.rowIn(at(100.0, 10.0, 1.0), 1, false)[1], "100", "100 m up in metres");
+        var ft = Widgets.feet();
+        Test.assertEqualMessage(text(Numbers.row(st, 1)), text(Numbers.rowIn(st, 1, ft)), "the watch's units, feet " + ft);
         return true;
     }
 
-    // Pages 16 to 19 draw at every place, on the demo, the Daubenhorn and the route that dips below its
-    // head (a throw fails the test).
+    // Ascent counts height gained: up 50, down 20, up 30 gains 80; halfway down the descent 50 are
+    // climbed, at the top 80. The path is the three slopes, 112 + 102 + 104 m.
+    (:test)
+    function ascentCountsHeightGained(logger as Logger) as Boolean {
+        Climb.use(RouteTest.made([[100, 50], [100, -20], [100, 30]] as Array<Array<Number> >), :ferrata);
+        Test.assertEqualMessage(text(Numbers.rowIn(at(150.0, 10.0, 1.0), 1, false)), "50 of 80 m", "halfway down");
+        Test.assertEqualMessage(text(Numbers.rowIn(at(300.0, 10.0, 1.0), 1, false)), "80 of 80 m", "at the top");
+        Test.assertEqualMessage(text(Numbers.rowIn(at(300.0, 10.0, 1.0), 0, false)), "318 of 318 m", "the path");
+        return true;
+    }
+
+    // On an approach that gains no height the ascent reads 0 of 0, not of 1 (Climb.totalU's guard).
+    (:test)
+    function flatApproachGainsNothing(logger as Logger) as Boolean {
+        Climb.use(withApproach(200, 0), :approach);
+        Test.assertEqualMessage(text(Numbers.rowIn(at(100.0, 10.0, 1.0), 1, false)), "0 of 0 m", "ascent");
+        Test.assertEqualMessage(text(Numbers.rowIn(at(100.0, 10.0, 1.0), 0, false)), "100 of 200 m", "distance");
+        return true;
+    }
+
+    // Driven by the tracker (TrackerTest.climbing): about 60 m up the demo's first wall in 12 minutes,
+    // then an hour's pause. The stopwatch is active time (owner, 2026-11-27): pages 16 and 19 show 0:12
+    // after the pause as before it, not the clock's 1:12; the distance and the ascent hold; the estimate
+    // is the active time and the time left, which the slower pace makes longer.
+    (:test)
+    function aPauseIsLeftOutOfTheTime(logger as Logger) as Boolean {
+        var t = TrackerTest.climbing(60), before = t.state();
+        Numbers.activeMin = t.activeS / 60.0;
+        var b = [Numbers.rowIn(before, 0, false), Numbers.rowIn(before, 1, false), Numbers.rowIn(before, 2, false)] as Array<Array<String> >;
+        Test.assertEqualMessage(b[2][0], "0:12", "12 minutes");
+        t.pause(TrackerTest.at(12, 1350.0));
+        t.update(TrackerTest.at(72, 1350.0));
+        var after = t.state();
+        Numbers.activeMin = t.activeS / 60.0;
+        Test.assertEqualMessage(Numbers.hmm(after.elapsed()), "1:12", "the clock counts the pause");
+        Test.assertEqualMessage(Numbers.rowIn(after, 2, false)[0], "0:12", "the stopwatch does not");
+        Test.assertEqualMessage(Numbers.rowIn(after, 0, false)[0], b[0][0], "the distance holds");
+        Test.assertEqualMessage(Numbers.rowIn(after, 1, false)[0], b[1][0], "the ascent holds");
+        Test.assertMessage(Numbers.estimate(after) > 12.0 + before.left(),
+            "the estimate longer at the slower pace: " + b[2][1] + " to " + Numbers.rowIn(after, 2, false)[1]);
+        Test.assertEqualMessage(Numbers.rowIn(after, 2, false)[1], Numbers.hmm(12.0 + after.left()), "active and left");
+        // Pages 16 and 19 draw it.
+        var d = PagesTest.draw();
+        Pages.drawPage(15, d, after);
+        Pages.drawPage(18, d, after);
+        return true;
+    }
+
+    // Pages 16 to 19 draw at every place, on every part checked and the route that dips below its head
+    // (a throw fails the test).
     (:test, :noreplay)
     function progressPagesDrawEverywhere(logger as Logger) as Boolean {
-        var rs = routes();
-        rs.add(DescentTest.dipRoute());
-        for (var r = 0; r < rs.size(); r++) { DescentTest.drawsEverywhere(rs[r], 15, 18); }
+        var ps = parts(), d = PagesTest.draw();
+        DescentTest.drawsEverywhere(DescentTest.dipRoute(), 15, 18);
+        for (var p = 0; p < ps.size(); p++) {
+            Climb.use(ps[p][0] as Route, ps[p][1] as Symbol);
+            var sts = states();
+            for (var s = 0; s < sts.size(); s++) {
+                for (var page = 15; page <= 18; page++) { Pages.drawPage(page, d, shown(sts[s])); }
+            }
+        }
         return true;
     }
 
-    // Whether (x, y) is within radius r of the screen's centre.
-    function within(x as Float, y as Float, r as Float) as Boolean {
-        var dx = x - 0.5, dy = y - 0.5;
-        return dx * dx + dy * dy <= r * r + 0.0001;
+    // Whether (x, y) keeps 6 % of the width clear of the edge, to half a pixel.
+    function clear(d as Draw, x as Float, y as Float) as Boolean {
+        var dx = x - 0.5, dy = y - 0.5, r = Numbers.FIT_R + 0.5 / d.w;
+        return dx * dx + dy * dy <= r * r;
     }
 
-    // Page 16: its size is 64 or 52 and stays one size through the climb; at 64 its rows keep 6 % of
-    // the width clear of the edge, and at either they are on the screen, measured in the fonts drawn.
+    function boxClear(d as Draw, b as Array<Float>) as Boolean {
+        return clear(d, b[0], b[1]) && clear(d, b[2], b[1]) && clear(d, b[0], b[3]) && clear(d, b[2], b[3]);
+    }
+
+    // Page 16 at every place of every part, in metres and in feet: the size is the one chosen at the
+    // start (each place chooses anew, the cache dropped, so it is the layout that holds, not the cache),
+    // a size of the table no larger than 64; the rows, measured here in the font drawn from the values
+    // at that place, stay 6 % clear of the edge.
     (:test)
     function pageSixteenFitsAndHoldsItsSize(logger as Logger) as Boolean {
-        var d = PagesTest.draw(), rs = routes();
-        for (var r = 0; r < rs.size(); r++) {
-            Climb.use(rs[r], :ferrata);
-            var ps = places(), fs = Numbers.progressSize(d, at(0.0, 0.0));
-            Test.assertMessage(fs == Numbers.F64 || fs == Numbers.F52, "route " + r + ": size " + fs);
-            var font = d.semi(fs), widest = 0.0;
-            for (var p = 0; p < ps.size(); p++) {
-                var st = at(ps[p], 30.0);
-                Test.assertEqualMessage(Numbers.progressSize(d, st), fs, "route " + r + " at " + ps[p] + ": the same size");
-                for (var k = 0; k < 3; k++) {
-                    var row = Numbers.row(st, k), wd = d.width(font, row[0]), wt = d.width(font, row[1]);
-                    if (wd > widest) { widest = wd; }
-                    if (wt > widest) { widest = wt; }
+        var d = PagesTest.draw(), ps = parts();
+        for (var p = 0; p < ps.size(); p++) {
+            Climb.use(ps[p][0] as Route, ps[p][1] as Symbol);
+            var sts = states(), where = "part " + p + ": ";
+            Numbers.forget();
+            var fs = Numbers.progressSize(d, shown(sts[0]));
+            Test.assertMessage(fs <= Numbers.F64 && FontSizes.SEMI.indexOf(fs) >= 0, where + "size " + fs);
+            for (var s = 0; s < sts.size(); s++) {
+                Numbers.forget();
+                var f = Numbers.progressSize(d, shown(sts[s]));
+                if (!Numbers.longTime(sts[s])) { Test.assertEqualMessage(f, fs, where + "the same size at state " + s); }
+                var font = d.semi(f), widest = 0.0;
+                for (var u = 0; u < 2; u++) {
+                    for (var k = 0; k < 3; k++) {
+                        var row = Numbers.rowIn(sts[s], k, u == 1), wd = d.width(font, row[0]), wt = d.width(font, row[1]);
+                        Test.assertMessage(wd <= wt, where + "done " + row[0] + " wider than its total " + row[1]);
+                        if (wt > widest) { widest = wt; }
+                    }
                 }
+                var b = Numbers.progressBox(d, f, widest);
+                Test.assertMessage(boxClear(d, b), where + "state " + s + " at " + f + ": " + b + " not clear of the edge");
             }
-            var half = widest + 0.028846 + d.whole(fs * 0.87) / 2 + 0.009615 + d.width(d.semi(Numbers.F32), "m");
-            var pitch = d.whole(fs * 1.4), top = 0.5 + Numbers.CAP * fs / 2 - pitch - Numbers.CAP * fs;
-            var bottom = 0.5 + Numbers.CAP * fs / 2 + pitch;
-            var edge = fs == Numbers.F64 ? Numbers.FIT_R + 2.0 / d.w : 0.5;
-            logger.debug("route " + r + ": size " + fs + ", rows " + (2 * half) + " wide, from " + top + " to " + bottom);
-            Test.assertMessage(within(0.5 - half, top, edge) && within(0.5 + half, top, edge)
-                && within(0.5 - half, bottom, edge) && within(0.5 + half, bottom, edge), "route " + r + ": off the screen");
+            logger.debug(where + "size " + fs);
         }
         return true;
     }
 
-    // Pages 17 to 19: the right edge never moves as the value done grows (only the symbol does), and the
-    // group is on the screen, measured in the fonts drawn.
+    // Pages 17 to 19 at every place of every part, in metres and in feet: chosen afresh each time, the
+    // right edge and the two lines stay where they were at the start (only the symbol moves), the value
+    // done sits after its symbol, and the group stays 6 % clear of the edge, from the symbol or "of" at
+    // the left to the second baseline.
     (:test)
     function pagesSeventeenToNineteenStayPut(logger as Logger) as Boolean {
-        var d = PagesTest.draw(), rs = routes(), f1 = d.semi(Numbers.F104);
-        for (var r = 0; r < rs.size(); r++) {
-            Climb.use(rs[r], :ferrata);
-            var ps = places();
-            for (var k = 0; k < 3; k++) {
-                var where = "route " + r + ", page " + (17 + k) + ": ", first = Numbers.oneLayout(d, Numbers.row(at(0.0, 0.0), k));
-                var symbols = [] as Array<Float>;
-                for (var p = 0; p < ps.size(); p++) {
-                    var row = Numbers.row(at(ps[p], ps[p] / 4), k), L = Numbers.oneLayout(d, row);
-                    Test.assertEqualMessage(L[0], first[0], where + "the right edge at " + ps[p]);
-                    Test.assertEqualMessage(L[2], first[2], where + "the first line at " + ps[p]);
-                    Test.assertEqualMessage(L[3], first[3], where + "the second line at " + ps[p]);
-                    if (symbols.indexOf(L[1]) < 0) { symbols.add(L[1]); }
-                    // The group: from the symbol's left to the right edge, the digits' top to the baseline below.
-                    var x0 = L[1] - L[4] / 2, x1 = L[0], y0 = L[2] - Numbers.CAP * Numbers.F104, y1 = L[3];
-                    var lx = x1 - L[5] - d.width(d.semi(Numbers.F84), row[1]) - d.width(d.semi(Numbers.F40), "of ");
-                    if (lx < x0) { x0 = lx; }
-                    Test.assertMessage(within(x0, y0, 0.5) && within(x1, y0, 0.5) && within(x0, y1, 0.5) && within(x1, y1, 0.5),
-                        where + "off the screen at " + ps[p] + ": " + x0 + " to " + x1 + ", " + y0 + " to " + y1);
-                    Test.assertMessage(x1 - L[5] - d.width(f1, row[0]) >= L[1] + L[4] / 2, where + "the value over its symbol");
+        var d = PagesTest.draw(), ps = parts();
+        for (var p = 0; p < ps.size(); p++) {
+            Climb.use(ps[p][0] as Route, ps[p][1] as Symbol);
+            var sts = states();
+            for (var u = 0; u < 2; u++) {
+                for (var k = 0; k < 3; k++) {
+                    var ft = u == 1, where = "part " + p + ", page " + (17 + k) + (ft ? " in feet: " : ": ");
+                    Numbers.forget();
+                    var f = Numbers.oneFitted(d, shown(sts[0]), k)[6], first = Numbers.oneLayout(d, Numbers.rowIn(sts[0], k, ft), f);
+                    var moves = 0, x = first[1];
+                    for (var s = 0; s < sts.size(); s++) {
+                        Numbers.forget();
+                        var size = Numbers.oneFitted(d, shown(sts[s]), k)[6], row = Numbers.rowIn(sts[s], k, ft);
+                        var L = Numbers.oneLayout(d, row, size);
+                        if (!Numbers.longTime(sts[s]) || k < 2) {
+                            Test.assertEqualMessage(size, f, where + "the size at state " + s);
+                            Test.assertEqualMessage(L[0], first[0], where + "the right edge at state " + s);
+                            Test.assertEqualMessage(L[2], first[2], where + "the first line at state " + s);
+                            Test.assertEqualMessage(L[3], first[3], where + "the second line at state " + s);
+                        }
+                        if (L[1] != x) { moves++; x = L[1]; }
+                        var textLeft = L[0] - L[5] - d.width(d.semi(L[6]), row[0]);
+                        Test.assertMessage(textLeft >= L[1] + L[4] / 2, where + "the value over its symbol at state " + s);
+                        var ofLeft = L[0] - L[5] - d.width(d.semi(L[7]), row[1]) - d.width(d.semi(Numbers.F40), "of ");
+                        var x0 = L[1] - L[4] / 2 < ofLeft ? L[1] - L[4] / 2 : ofLeft;
+                        var b = [x0, L[2] - Numbers.CAP * L[6], L[0], L[3]] as Array<Float>;
+                        Test.assertMessage(boxClear(d, b), where + "state " + s + " at " + L[6] + ": " + b + " not clear of the edge");
+                    }
+                    logger.debug(where + "size " + f + ", the symbol moved " + moves + " times");
                 }
-                logger.debug(where + "the symbol at " + symbols.size() + " places");
             }
         }
+        return true;
+    }
+
+    // Memory (review of #142): every page drawn in turn on the Daubenhorn, the parked ones too, each at
+    // the start, halfway and the top, the memory in use logged after each. The fonts stay loaded once
+    // drawn, so the most is the peak the pages reach.
+    (:test, :noreplay)
+    function memoryAfterEveryPage(logger as Logger) as Boolean {
+        Climb.use(PagesTest.daubenhorn(false), :ferrata);
+        var d = PagesTest.draw(), total = Climb.totalD().toFloat(), peak = 0;
+        var sts = [at(0.0, 0.0, 1.0), at(total / 2, 60.0, 1.0), at(total, 140.0, 1.0)] as Array<Climb.State>;
+        for (var page = 0; page <= 18; page++) {
+            for (var s = 0; s < sts.size(); s++) { Pages.drawPage(page, d, shown(sts[s])); }
+            var used = System.getSystemStats().usedMemory;
+            if (used > peak) { peak = used; }
+            logger.debug("page " + (page + 1) + ": " + used + " bytes in use");
+        }
+        logger.debug("peak " + peak + " of " + System.getSystemStats().totalMemory + " bytes, at "
+            + System.getDeviceSettings().screenWidth + " px");
         return true;
     }
 }
