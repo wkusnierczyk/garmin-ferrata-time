@@ -1,4 +1,5 @@
 <resources>
+    <!-- The two apps' names (#140): Ferrata's (manifest.xml) and Ferrata Demo's (manifest-demo.xml). -->
     <string id="AppName">Ferrata</string>
-    <string id="DemoTitle">Demo climb instead of the watch's sensors</string>
+    <string id="DemoAppName">Ferrata Demo</string>
 </resources>

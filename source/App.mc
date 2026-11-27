@@ -33,11 +33,4 @@ class App extends Application.AppBase {
         return [v, new Delegate(v)];
     }
 
-    // From the phone or the watch's Settings menu: the climb starts again on the input chosen.
-    function onSettingsChanged() as Void {
-        var v = view;
-        if (v != null) { v.restart(); }
-        WatchUi.requestUpdate();
-    }
-
 }
