@@ -310,6 +310,7 @@ module Widgets {
         stackSideWidest = null;
         groupPlaced = null;
         relativeWidest = null;
+        Numbers.forget();
     }
 
     // The widest number the ascent widget can show, measured once per part.
