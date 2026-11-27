@@ -476,6 +476,15 @@ module RouteTest {
         return true;
     }
 
+    // The types of a route's landmarks, in order.
+    function landmarkTypes(r as Route) as Array<String> {
+        var out = [] as Array<String>;
+        for (var i = 0; i < r.points.size(); i++) {
+            if ("landmark".equals(r.points[i]["kind"] as Object?)) { out.add(r.points[i]["type"] as String); }
+        }
+        return out;
+    }
+
     // The bundled routes for the picker (#55, #141), from the owner's recordings: each loads, with its
     // source's totals. The Daubenhorn is the real route: 841 m gained, no section going down.
     (:test)
@@ -490,7 +499,11 @@ module RouteTest {
         // Gemmi, head, bench, Obere Freiheit, bridge, Via Konst board, route book.
         Test.assertEqualMessage(r.knownPoints().toString(), [0, 1, 2, 3, 4, 6, 8].toString(), "known points");
         // The approach's start and the head have coordinates, so the approach has a track (#113).
-        Test.assertEqualMessage(r.approachTrack().size(), 2, "approach track");
+        Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "sign"].toString(), "landmark types");
+        // The approach's start and the head, 0 and 2400 m along it.
+        var track = r.approachTrack();
+        Test.assertEqualMessage(track.size(), 2, "approach track");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2400.0), "along " + track);
         Climb.use(r, :ferrata);
         Test.assertEqualMessage(Climb.count(), 14, "sections");
         Test.assertEqualMessage(Climb.totalU(), 841, "gained");
@@ -523,7 +536,10 @@ module RouteTest {
         Test.assertEqualMessage(r.ascent(), 451, "gained height");
         Test.assertEqualMessage(r.guideMinutes(), 150, "guidebook minutes");
         Test.assertEqualMessage(r.approachType(), "Car park", "the approach's start");
-        Test.assertEqualMessage(r.approachTrack().size(), 1, "the head alone");
+        Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "bridge"].toString(), "landmark types");
+        var track = r.approachTrack();
+        Test.assertEqualMessage(track.size(), 1, "the head alone");
+        Test.assertMessage(near(track[0][2], 3300.0), "the head 3300 m along, " + track);
         Test.assertMessage(r.headPosition() != null, "the head's coordinates");
         Climb.use(r, :ferrata);
         Test.assertEqualMessage(Climb.count(), 16, "sections");
