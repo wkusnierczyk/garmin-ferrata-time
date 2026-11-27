@@ -142,22 +142,25 @@ class DemoInput extends Input {
         startT = lastT;
     }
 
-    // The position at d metres from the head, interpolated between the route's points that have one;
-    // the nearest's before the first or past the last; null when none has.
+    // The position at d metres along the part in use (from the head on the ferrata, from the
+    // approach's start on the approach), interpolated between the route's points that have one; the
+    // nearest's before the first or past the last; null when none has.
     function positionAt(d as Float) as [Float, Float]? {
         var before = null, after = null;
+        // Points' at is from the head: on the approach, shifted by its length (the review of #139).
+        var shift = Climb.FERRATA ? 0 : Route.lengthOf(route.approach);
         for (var i = 0; i < route.points.size(); i++) {
             var p = route.points[i];
             if (p["lat"] == null || p["lon"] == null || p["at"] == null) { continue; }
-            var at = (p["at"] as Number).toFloat();
-            if (at <= d && (before == null || at >= ((before as Dictionary)["at"] as Number))) { before = p; }
-            if (at >= d && (after == null || at <= ((after as Dictionary)["at"] as Number))) { after = p; }
+            var at = ((p["at"] as Number) + shift).toFloat();
+            if (at <= d && (before == null || at >= ((before as Dictionary)["at"] as Number) + shift)) { before = p; }
+            if (at >= d && (after == null || at <= ((after as Dictionary)["at"] as Number) + shift)) { after = p; }
         }
         if (before == null) { before = after; }
         if (after == null) { after = before; }
         if (before == null || after == null) { return null; }
         var a = before as Dictionary, b = after as Dictionary;
-        var a0 = (a["at"] as Number).toFloat(), b0 = (b["at"] as Number).toFloat();
+        var a0 = ((a["at"] as Number) + shift).toFloat(), b0 = ((b["at"] as Number) + shift).toFloat();
         var f = b0 > a0 ? (d - a0) / (b0 - a0) : 0.0;
         if (f < 0) { f = 0.0; }
         if (f > 1) { f = 1.0; }
