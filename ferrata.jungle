@@ -1,0 +1,11 @@
+# Ferrata, the app (#140): the watch's sensors, never the demo. Layered over monkey.jungle, and
+# always last:
+#
+#   monkeyc -f "monkey.jungle;ferrata.jungle" ...                  (make build)
+#   monkeyc -f "monkey.jungle;replay.jungle;ferrata.jungle" ...    (make build REPLAY=1)
+
+project.manifest = manifest.xml
+
+# APPEND, never replace: replay.jungle replaces the list, which is why this file comes after it.
+# (:demo) is the demo app's side of Feed's choice of input (source/Feed.mc); the app keeps (:nodemo).
+base.excludeAnnotations = $(base.excludeAnnotations);demo

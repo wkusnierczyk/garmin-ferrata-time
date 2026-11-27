@@ -122,8 +122,8 @@ module InputsTest {
     }
 
     // The sensor input's time is seconds since local midnight (the watch's clock, not UTC), moving with
-    // the caller's clock.
-    (:test)
+    // the caller's clock. Not in Ferrata Demo, which has no sensor input (#140).
+    (:test, :nodemo)
     function sensorInputCountsFromMidnight(logger as Logger) as Boolean {
         var input = new SensorInput();
         var before = clockSeconds();
@@ -144,8 +144,8 @@ module InputsTest {
     }
 
     // A GPS fix is a position only while it is recent: 30 s at most (from the review of #91), and of
-    // usable accuracy or better.
-    (:test)
+    // usable accuracy or better. Not in Ferrata Demo, which has no sensor input (#140).
+    (:test, :nodemo)
     function staleFixIsNoPosition(logger as Logger) as Boolean {
         var input = new SensorInput();
         input.stop();

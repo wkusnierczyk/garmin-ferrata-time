@@ -3,9 +3,10 @@
 # release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
 # target device (#11), the store bundle (#12) and the checks that need no
 # SDK (#14) come with the design and functionality. The build job also compiles the replay variant
-# (#57). Two jobs beside the build: the unit tests, in the same container under a virtual display
-# (#13, #46), and the tools' tests with the route files checked against their sources, on the
-# runner (#47, #57).
+# (#57) and the demo app, Ferrata Demo (#140). Two jobs beside the build: the unit tests, in all
+# three builds, in the same container under a virtual display (#13, #46), and the tools' tests with
+# the route files checked against their sources and the two manifests against each other, on the
+# runner (#47, #57, #140).
 #
 # A container, because the device definitions monkeyc compiles against are not in the public SDK
 # download: the SDK manager pulls them behind a Garmin sign-in, so they arrive in an image. The image
@@ -37,17 +38,18 @@ permissions:
   packages: read
 
 jobs:
-  # The tools' tests (the route tool, #47; the replay tool, #57), and the route files current with
-  # their sources. Its own job on the runner, not a step in the build's container: the tester image
-  # has no Python. The replay tool needs Garmin's FIT SDK, which apt does not carry, so pytest and it
-  # go into a virtual environment from tools/requirements.txt rather than into the runner's system
-  # Python. make routes needs nothing beyond Python 3, and runs on the system's.
+  # The tools' tests (the route tool, #47; the replay tool, #57), the route files current with
+  # their sources, and the two apps' manifests in step (#140). Its own job on the runner, not a step
+  # in the build's container: the tester image has no Python. The replay tool needs Garmin's FIT
+  # SDK, which apt does not carry, so pytest and it go into a virtual environment from
+  # tools/requirements.txt rather than into the runner's system Python. make routes and make
+  # check-manifests need nothing beyond Python 3, and run on the system's.
   routes:
     name: routes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: Test the tools, and check make routes changes nothing
+      - name: Test the tools, check make routes changes nothing, and check the manifests
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install -r tools/requirements.txt
@@ -55,6 +57,7 @@ jobs:
           make routes
           git diff --exit-code -- resources/routes
           test -z "$(git status --porcelain -- resources/routes)"
+          make check-manifests
 
   build:
     name: build
@@ -96,6 +99,15 @@ jobs:
         run: |
           make build DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
           ls -l FerrataTime.prg
+
+      # Ferrata Demo (#140): the same source under its own manifest (demo.jungle, manifest-demo.xml),
+      # the demo climb in the sensors' place. Its own app, published on its own, so it compiles here too.
+      - name: Build the demo app
+        env:
+          HOME: /root
+        run: |
+          make build DEMO=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
+          ls -l FerrataTime-demo.prg
 
       # The replay build (#57) compiles too, so the code only it holds does not rot. Its recording is
       # never in the repository (a climber's own track), so a two-entry stand-in is written here, in
@@ -147,9 +159,10 @@ jobs:
       # monkeydo's exit status, which is 1 either way. HOME and DEVICE as in the build job.
       #
       # Then again in the replay build (#57), on the build job's stand-in recording, so the code only
-      # that build holds (loading the recording, its nulls) runs, not only compiles. Both under one
-      # xvfb-run, so the second reuses the simulator the first started on the same display.
-      - name: Run the unit tests, and again in the replay build
+      # that build holds (loading the recording, its nulls) runs, not only compiles; and in the demo
+      # app's build (#140), whose tests hold that it plays the demo. All under one xvfb-run, so the later
+      # runs reuse the simulator the first started on the same display.
+      - name: Run the unit tests, and again in the replay build and the demo app's
         timeout-minutes: 10
         env:
           HOME: /root
@@ -157,4 +170,5 @@ jobs:
           printf '[\n[30000,1000,null,null],\n[30010,1001,46.0,7.0]\n]\n' > resources-replay/replay.json
           xvfb-run -a sh -c '
             make test DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key &&
-            make test REPLAY=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key'
+            make test REPLAY=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key &&
+            make test DEMO=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key'

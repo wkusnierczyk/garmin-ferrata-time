@@ -6,8 +6,8 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// Draws the climb the tracker follows, fed by the input the demo setting chooses: the demo plays the
-// made-up climb (a part of the route in about two minutes, then a hold at its end), the sensors read
+// Draws the climb the tracker follows, fed by the app's input (#140): Ferrata Demo's demo plays the
+// made-up climb (a part of the route in about two minutes, then a hold at its end), Ferrata's sensors read
 // the watch. The climb flow (#51) has the screen before the start, on the approach (#121), after the
 // end and while anything of it is open; the pages have it on the ferrata.
 class View extends WatchUi.View {
@@ -60,16 +60,6 @@ class View extends WatchUi.View {
     function tickMs() as Number {
         var f = feed;
         return f != null ? f.tickMs() : Feed.SENSOR_TICK_MS;
-    }
-
-    // After a change of setting: the new input, at its own rate; nothing when the input stays.
-    function restart() as Void {
-        var f = feed;
-        if (f == null || !f.restart()) { return; }
-        sel = -1;
-        var fl = flow;
-        if (fl != null) { fl.reset(); }
-        if (timer != null) { startTimer(); }
     }
 
     // Lets go of the input (the GPS).
