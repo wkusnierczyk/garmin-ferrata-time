@@ -1,3 +1,5 @@
+using Toybox.Application.Properties;
+
 import Toybox.Lang;
 import Toybox.Test;
 
@@ -46,7 +48,7 @@ class TestFeed extends Feed {
     }
 }
 
-// The view's wiring (#50, from the review of #91): what a tick, Start and a change of setting do.
+// The view's wiring (#50, from the review of #91): what a tick and Start do, and the input each app reads.
 module FeedTest {
 
     function near(a as Float, b as Float, e as Float) as Boolean {
@@ -150,23 +152,6 @@ module FeedTest {
         return true;
     }
 
-    // A change of setting starts again on the new input, the old one let go; saving the settings with
-    // nothing changed keeps the climb.
-    (:test)
-    function restartOnlyOnChange(logger as Logger) as Boolean {
-        var f = new TestFeed(RouteTest.demo(), true, true);
-        var first = f.tracker;
-        Test.assertMessage(!f.restart(), "nothing changed");
-        Test.assertMessage(f.tracker == first && f.made.size() == 1, "the climb kept");
-        Test.assertMessage(!(f.made[0] as FakeInput).stopped, "the input kept");
-        f.wants = false;
-        Test.assertMessage(f.restart(), "the demo turned off");
-        Test.assertMessage(!f.demo && f.tracker != first, "a new climb on the sensors");
-        Test.assertMessage((f.made[0] as FakeInput).stopped, "the old input let go");
-        Test.assertMessage(f.input == f.made[1], "the new input in use");
-        return true;
-    }
-
     // The demo's pace and time left are 0.1.0's from the first minute, before the tracker trusts a pace
     // of its own (10 guidebook minutes), and after.
     (:test)
@@ -195,20 +180,37 @@ module FeedTest {
         return true;
     }
 
-    // The setting chooses the input. Not in a replay build, where the replay takes the sensors' place.
-    (:test, :noreplay)
-    function demoSettingChoosesInput(logger as Logger) as Boolean {
-        var was = Settings.demo();
-        Settings.setDemo(false);
-        Test.assertMessage(!Settings.demo(), "off");
+    // Ferrata reads the sensors and may record (#140): no setting, fixed when the app is built. Not in
+    // a replay build, where the replay takes the sensors' place (ReplayTest.replayBuildPlaysTheRecording).
+    (:test, :noreplay, :nodemo)
+    function appReadsTheSensors(logger as Logger) as Boolean {
         var f = new Feed(RouteTest.demo());
-        Test.assertMessage(f.input instanceof SensorInput, "sensors when off");
-        Settings.setDemo(true);
-        Test.assertMessage(Settings.demo(), "on");
-        Test.assertMessage(f.restart(), "started again");
-        Test.assertMessage(f.input instanceof DemoInput, "the demo when on");
+        Test.assertMessage(!f.demo && f.input instanceof SensorInput, "the sensors");
+        Test.assertMessage(f.records(), "recorded");
+        Test.assertEqualMessage(f.tickMs(), Feed.SENSOR_TICK_MS, "read once a second");
         f.stop();
-        Settings.setDemo(was);
+        return true;
+    }
+
+    // Ferrata Demo plays the demo and never records (#140; make test DEMO=1).
+    (:test, :demo)
+    function demoAppPlaysTheDemo(logger as Logger) as Boolean {
+        var f = new Feed(RouteTest.demo());
+        Test.assertMessage(f.demo && f.input instanceof DemoInput, "the demo");
+        Test.assertMessage(!f.records(), "never recorded");
+        Test.assertEqualMessage(f.tickMs(), Feed.DEMO_TICK_MS, "read every 250 ms");
+        return true;
+    }
+
+    // The properties resource is there, so a property can be read at all (playbook,
+    // reference/settings.md): an unknown key gives the default, and the marker reads as a Number.
+    (:test)
+    function propertiesResourceDeclared(logger as Logger) as Boolean {
+        var unknown = null, marker = null;
+        try { unknown = Properties.getValue("noSuchProperty"); } catch (e) { unknown = 42; }
+        Test.assertEqualMessage(unknown, 42, "an unknown key gives the default");
+        marker = Properties.getValue("settingsSchema");
+        Test.assertMessage(marker instanceof Number, "the marker is a Number: " + marker);
         return true;
     }
 }

@@ -1,0 +1,13 @@
+# Ferrata Demo (#140): the app's source and resources, its own manifest (its own app id and name,
+# the same products), playing the made-up climb on the bundled route and never recording. Layered
+# over monkey.jungle, and always last:
+#
+#   monkeyc -f "monkey.jungle;demo.jungle" ...    (make build DEMO=1)
+#
+# Never with replay.jungle: the replay stands in for the sensors, which the demo does not read.
+
+project.manifest = manifest-demo.xml
+
+# APPEND, never replace. (:nodemo) is the app's side of Feed's choice of input (source/Feed.mc); the
+# demo keeps (:demo).
+base.excludeAnnotations = $(base.excludeAnnotations);nodemo

@@ -3,12 +3,13 @@ using Toybox.WatchUi;
 
 import Toybox.Lang;
 
-// The input the demo setting chooses, feeding the tracker: what the view does each tick, and what the
+// The input the app is built for, feeding the tracker: what the view does each tick, and what the
 // climb flow's menus (FlowMenus, #51) do to the climb, kept out of the view so the tests can drive it.
 // A climb waits on the ready screen until the climber starts it where they are; the demo, at 0.1.0's
 // pace, plays the part started from its start (its watch 12 m low, so the calibration shows as the
-// offset) and holds at the top until the climber ends it. A replay build (make run REPLAY=1,
-// replay.jungle) plays its recording in the sensors' place, whatever the setting says.
+// offset) and holds at the top until the climber ends it. Ferrata reads the sensors and Ferrata Demo
+// plays the demo, each built for it (#140: ferrata.jungle, demo.jungle). A replay build (make run
+// REPLAY=1, replay.jungle) is the app's, and plays its recording in the sensors' place.
 class Feed {
 
     // The demo moves fast, so it is read every 250 ms; the sensors once a second.
@@ -31,12 +32,13 @@ class Feed {
         begin();
     }
 
-    // What the setting says, and the input for it: the tests replace both.
-    (:noreplay)
-    function wantsDemo() as Boolean { return Settings.demo(); }
-
-    (:replay)
+    // The demo in Ferrata Demo, the sensors in Ferrata: fixed when the app is built, not a setting
+    // (#140). The input for it: the tests replace both.
+    (:nodemo)
     function wantsDemo() as Boolean { return false; }
+
+    (:demo)
+    function wantsDemo() as Boolean { return true; }
 
     function newInput(isDemo as Boolean) as Input {
         return isDemo ? new DemoInput(route) as Input : sensors();
@@ -64,7 +66,7 @@ class Feed {
     // The clock the input reads: the demo's own, or the system's.
     function now() as Number { return demo ? demoMs : System.getTimer(); }
 
-    // A new climb on the input the setting chooses, the old input let go.
+    // A new climb on the app's input, the old input let go.
     function begin() as Void {
         input.stop();
         demo = wantsDemo();
@@ -80,14 +82,6 @@ class Feed {
         if (demo) { t.basePace = Climb.PACE; }
         tracker = t;
         if (demo) { demoPart(!route.hasApproach()); }
-    }
-
-    // After the settings change: a new climb only when the input changes, so saving the settings on the
-    // phone with nothing changed keeps the climb. True when it started again.
-    function restart() as Boolean {
-        if (wantsDemo() == demo) { return false; }
-        begin();
-        return true;
     }
 
     // Lets go of the input (the GPS).

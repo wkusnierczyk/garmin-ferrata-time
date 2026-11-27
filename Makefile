@@ -11,16 +11,31 @@ KEY      := $(patsubst ~/%,$(HOME)/%,$(DEV_KEY))
 DEVICE   ?= epix2pro47mm
 SIM_PORT ?= 1234
 APP      := FerrataTime
+# Two apps from one source (#140): Ferrata, the app, reads the sensors (ferrata.jungle, manifest.xml);
+# DEMO=1 builds Ferrata Demo, the made-up climb always on and nothing recorded, an app of its own with
+# its own id and name (demo.jungle, manifest-demo.xml). Each its own .prg, so both can be on a watch.
+# The app's jungle comes last: monkey.jungle names no manifest.
+ifeq ($(DEMO),1)
+APP_JUNGLE := demo.jungle
+MANIFEST := manifest-demo.xml
+BUILD    := $(APP)-demo
+else
+APP_JUNGLE := ferrata.jungle
+MANIFEST := manifest.xml
+BUILD    := $(APP)
+endif
 # REPLAY=1: the replay build (#57, replay.jungle): the recording resources-replay/replay.json, made by
-# make replay, played in the sensors' place in the simulator. Its own .prg, so it is never mistaken
-# for the app; make sideload refuses it.
+# make replay, played in the sensors' place in the simulator. The app's, not the demo's. Its own .prg,
+# so it is never mistaken for the app; make sideload refuses it.
 ifeq ($(REPLAY),1)
-JUNGLE   := monkey.jungle;replay.jungle
+JUNGLE   := monkey.jungle;replay.jungle;$(APP_JUNGLE)
 OUTPUT   := $(APP)-replay.prg
 else
-JUNGLE   := monkey.jungle
-OUTPUT   := $(APP).prg
+JUNGLE   := monkey.jungle;$(APP_JUNGLE)
+OUTPUT   := $(BUILD).prg
 endif
+# The store bundle, every product in the manifest (make export).
+EXPORT   := export/$(BUILD).iq
 REPLAY_JSON := resources-replay/replay.json
 PYTHON   ?= python3
 
@@ -28,17 +43,23 @@ MONKEYC   = "$(SDK_BIN)/monkeyc"
 MONKEYDO  = "$(SDK_BIN)/monkeydo"
 CONNECTIQ = "$(SDK_BIN)/connectiq"
 
-.PHONY: all build sim run sideload clean routes replay fonts check-fonts font-sources check-ttf2bmp \
+.PHONY: all build sim run sideload export check-manifests clean routes replay fonts check-fonts font-sources check-ttf2bmp \
   install-ttf2bmp check-garmin-font-scaler install-garmin-font-scaler icons check-icons \
   check-garmin-graphics-generator install-garmin-graphics-generator
 
 all: build
 
-## Build the .prg for DEVICE
+# A replay plays in the sensors' place, which the demo does not read.
+define refuse_demo_replay
+@test "$(DEMO)" != 1 || test "$(REPLAY)" != 1 || { echo "The replay build is the app's: REPLAY=1 takes no DEMO=1."; exit 1; }
+endef
+
+## Build the .prg for DEVICE [DEMO=1: Ferrata Demo; REPLAY=1: the replay build]
 build:
+	$(refuse_demo_replay)
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make $(or $(MAKECMDGOALS),build) DEV_KEY=/path/to/developer_key"; exit 1; }
 	@test "$(REPLAY)" != 1 || test -f $(REPLAY_JSON) || { echo "No recording at $(REPLAY_JSON). Make one: make replay FIT=/path/to/track.fit"; exit 1; }
-	@echo "Building for $(DEVICE)$(if $(filter 1,$(REPLAY)), (replay))..."
+	@echo "Building $(if $(filter 1,$(DEMO)),Ferrata Demo,Ferrata) for $(DEVICE)$(if $(filter 1,$(REPLAY)), (replay))..."
 	@$(MONKEYC) -f "$(JUNGLE)" -d $(DEVICE) -y "$(KEY)" -w -o $(OUTPUT)
 	@echo "Build complete: $(OUTPUT)"
 
@@ -53,12 +74,12 @@ sim:
 run: build sim
 	@$(MONKEYDO) $(OUTPUT) $(DEVICE)
 
-## Build for the connected watch and copy it over USB (MTP; brew install libmtp)
+## Build for the connected watch and copy it over USB (MTP; brew install libmtp) [DEMO=1: Ferrata Demo]
 sideload:
 	@test "$(REPLAY)" != 1 || { echo "The replay build is for the simulator only."; exit 1; }
 	@watch=$$(CIQ_HOME="$(CIQ_HOME)" tools/sideload.sh detect) || exit 1; \
 	echo "Watch detected: $$watch"; \
-	grep -q '<iq:product id="'"$$watch"'"/>' manifest.xml || { echo "manifest.xml does not list $$watch."; exit 1; }; \
+	grep -q '<iq:product id="'"$$watch"'"/>' $(MANIFEST) || { echo "$(MANIFEST) does not list $$watch."; exit 1; }; \
 	$(MAKE) --no-print-directory build DEVICE=$$watch && tools/sideload.sh install $(OUTPUT)
 
 # The font tools, as Climber Time's (#62; wkusnierczyk/garmin-climber-time#17): ttf2bmp turns a TTF into bitmap fonts, garmin-font-scaler drives
@@ -342,8 +363,8 @@ check-icons:
 	@echo "Checking the icons' pixels against the renderer..."
 	@"$(GRAPHICS_PYTHON)" tools/launcher_icon.py check
 
-## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
-## runs them in the replay build, on resources-replay/replay.json
+## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); DEMO=1
+## runs them in Ferrata Demo's build, REPLAY=1 in the replay build, on resources-replay/replay.json
 # monkeydo exits 1 whether the suite passes or not, so the anchored summary line is the gate, as in
 # Matrix Time (playbook, reference/testing.md). A run that cannot reach the simulator prints no
 # summary and fails the same way. Only one monkeydo session at a time: a second one hangs.
@@ -351,10 +372,11 @@ check-icons:
 TEST_OUTPUT := test_build.prg
 # The key is checked before the simulator is started, so a missing key does not leave one running.
 test:
+	$(refuse_demo_replay)
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make test DEV_KEY=/path/to/developer_key"; exit 1; }
 	@test "$(REPLAY)" != 1 || test -f $(REPLAY_JSON) || { echo "No recording at $(REPLAY_JSON). Make one: make replay FIT=/path/to/track.fit"; exit 1; }
 	@$(MAKE) --no-print-directory sim
-	@echo "Building the unit tests for $(DEVICE)$(if $(filter 1,$(REPLAY)), (replay))..."
+	@echo "Building the unit tests for $(DEVICE)$(if $(filter 1,$(DEMO)), (Ferrata Demo))$(if $(filter 1,$(REPLAY)), (replay))..."
 	@$(MONKEYC) -f "$(JUNGLE)" -d $(DEVICE) -y "$(KEY)" -w --unit-test -o $(TEST_OUTPUT)
 	@echo "Running the unit tests in the simulator..."
 	@output=$$($(MONKEYDO) $(TEST_OUTPUT) $(DEVICE) -t 2>&1); \
@@ -382,6 +404,26 @@ replay:
 	@test -n "$(FIT)" || { echo "Name the recording: make replay FIT=/path/to/track.fit"; exit 1; }
 	@$(PYTHON) tools/fit2replay.py "$(FIT)" -o $(REPLAY_JSON) && echo "$(REPLAY_JSON)"
 
+# The store bundle (#140): every product in the app's manifest, signed with the developer key (the
+# store's identity for the app, so never CI's throwaway one), in release mode. About 70 s. DEMO=1
+# exports Ferrata Demo, for its store beta.
+## Build the signed .iq store bundle, export/FerrataTime.iq [DEMO=1: export/FerrataTime-demo.iq]
+export: check-manifests
+	@test "$(REPLAY)" != 1 || { echo "The replay build is for the simulator only."; exit 1; }
+	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make export DEV_KEY=/path/to/developer_key"; exit 1; }
+	@echo "Exporting $(EXPORT) for every product in $(MANIFEST)..."
+	@mkdir -p export && rm -f $(EXPORT)
+	@$(MONKEYC) -f "$(JUNGLE)" -e -r -w -y "$(KEY)" -o $(EXPORT)
+	@echo "Export complete: $(EXPORT)"
+
+# Pure Python, no SDK.
+## Check that manifest-demo.xml is manifest.xml but for the app id and name
+check-manifests:
+	@echo "Checking the two apps' manifests against each other..."
+	@python3 tools/check-manifests.py
+
 ## Remove build output
 clean:
-	rm -f $(APP).prg $(APP).prg.debug.xml $(APP)-replay.prg $(APP)-replay.prg.debug.xml $(TEST_OUTPUT) $(TEST_OUTPUT).debug.xml
+	rm -f $(APP).prg $(APP).prg.debug.xml $(APP)-replay.prg $(APP)-replay.prg.debug.xml \
+	  $(APP)-demo.prg $(APP)-demo.prg.debug.xml $(TEST_OUTPUT) $(TEST_OUTPUT).debug.xml
+	rm -rf export
