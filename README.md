@@ -16,7 +16,7 @@ CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm
 
 ## Prototype 0.1.0
 
-A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded; the route is invented, and in the demo the times and the position too. One product: the epix Pro (Gen 2) 47 mm.
+A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded; the route is invented, and in the demo the times and the position too. It builds for the watches under [Devices](#devices).
 
 One setting, **Demo climb** (on by default), on the watch (hold Up, then Settings, then Demo) and in the Connect IQ app on the phone. On, the app plays the made-up climb below; off, it reads the watch's altitude and GPS position instead, and works out the place on the route from the height climbed and the time. Either way the climb starts, pauses and ends through the climb flow below. Changing the setting starts a new climb, on the ready screen. The demo goes through the same tracker and menus as the sensors, and never records anything: its watch reads 12 m low, and the calibration at the start corrects that, as a real start at a known point would.
 
@@ -45,13 +45,35 @@ The climb is the bundled route, `resources/routes/demo.json` (below), counted fr
 Build and install, with the SDK and the developer key in place. The key is looked for beside the main checkout (`../garmin-keys/developer_key`, also from a git worktree); elsewhere, pass it as a variable, `make sideload DEV_KEY=/path/to/developer_key` (make takes variables, not monkeyc's `-y`):
 
 ```sh
-make build       # FerrataTime.prg for the epix Pro (Gen 2) 47 mm
+make build       # FerrataTime.prg for the epix Pro (Gen 2) 47 mm; another watch: make build DEVICE=fenix7x
 make run         # build, start the simulator, load it
 make test        # build the unit tests (source/tests/), run them in the simulator
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
 ```
 
 `tools/launcher_icon.py` renders the launcher icon, an orange climber with arms raised, clipped to the cable, in Garmin's figure style on a transparent background, from `tools/launcher_icon.svg` (`python3 tools/launcher_icon.py 60 resources/drawables/launcher_icon.png`; needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux).
+
+## Devices
+
+Ferrata supports a watch when it has all of these (#116, owner, 2026-11-26):
+
+- **Connect IQ API 5.0 or above** (`minApiLevel` in `manifest.xml`). The fonts are bitmaps, 27 per resolution, and from API 4.0 they load into the graphics pool rather than the app's memory; no watch in the catalogue has API 4.x.
+- **A barometer.** The app follows the climb by barometric altitude (`design/sensing.md`); without one it has no use.
+- **A round colour screen of 280 px or more**, MIP or AMOLED. Below 280 px the smallest text (the units beside the altitudes, 0.0385 of the width) falls to 8–10 px and several pages crowd; the fēnix 7S (240 px) and Forerunner 255S (218 px) were looked at in the simulator and left out, and 240 and 260 px wait for a layout that fits them (#131). Rectangular and semi-octagonal screens are left out too (the Venu X1, #130; Venu Sq 2, Instinct).
+- **768 KB for a watch app, and the full watchdog.** The Forerunner 255 and 255S (not their Music versions) have 512 KB and half the watchdog, and stop on page 1's first draw (#132).
+
+That gives 54 watches in six resolutions, each with its own font set (`resources-round-<n>x<n>/fonts/`, see [Fonts](#fonts)):
+
+| Resolution | Screen | Watches (`manifest.xml` ids) |
+|---|---|---|
+| 280 x 280 | MIP | `enduro3`, `enduro4`, `fenix7x`, `fenix7xpro`, `fenix7xpronowifi`, `fenix8solar51mm`, `fenix9prosolar51mm` |
+| 360 x 360 | AMOLED | `fr265s`, `venu2s` |
+| 390 x 390 | AMOLED | `approachs7042mm`, `descentg2`, `descentmk343mm`, `epix2pro42mm`, `fr165`, `fr165m`, `fr170`, `fr170m`, `fr57042mm`, `instinct3amoled45mm`, `instinctcrossoveramoled`, `marq2`, `marq2aviator`, `venu3s`, `venu441mm` |
+| 416 x 416 | AMOLED | `approachs7243mm`, `d2airx10`, `d2mach1`, `epix2`, `epix2pro47mm`, `fenix843mm`, `fenix943mm`, `fenix9pro43mm`, `fenixe`, `fr265`, `instinct3amoled50mm`, `venu2`, `venu2plus` |
+| 454 x 454 | AMOLED | `approachs7047mm`, `approachs7247mm`, `d2mach2`, `d2mach2pro`, `descentmk351mm`, `epix2pro51mm`, `fenix847mm`, `fenix8pro47mm`, `fenix947mm`, `fenix9pro47mm`, `fr57047mm`, `fr965`, `fr970`, `marq3`, `venu3`, `venu445mm` |
+| 466 x 466 | AMOLED | `fenix9pro51mm` |
+
+Left out for want of a barometer: the vívoactive 5 and 6, the Approach S50 and the Forerunner 70. The MIP watches show 64 colours and no transparency, so the grade colours and page 2's half-transparent box get a MIP palette and fallback (#39). Every watch shows the 60 px launcher icon, scaled to its own size by the compiler, until each has its own (#133); CI builds the epix Pro (Gen 2) 47 mm only, until every resolution (#11).
 
 ## Routes
 
@@ -128,11 +150,92 @@ The sizes are one table, `resources/fonts/sizes.json`: each font's weight, its s
 
 Text fonts hold only what the app draws (owner, 2026-11-22): the letters A to Z and a to z, the digits, the space and `' ( ) + , - . / : > ? ~ ° · – …`, the punctuation the code and the mock pages use (parentheses, comma and period come from route names such as "Grosser Spalt (var. E)"; the question mark from a call sign where the route has no emergency number, the en dash from a time not known yet, `–:––`). Route names cannot be predicted, so the route tool folds accented letters to plain ones and rejects anything else the fonts lack (#84); `make check-fonts` fails on a string literal in `source/` outside this set. Number fonts hold the digits, `:`, `-`, `–` and the space; the 52 px one, which the flow's rows of figures share with the pages (owner, 2026-11-26), also `.` and the letters of "here" (`values`); grade fonts the box letters and digits (A to F with half steps such as `C/D`, `K1` to `K6` and `K3/4`, `R`, `W`, `E`).
 
-The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). The epix is the only target so far. The sizes by resolution, as the scaler writes them to `fonts.md`:
+The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources/fonts/resolutions.json`: `resources/fonts/fonts.xml` gives each font's size there in pixels (the share times 416), and [`garmin-font-scaler`](https://github.com/wkusnierczyk/garmin-font-scaler) derives every other resolution's from it with [`ttf2bmp`](https://github.com/wkusnierczyk/ttf2bmp). Every supported resolution is a target (see [Devices](#devices)): 280, 360, 390, 416, 454 and 466. The sizes by resolution, as the scaler writes them to `fonts.md`:
 
 <!-- fonts.md: start -->
 | Resolution | Shape |   Element    |                Font                 | Size |
 | ---------: | :---- | :----------- | :---------------------------------- | ---: |
+|  280 x 280 | round | Bold18       | BarlowSemiCondensedTabular bold     |   12 |
+|  280 x 280 | round | Bold20       | BarlowSemiCondensedTabular bold     |   13 |
+|  280 x 280 | round | Bold24       | BarlowSemiCondensedTabular bold     |   16 |
+|  280 x 280 | round | Bold26       | BarlowSemiCondensedTabular bold     |   18 |
+|  280 x 280 | round | Bold28       | BarlowSemiCondensedTabular bold     |   19 |
+|  280 x 280 | round | Bold30       | BarlowSemiCondensedTabular bold     |   20 |
+|  280 x 280 | round | Bold34       | BarlowSemiCondensedTabular bold     |   23 |
+|  280 x 280 | round | Bold36       | BarlowSemiCondensedTabular bold     |   24 |
+|  280 x 280 | round | Bold52       | BarlowSemiCondensedTabular bold     |   35 |
+|  280 x 280 | round | Bold70       | BarlowSemiCondensedTabular bold     |   47 |
+|  280 x 280 | round | Semi bold104 | BarlowSemiCondensedTabular semibold |   70 |
+|  280 x 280 | round | Semi bold16  | BarlowSemiCondensedTabular semibold |   11 |
+|  280 x 280 | round | Semi bold18  | BarlowSemiCondensedTabular semibold |   12 |
+|  280 x 280 | round | Semi bold20  | BarlowSemiCondensedTabular semibold |   13 |
+|  280 x 280 | round | Semi bold22  | BarlowSemiCondensedTabular semibold |   15 |
+|  280 x 280 | round | Semi bold24  | BarlowSemiCondensedTabular semibold |   16 |
+|  280 x 280 | round | Semi bold28  | BarlowSemiCondensedTabular semibold |   19 |
+|  280 x 280 | round | Semi bold30  | BarlowSemiCondensedTabular semibold |   20 |
+|  280 x 280 | round | Semi bold32  | BarlowSemiCondensedTabular semibold |   22 |
+|  280 x 280 | round | Semi bold36  | BarlowSemiCondensedTabular semibold |   24 |
+|  280 x 280 | round | Semi bold40  | BarlowSemiCondensedTabular semibold |   27 |
+|  280 x 280 | round | Semi bold44  | BarlowSemiCondensedTabular semibold |   30 |
+|  280 x 280 | round | Semi bold46  | BarlowSemiCondensedTabular semibold |   31 |
+|  280 x 280 | round | Semi bold52  | BarlowSemiCondensedTabular semibold |   35 |
+|  280 x 280 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   39 |
+|  280 x 280 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   43 |
+|  280 x 280 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   57 |
+|  360 x 360 | round | Bold18       | BarlowSemiCondensedTabular bold     |   16 |
+|  360 x 360 | round | Bold20       | BarlowSemiCondensedTabular bold     |   17 |
+|  360 x 360 | round | Bold24       | BarlowSemiCondensedTabular bold     |   21 |
+|  360 x 360 | round | Bold26       | BarlowSemiCondensedTabular bold     |   22 |
+|  360 x 360 | round | Bold28       | BarlowSemiCondensedTabular bold     |   24 |
+|  360 x 360 | round | Bold30       | BarlowSemiCondensedTabular bold     |   26 |
+|  360 x 360 | round | Bold34       | BarlowSemiCondensedTabular bold     |   29 |
+|  360 x 360 | round | Bold36       | BarlowSemiCondensedTabular bold     |   31 |
+|  360 x 360 | round | Bold52       | BarlowSemiCondensedTabular bold     |   45 |
+|  360 x 360 | round | Bold70       | BarlowSemiCondensedTabular bold     |   61 |
+|  360 x 360 | round | Semi bold104 | BarlowSemiCondensedTabular semibold |   90 |
+|  360 x 360 | round | Semi bold16  | BarlowSemiCondensedTabular semibold |   14 |
+|  360 x 360 | round | Semi bold18  | BarlowSemiCondensedTabular semibold |   16 |
+|  360 x 360 | round | Semi bold20  | BarlowSemiCondensedTabular semibold |   17 |
+|  360 x 360 | round | Semi bold22  | BarlowSemiCondensedTabular semibold |   19 |
+|  360 x 360 | round | Semi bold24  | BarlowSemiCondensedTabular semibold |   21 |
+|  360 x 360 | round | Semi bold28  | BarlowSemiCondensedTabular semibold |   24 |
+|  360 x 360 | round | Semi bold30  | BarlowSemiCondensedTabular semibold |   26 |
+|  360 x 360 | round | Semi bold32  | BarlowSemiCondensedTabular semibold |   28 |
+|  360 x 360 | round | Semi bold36  | BarlowSemiCondensedTabular semibold |   31 |
+|  360 x 360 | round | Semi bold40  | BarlowSemiCondensedTabular semibold |   35 |
+|  360 x 360 | round | Semi bold44  | BarlowSemiCondensedTabular semibold |   38 |
+|  360 x 360 | round | Semi bold46  | BarlowSemiCondensedTabular semibold |   40 |
+|  360 x 360 | round | Semi bold52  | BarlowSemiCondensedTabular semibold |   45 |
+|  360 x 360 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   50 |
+|  360 x 360 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   55 |
+|  360 x 360 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   73 |
+|  390 x 390 | round | Bold18       | BarlowSemiCondensedTabular bold     |   17 |
+|  390 x 390 | round | Bold20       | BarlowSemiCondensedTabular bold     |   19 |
+|  390 x 390 | round | Bold24       | BarlowSemiCondensedTabular bold     |   22 |
+|  390 x 390 | round | Bold26       | BarlowSemiCondensedTabular bold     |   24 |
+|  390 x 390 | round | Bold28       | BarlowSemiCondensedTabular bold     |   26 |
+|  390 x 390 | round | Bold30       | BarlowSemiCondensedTabular bold     |   28 |
+|  390 x 390 | round | Bold34       | BarlowSemiCondensedTabular bold     |   32 |
+|  390 x 390 | round | Bold36       | BarlowSemiCondensedTabular bold     |   34 |
+|  390 x 390 | round | Bold52       | BarlowSemiCondensedTabular bold     |   49 |
+|  390 x 390 | round | Bold70       | BarlowSemiCondensedTabular bold     |   66 |
+|  390 x 390 | round | Semi bold104 | BarlowSemiCondensedTabular semibold |   98 |
+|  390 x 390 | round | Semi bold16  | BarlowSemiCondensedTabular semibold |   15 |
+|  390 x 390 | round | Semi bold18  | BarlowSemiCondensedTabular semibold |   17 |
+|  390 x 390 | round | Semi bold20  | BarlowSemiCondensedTabular semibold |   19 |
+|  390 x 390 | round | Semi bold22  | BarlowSemiCondensedTabular semibold |   21 |
+|  390 x 390 | round | Semi bold24  | BarlowSemiCondensedTabular semibold |   22 |
+|  390 x 390 | round | Semi bold28  | BarlowSemiCondensedTabular semibold |   26 |
+|  390 x 390 | round | Semi bold30  | BarlowSemiCondensedTabular semibold |   28 |
+|  390 x 390 | round | Semi bold32  | BarlowSemiCondensedTabular semibold |   30 |
+|  390 x 390 | round | Semi bold36  | BarlowSemiCondensedTabular semibold |   34 |
+|  390 x 390 | round | Semi bold40  | BarlowSemiCondensedTabular semibold |   38 |
+|  390 x 390 | round | Semi bold44  | BarlowSemiCondensedTabular semibold |   41 |
+|  390 x 390 | round | Semi bold46  | BarlowSemiCondensedTabular semibold |   43 |
+|  390 x 390 | round | Semi bold52  | BarlowSemiCondensedTabular semibold |   49 |
+|  390 x 390 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   54 |
+|  390 x 390 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   60 |
+|  390 x 390 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   79 |
 |  416 x 416 | round | Bold18       | BarlowSemiCondensedTabular bold     |   18 |
 |  416 x 416 | round | Bold20       | BarlowSemiCondensedTabular bold     |   20 |
 |  416 x 416 | round | Bold24       | BarlowSemiCondensedTabular bold     |   24 |
@@ -160,6 +263,60 @@ The reference resolution is 416x416, the epix Pro (Gen 2) 47 mm's, in `resources
 |  416 x 416 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   58 |
 |  416 x 416 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   64 |
 |  416 x 416 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   84 |
+|  454 x 454 | round | Bold18       | BarlowSemiCondensedTabular bold     |   20 |
+|  454 x 454 | round | Bold20       | BarlowSemiCondensedTabular bold     |   22 |
+|  454 x 454 | round | Bold24       | BarlowSemiCondensedTabular bold     |   26 |
+|  454 x 454 | round | Bold26       | BarlowSemiCondensedTabular bold     |   28 |
+|  454 x 454 | round | Bold28       | BarlowSemiCondensedTabular bold     |   31 |
+|  454 x 454 | round | Bold30       | BarlowSemiCondensedTabular bold     |   33 |
+|  454 x 454 | round | Bold34       | BarlowSemiCondensedTabular bold     |   37 |
+|  454 x 454 | round | Bold36       | BarlowSemiCondensedTabular bold     |   39 |
+|  454 x 454 | round | Bold52       | BarlowSemiCondensedTabular bold     |   57 |
+|  454 x 454 | round | Bold70       | BarlowSemiCondensedTabular bold     |   76 |
+|  454 x 454 | round | Semi bold104 | BarlowSemiCondensedTabular semibold |  113 |
+|  454 x 454 | round | Semi bold16  | BarlowSemiCondensedTabular semibold |   17 |
+|  454 x 454 | round | Semi bold18  | BarlowSemiCondensedTabular semibold |   20 |
+|  454 x 454 | round | Semi bold20  | BarlowSemiCondensedTabular semibold |   22 |
+|  454 x 454 | round | Semi bold22  | BarlowSemiCondensedTabular semibold |   24 |
+|  454 x 454 | round | Semi bold24  | BarlowSemiCondensedTabular semibold |   26 |
+|  454 x 454 | round | Semi bold28  | BarlowSemiCondensedTabular semibold |   31 |
+|  454 x 454 | round | Semi bold30  | BarlowSemiCondensedTabular semibold |   33 |
+|  454 x 454 | round | Semi bold32  | BarlowSemiCondensedTabular semibold |   35 |
+|  454 x 454 | round | Semi bold36  | BarlowSemiCondensedTabular semibold |   39 |
+|  454 x 454 | round | Semi bold40  | BarlowSemiCondensedTabular semibold |   44 |
+|  454 x 454 | round | Semi bold44  | BarlowSemiCondensedTabular semibold |   48 |
+|  454 x 454 | round | Semi bold46  | BarlowSemiCondensedTabular semibold |   50 |
+|  454 x 454 | round | Semi bold52  | BarlowSemiCondensedTabular semibold |   57 |
+|  454 x 454 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   63 |
+|  454 x 454 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   70 |
+|  454 x 454 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   92 |
+|  466 x 466 | round | Bold18       | BarlowSemiCondensedTabular bold     |   20 |
+|  466 x 466 | round | Bold20       | BarlowSemiCondensedTabular bold     |   22 |
+|  466 x 466 | round | Bold24       | BarlowSemiCondensedTabular bold     |   27 |
+|  466 x 466 | round | Bold26       | BarlowSemiCondensedTabular bold     |   29 |
+|  466 x 466 | round | Bold28       | BarlowSemiCondensedTabular bold     |   31 |
+|  466 x 466 | round | Bold30       | BarlowSemiCondensedTabular bold     |   34 |
+|  466 x 466 | round | Bold34       | BarlowSemiCondensedTabular bold     |   38 |
+|  466 x 466 | round | Bold36       | BarlowSemiCondensedTabular bold     |   40 |
+|  466 x 466 | round | Bold52       | BarlowSemiCondensedTabular bold     |   58 |
+|  466 x 466 | round | Bold70       | BarlowSemiCondensedTabular bold     |   78 |
+|  466 x 466 | round | Semi bold104 | BarlowSemiCondensedTabular semibold |  116 |
+|  466 x 466 | round | Semi bold16  | BarlowSemiCondensedTabular semibold |   18 |
+|  466 x 466 | round | Semi bold18  | BarlowSemiCondensedTabular semibold |   20 |
+|  466 x 466 | round | Semi bold20  | BarlowSemiCondensedTabular semibold |   22 |
+|  466 x 466 | round | Semi bold22  | BarlowSemiCondensedTabular semibold |   25 |
+|  466 x 466 | round | Semi bold24  | BarlowSemiCondensedTabular semibold |   27 |
+|  466 x 466 | round | Semi bold28  | BarlowSemiCondensedTabular semibold |   31 |
+|  466 x 466 | round | Semi bold30  | BarlowSemiCondensedTabular semibold |   34 |
+|  466 x 466 | round | Semi bold32  | BarlowSemiCondensedTabular semibold |   36 |
+|  466 x 466 | round | Semi bold36  | BarlowSemiCondensedTabular semibold |   40 |
+|  466 x 466 | round | Semi bold40  | BarlowSemiCondensedTabular semibold |   45 |
+|  466 x 466 | round | Semi bold44  | BarlowSemiCondensedTabular semibold |   49 |
+|  466 x 466 | round | Semi bold46  | BarlowSemiCondensedTabular semibold |   52 |
+|  466 x 466 | round | Semi bold52  | BarlowSemiCondensedTabular semibold |   58 |
+|  466 x 466 | round | Semi bold58  | BarlowSemiCondensedTabular semibold |   65 |
+|  466 x 466 | round | Semi bold64  | BarlowSemiCondensedTabular semibold |   72 |
+|  466 x 466 | round | Semi bold84  | BarlowSemiCondensedTabular semibold |   94 |
 <!-- fonts.md: end -->
 
 Regenerating them:

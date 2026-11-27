@@ -1,0 +1,25 @@
+info face="BarlowSemiCondensedTabular-Bold.ttf" size=45 bold=0 italic=0 charset="" unicode=0 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=6,1
+common lineHeight=54 base=45 scaleW=645 scaleH=54 pages=1 packed=0
+page id=0 file="BarlowSemiCondensedTabular-Bold-45.png"
+chars count=21
+char id=47 x=0 y=0 width=20 height=54 xoffset=0 yoffset=0 xadvance=20 page=0 chnl=15
+char id=48 x=26 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=49 x=56 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=50 x=86 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=51 x=116 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=52 x=146 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=53 x=176 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=54 x=206 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=55 x=236 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=56 x=266 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=57 x=296 y=0 width=24 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=65 x=326 y=0 width=26 height=54 xoffset=0 yoffset=0 xadvance=26 page=0 chnl=15
+char id=66 x=358 y=0 width=25 height=54 xoffset=0 yoffset=0 xadvance=25 page=0 chnl=15
+char id=67 x=389 y=0 width=25 height=54 xoffset=0 yoffset=0 xadvance=24 page=0 chnl=15
+char id=68 x=420 y=0 width=25 height=54 xoffset=0 yoffset=0 xadvance=25 page=0 chnl=15
+char id=69 x=451 y=0 width=23 height=54 xoffset=0 yoffset=0 xadvance=23 page=0 chnl=15
+char id=70 x=480 y=0 width=23 height=54 xoffset=0 yoffset=0 xadvance=22 page=0 chnl=15
+char id=71 x=509 y=0 width=25 height=54 xoffset=0 yoffset=0 xadvance=24 page=0 chnl=15
+char id=75 x=540 y=0 width=26 height=54 xoffset=0 yoffset=0 xadvance=25 page=0 chnl=15
+char id=82 x=572 y=0 width=25 height=54 xoffset=0 yoffset=0 xadvance=24 page=0 chnl=15
+char id=87 x=603 y=0 width=36 height=54 xoffset=0 yoffset=0 xadvance=35 page=0 chnl=15

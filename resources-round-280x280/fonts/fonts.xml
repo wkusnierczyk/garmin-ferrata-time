@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+    <fonts>
+        <font id="SemiBold16" filename="BarlowSemiCondensedTabular-SemiBold-11.fnt" antialias="true" />
+        <font id="SemiBold18" filename="BarlowSemiCondensedTabular-SemiBold-12.fnt" antialias="true" />
+        <font id="SemiBold20" filename="BarlowSemiCondensedTabular-SemiBold-13.fnt" antialias="true" />
+        <font id="SemiBold22" filename="BarlowSemiCondensedTabular-SemiBold-15.fnt" antialias="true" />
+        <font id="SemiBold24" filename="BarlowSemiCondensedTabular-SemiBold-16.fnt" antialias="true" />
+        <font id="SemiBold28" filename="BarlowSemiCondensedTabular-SemiBold-19.fnt" antialias="true" />
+        <font id="SemiBold30" filename="BarlowSemiCondensedTabular-SemiBold-20.fnt" antialias="true" />
+        <font id="SemiBold32" filename="BarlowSemiCondensedTabular-SemiBold-22.fnt" antialias="true" />
+        <font id="SemiBold36" filename="BarlowSemiCondensedTabular-SemiBold-24.fnt" antialias="true" />
+        <font id="SemiBold40" filename="BarlowSemiCondensedTabular-SemiBold-27.fnt" antialias="true" />
+        <font id="SemiBold44" filename="BarlowSemiCondensedTabular-SemiBold-30.fnt" antialias="true" />
+        <font id="SemiBold46" filename="BarlowSemiCondensedTabular-SemiBold-31.fnt" antialias="true" />
+        <font id="SemiBold52" filename="BarlowSemiCondensedTabular-SemiBold-35.fnt" antialias="true" />
+        <font id="SemiBold58" filename="BarlowSemiCondensedTabular-SemiBold-39.fnt" antialias="true" />
+        <font id="SemiBold64" filename="BarlowSemiCondensedTabular-SemiBold-43.fnt" antialias="true" />
+        <font id="SemiBold84" filename="BarlowSemiCondensedTabular-SemiBold-57.fnt" antialias="true" />
+        <font id="SemiBold104" filename="BarlowSemiCondensedTabular-SemiBold-70.fnt" antialias="true" />
+        <font id="Bold18" filename="BarlowSemiCondensedTabular-Bold-12.fnt" antialias="true" />
+        <font id="Bold20" filename="BarlowSemiCondensedTabular-Bold-13.fnt" antialias="true" />
+        <font id="Bold24" filename="BarlowSemiCondensedTabular-Bold-16.fnt" antialias="true" />
+        <font id="Bold26" filename="BarlowSemiCondensedTabular-Bold-18.fnt" antialias="true" />
+        <font id="Bold28" filename="BarlowSemiCondensedTabular-Bold-19.fnt" antialias="true" />
+        <font id="Bold30" filename="BarlowSemiCondensedTabular-Bold-20.fnt" antialias="true" />
+        <font id="Bold34" filename="BarlowSemiCondensedTabular-Bold-23.fnt" antialias="true" />
+        <font id="Bold36" filename="BarlowSemiCondensedTabular-Bold-24.fnt" antialias="true" />
+        <font id="Bold52" filename="BarlowSemiCondensedTabular-Bold-35.fnt" antialias="true" />
+        <font id="Bold70" filename="BarlowSemiCondensedTabular-Bold-47.fnt" antialias="true" />
+    </fonts>
+</resources>
