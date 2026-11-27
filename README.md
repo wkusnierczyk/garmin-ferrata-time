@@ -59,8 +59,8 @@ Ferrata supports a watch when it has all of these (#116, owner, 2026-11-26):
 
 - **Connect IQ API 5.0 or above** (`minApiLevel` in `manifest.xml`). The fonts are bitmaps, 27 per resolution, and from API 4.0 they load into the graphics pool rather than the app's memory; no watch in the catalogue has API 4.x.
 - **A barometer.** The app follows the climb by barometric altitude (`design/sensing.md`); without one it has no use.
-- **A round colour screen of 280 px or more**, MIP or AMOLED. Below 280 px the smallest text (the units beside the altitudes, 0.0385 of the width) falls to 8–10 px and several pages crowd; the fēnix 7S (240 px) and Forerunner 255S (218 px) were looked at in the simulator and left out, and 240 and 260 px wait for a layout that fits them (#131). Rectangular and semi-octagonal screens are left out too (the Venu X1, #130; Venu Sq 2, Instinct).
-- **768 KB for a watch app, and the full watchdog.** The Forerunner 255 and 255S (not their Music versions) have 512 KB and half the watchdog, and stop on page 1's first draw (#132).
+- **A round colour screen of 280 px or more**, MIP or AMOLED. Below 280 px the smallest text (the units beside the altitudes, 0.0385 of the width) falls to 8–10 px and several pages crowd; the fēnix 7S (240 px) and Forerunner 255S (218 px) were looked at in the simulator and left out, and 240 and 260 px wait for a layout that fits them (#131). Rectangular and semi-octagonal screens are left out too (the Venu X1, #130; the Venu Sq 2; the Instinct 3 Solar and Instinct E; the AMOLED Instincts are round and in).
+- **768 KB for a watch app, and the full watchdog.** The Forerunner 255 and 255S have 512 KB and half the watchdog, and stop on page 1's first draw (#132); they and their Music versions are out by size anyway (260 and 218 px).
 
 That gives 54 watches in six resolutions, each with its own font set (`resources-round-<n>x<n>/fonts/`, see [Fonts](#fonts)):
 
@@ -73,7 +73,7 @@ That gives 54 watches in six resolutions, each with its own font set (`resources
 | 454 x 454 | AMOLED | `approachs7047mm`, `approachs7247mm`, `d2mach2`, `d2mach2pro`, `descentmk351mm`, `epix2pro51mm`, `fenix847mm`, `fenix8pro47mm`, `fenix947mm`, `fenix9pro47mm`, `fr57047mm`, `fr965`, `fr970`, `marq3`, `venu3`, `venu445mm` |
 | 466 x 466 | AMOLED | `fenix9pro51mm` |
 
-Left out for want of a barometer: the vívoactive 5 and 6, the Approach S50 and the Forerunner 70. The MIP watches show 64 colours and no transparency, so the grade colours and page 2's half-transparent box get a MIP palette and fallback (#39). Every watch shows the 60 px launcher icon, scaled to its own size by the compiler, until each has its own (#133); CI builds the epix Pro (Gen 2) 47 mm only, until every resolution (#11).
+Left out for want of a barometer: the vívoactive 5 and 6, the Approach S50, the Bounce 2 (`bounce2`, in the SDK's device reference only) and the Forerunner 70, whose SDK definition lists a pressure history although the watch has no barometer (its elevation is GPS). The MIP watches show 64 colours and no transparency, so the grade colours and page 2's half-transparent box get a MIP palette and fallback (#39). Every watch shows the 60 px launcher icon, scaled to its own size by the compiler, until each has its own (#133); CI builds the epix Pro (Gen 2) 47 mm only, until every resolution (#11).
 
 ## Routes
 

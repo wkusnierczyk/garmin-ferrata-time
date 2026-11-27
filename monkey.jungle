@@ -1,4 +1,4 @@
-# Prototype: one edition, one product, demo data only. The Lite/Premium split comes with the real app.
+# One edition, the products in manifest.xml (README, Devices). The Lite/Premium split comes with the real app.
 project.manifest = manifest.xml
 
 # Strict typing from the first line (playbook, reference/build.md).
