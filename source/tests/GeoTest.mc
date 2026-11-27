@@ -109,6 +109,45 @@ module GeoTest {
         return true;
     }
 
+    // A track that ends before the head (the car park and the ford have coordinates, the head none)
+    // is no track: snapped to it, the distance could never fall below the ford's 1000 m (Codex on #139).
+    // Without the head's coordinates, time and height.
+    (:test)
+    function partialTrackIsNoTrack(logger as Logger) as Boolean {
+        var t = walking(route(true, false));
+        // GPS on leg 2 would say 1500 m along; time says 500 m.
+        t.update(fix(LEG2, 600));
+        Test.assertMessage(near(t.toHead()[0], 1500.0, 0.5), "by time: " + t.toHead()[0]);
+        Test.assertMessage(t.headLeft == null, "no GPS distance");
+        return true;
+    }
+
+    // 3 km south of the head, on a 2 km approach (Codex on #139): when the fix goes, the 1 km beyond the
+    // approach is carried, and time takes it off first; the next fix, or the ferrata, clears it.
+    const FAR = [45.98202, 7.0129] as [Float, Float];
+
+    (:test)
+    function offRouteDistanceCarried(logger as Logger) as Boolean {
+        var t = walking(route(false, true));
+        t.update(fix(FAR, 600));
+        Test.assertMessage(near(t.toHead()[0], 3000.0, 5.0), "straight: " + t.toHead()[0]);
+        // 5 minutes at the approach's 40 m a minute, pace 1: 200 m off the 1000 m beyond.
+        t.update(new Reading(1000.0, null, null, 900));
+        var h = t.toHead();
+        Test.assertMessage(near(h[0], 2800.0, 5.0), "carried on by time: " + h[0]);
+        Test.assertMessage(near(h[1], 70.0, 0.5), "the approach's 50 minutes and 20 more: " + h[1]);
+        t.update(fix(LEG1, 960));
+        Test.assertMessage(near(t.toHead()[0], 1094.0, 5.0), "the next fix: " + t.toHead()[0]);
+        t.update(new Reading(1000.0, null, null, 1020));
+        Test.assertMessage(t.toHead()[0] <= 2000.0, "nothing carried after it: " + t.toHead()[0]);
+        var f = walking(route(false, true));
+        f.update(fix(FAR, 600));
+        f.update(new Reading(1000.0, null, null, 660));
+        f.startAscent(new Reading(1100.0, null, null, 720));
+        Test.assertMessage(near(f.toHead()[0], 100.0, 0.01), "the ferrata's 100 m: " + f.toHead()[0]);
+        return true;
+    }
+
     (:test)
     function timeAloneWithoutCoordinates(logger as Logger) as Boolean {
         var t = walking(route(false, false));

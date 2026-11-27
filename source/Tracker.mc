@@ -1,3 +1,5 @@
+using Toybox.Math;
+
 import Toybox.Lang;
 
 // One reading from an input (the watch's sensors, or the demo): the watch's altitude in metres, null
@@ -75,6 +77,10 @@ class Tracker {
     // pause; null when it had none, or the route no coordinates to measure it by. The route's track and the head's position,
     // looked up once.
     var headLeft as Float? = null;
+    // Metres the climber still has to go before the place, beyond the approach's start: from a straight
+    // line to the head longer than the approach, carried when the fix goes, and taken off first by
+    // time (Codex on #139). 0 at the next fix and on the ferrata.
+    var beyond as Float = 0.0;
     // Whether the part has had a fix on the approach's track yet.
     var fixed as Boolean = false;
     var track as Array<[Float, Float, Float]>;
@@ -91,8 +97,11 @@ class Tracker {
 
     function initialize(r as Route) {
         route = r;
-        track = r.approachTrack();
         headAt = r.headPosition();
+        // A track that does not reach the head is no track: snapped to it, the distance could never
+        // fall below its last point's (Codex on #139). The head, at 0, is the last point when it has
+        // coordinates.
+        track = headAt != null ? r.approachTrack() : [] as Array<[Float, Float, Float]>;
     }
 
     // Start the climb where the climber says: :head (the ferrata, synced to the head),
@@ -239,6 +248,7 @@ class Tracker {
         }
         var elapsed = elapsedAt(rd.t);
         if (approachByGps(rd, elapsed)) { return; }
+        if (phase == APPROACH && rd.alt != null) { walkBeyond(rd); }
         if (phase == PAUSED) {
             moveT = rd.t;
         } else if (rd.alt != null) {
@@ -264,8 +274,9 @@ class Tracker {
     // where GPS says, back as well as on: walking the wrong way shows as a longer way to the head. The
     // part's first such fix moves m0 by what time had not explained, so a stretch skipped by a start
     // in the wrong place (an ALTITUDE start on a flat) never counts as walked, as startAt does; later
-    // fixes set the pace. With only the head's position, the straight line is the distance shown and
-    // nothing more: the place is no place on the route. True when GPS set the place; else time and
+    // fixes set the pace. With only the head's position, the straight line is the distance shown, not
+    // a place on the route; only when it is longer than the whole approach is the place its start,
+    // with the rest carried (beyond). True when GPS set the place; else time and
     // height move it, as on the ferrata, from where it is. A paused reading leaves the distance as it
     // was.
     function approachByGps(rd as Reading, elapsed as Float) as Boolean {
@@ -273,10 +284,19 @@ class Tracker {
         headLeft = null;
         var lat = rd.lat, lon = rd.lon;
         if (lat == null || lon == null) { return false; }
+        beyond = 0.0;
         var along = Geo.snap(lat, lon, track);
         if (along == null) {
             var h = headAt;
-            if (h != null) { headLeft = Geo.distance(lat, lon, h[0], h[1]); }
+            if (h == null) { return false; }
+            var left = Geo.distance(lat, lon, h[0], h[1]), total = Climb.totalD().toFloat();
+            headLeft = left;
+            // Further than the whole approach: not on it yet, and the rest is carried should the fix go.
+            if (left > total) {
+                d = 0.0;
+                beyond = left - total;
+                moveT = rd.t;
+            }
             return false;
         }
         if (!fixed) {
@@ -294,13 +314,32 @@ class Tracker {
         return true;
     }
 
+    // Time takes the metres beyond the approach's start off first, at the approach's average metres a
+    // guidebook minute and the climber's pace; what is left of the time moves the place, as usual.
+    function walkBeyond(rd as Reading) as Void {
+        if (beyond <= 0) { return; }
+        var total = Climb.totalD().toFloat(), mins = Climb.totalM();
+        if (total <= 0 || mins <= 0) { beyond = 0.0; return; }
+        var perMin = total / mins / pace;
+        var walked = (rd.t - moveT) / 60.0 * perMin;
+        if (walked <= beyond) {
+            beyond -= walked;
+            moveT = rd.t;
+        } else {
+            moveT = rd.t - Math.round((walked - beyond) / perMin * 60).toNumber();
+            beyond = 0.0;
+        }
+    }
+
     // On the approach, the metres and the minutes to the head (#113): the distance from the last
-    // reading's GPS fix (along the track, or straight to the head), or else from the place; the
-    // minutes are the guidebook's from the place at the climber's pace. On the ferrata, to the top.
+    // reading's GPS fix (along the track, or straight to the head), or else from the place and what is
+    // carried beyond the approach's start; the minutes are the guidebook's from there at the climber's
+    // pace, the carried metres at the approach's average. On the ferrata, to the top.
     function toHead() as [Float, Float] {
-        var g = headLeft;
-        var left = g != null ? g : Climb.totalD() - d;
-        return [left > 0 ? left : 0.0, (Climb.totalM() - Climb.minuteAtDistance(d)) * pace];
+        var g = headLeft, total = Climb.totalD().toFloat();
+        var left = g != null ? g : total - d + beyond;
+        var m = Climb.totalM() - Climb.minuteAtDistance(d) + (total > 0 ? beyond * Climb.totalM() / total : 0.0);
+        return [left > 0 ? left : 0.0, m * pace];
     }
 
     // The pace from the place and the time taken: elapsed minutes per guidebook minute done, once
@@ -373,6 +412,7 @@ class Tracker {
         moveT = rd.t;
         pending = null;
         headLeft = null;
+        beyond = 0.0;
         fixed = false;
         alt = rd.alt;
         startClock = rd.t / 60.0;
