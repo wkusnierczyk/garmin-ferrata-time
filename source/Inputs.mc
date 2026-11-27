@@ -35,7 +35,9 @@ class Input {
 
 // The watch: the altitude the activity info gives (null in the first seconds, or with no barometer
 // reading) and the last GPS fix, while it is recent. The clock is the watch's at the first reading,
-// moved on by the caller's.
+// moved on by the caller's. Not in Ferrata Demo (#140), which reads no sensors and so asks for no
+// Positioning permission.
+(:nodemo)
 class SensorInput extends Input {
 
     // A fix older than this, in seconds, is no position: the climber has moved on since.

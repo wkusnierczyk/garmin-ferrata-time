@@ -1,5 +1,17 @@
-# One edition, the products in manifest.xml (README, Devices). The Lite/Premium split comes with the real app.
-project.manifest = manifest.xml
+# Everything the two apps share, Ferrata and Ferrata Demo (#140), and nothing that tells them apart.
+#
+# This file names no manifest, so it does not build on its own: an app's jungle always follows it,
+# and is always the LAST file in the list --
+#
+#   monkeyc -f "monkey.jungle;ferrata.jungle"                  Ferrata, the app (make build)
+#   monkeyc -f "monkey.jungle;demo.jungle"                     Ferrata Demo (make build DEMO=1)
+#   monkeyc -f "monkey.jungle;replay.jungle;ferrata.jungle"    the replay build (make build REPLAY=1)
+#
+# The manifest cannot live here and be overridden per app: monkeyc refuses to set project.manifest
+# twice in one build ("Attempting to reset project property 'manifest'"), where every other property
+# is simply overridden by the later file (as in Matrix Time's editions). The Makefile's DEMO variable
+# picks the app's jungle. Both manifests list the same products (make check-manifests), so the
+# launcher icon mapping below serves both. One edition each; the Lite/Premium split comes later.
 
 # Strict typing from the first line (playbook, reference/build.md).
 project.typecheck = 3
@@ -10,7 +22,7 @@ base.sourcePath = source
 # The replay (#57) is left out: its recording and the code that loads it are only in the replay build,
 # replay.jungle layered over this file (make run REPLAY=1), which swaps this exclusion for its opposite.
 # replay.jungle replaces this list rather than appending to it: keep it in step with any exclusion
-# added here.
+# added here. The app's jungle, last, appends its own.
 base.excludeAnnotations = replay
 
 # No base.resourcePath here: the default, resources. replay.jungle names it again with its own folder

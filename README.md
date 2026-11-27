@@ -1,8 +1,8 @@
 # Ferrata Time
 
-A Garmin Connect IQ watch app for climbing via ferratas. On the watch it is called **Ferrata** and is listed under Activities & Apps; "Ferrata Time" is the project's name.
+A Garmin Connect IQ watch app for climbing via ferratas. On the watch it is called **Ferrata** and is listed under Activities & Apps; "Ferrata Time" is the project's name. A second app, **Ferrata Demo**, built from the same source, plays a made-up climb (see [Two apps](#two-apps)).
 
-Status: design phase. There is an interactive browser demo, a set of design notes, and a first prototype that plays a made-up climb on the watch.
+Status: design phase. There is an interactive browser demo, a set of design notes, and a prototype on the watch: Ferrata, which follows a climb by the watch's sensors, and Ferrata Demo, which plays a made-up one.
 
 The notes in `design/` predate two decisions: the project is first a standalone watch app, Ferrata, that records the climb itself, and its screens are pages you move between with the buttons. `design/DESIGN.md` is brought up to date after the first prototype (#2).
 
@@ -12,20 +12,35 @@ then `git lfs install`) before cloning.
 Tracked in this repository, and in the family's umbrella as
 [`wkusnierczyk/garmin-watch-faces#42`](https://github.com/wkusnierczyk/garmin-watch-faces/issues/42).
 
-CI (`.github/workflows/build.yml`) builds the app for the epix Pro (Gen 2) 47 mm on every push to `main` or a `dev-*` branch and on every pull request from this repository, in our private tester image with a throwaway signing key, and runs the route tool's tests (below). Every target device, the store bundle, the unit tests and the checks that need no SDK follow once the design and functionality are settled.
+CI (`.github/workflows/build.yml`) runs on every push to `main` or a `dev-*` branch and on every pull request from this repository. In our private tester image, with a throwaway signing key, it builds Ferrata, Ferrata Demo and the replay build for the epix Pro (Gen 2) 47 mm, and runs the unit tests in all three in the simulator, under a virtual display. On the runner it runs the tools' tests (below), checks that `make routes` leaves the route files unchanged, and runs `make check-manifests`. Every target device and the store bundle follow once the design and functionality are settled.
 
 ## Prototype 0.1.0
 
-A watch app that plays a made-up climb on the pages from the design sketch, to judge them on the wrist. Nothing is recorded; the route is invented, and in the demo the times and the position too. It builds for the watches under [Devices](#devices).
+Ferrata follows a climb on the pages from the design sketch by the watch's altitude and GPS position; Ferrata Demo plays a made-up climb on the same pages, to judge them on the wrist. Neither records anything yet; the bundled route is invented, and in the demo the times and the position too. Both build for the watches under [Devices](#devices).
 
-One setting, **Demo climb** (on by default), on the watch (hold Up, then Settings, then Demo) and in the Connect IQ app on the phone. On, the app plays the made-up climb below; off, it reads the watch's altitude and GPS position instead, and works out the place on the route from the height climbed and the time. Either way the climb starts, pauses and ends through the climb flow below. Changing the setting starts a new climb, on the ready screen. The demo goes through the same tracker and menus as the sensors, and never records anything: its watch reads 12 m low, and the calibration at the start corrects that, as a real start at a known point would.
+### Two apps
+
+One source builds two apps (#140), each with its own app id, name and `.prg`, so both can be on a watch at once:
+
+| | Ferrata | Ferrata Demo |
+|---|---|---|
+| Reads | the watch's altitude and GPS position, and works out the place on the route from the height climbed and the time | nothing: it plays the made-up climb below |
+| Records | the climb, once recording comes (#53) | never |
+| Manifest | `manifest.xml` | `manifest-demo.xml`: its own app id and name, and no permissions, as it reads no sensors; the rest as `manifest.xml` (`make check-manifests`) |
+| Jungle | `monkey.jungle;ferrata.jungle` | `monkey.jungle;demo.jungle` |
+| Build | `make build`, `make sideload`, `make export` | the same with `DEMO=1` |
+| Store | the app: `make export` | a beta first, an app of its own under the beta's id: `make export DEMO=1 VERSION=beta`; once the owner is happy with it, the public demo under `manifest-demo.xml`'s id: `make export DEMO=1` |
+
+Which input an app reads is fixed when it is built, not a setting: the Demo climb setting is gone, and neither app has a setting yet. In both the climb starts, pauses and ends through the climb flow below. The demo goes through the same tracker and menus as the sensors, and never records anything: its watch reads 12 m low, and the calibration at the start corrects that, as a real start at a known point would. The build picks the input through `Feed.wantsDemo`, of which `ferrata.jungle` leaves out the `(:demo)` version and `demo.jungle` the `(:nodemo)` one. Ferrata Demo leaves out the sensor input, `SensorInput`, too, so it asks for no permissions. Ferrata carries the rest of the demo (its input, `DemoInput`, and its pace), unused, so the app's unit tests cover it.
+
+### Controls
 
 | Input | Does |
 |---|---|
 | Up, down | change page during the climb; move in a menu, or step the altitude |
 | Start | open the Start menu (ready screen), pause the climb and open its menu, pick the selected row |
 | Back | leave at once (ready screen only); during the climb pause it and open its menu; in a menu go back; close SAVED or DISCARDED |
-| Hold Up | the Ask list; choosing a question does nothing yet; its last item, Settings, opens the settings |
+| Hold Up | the Ask list; choosing a question does nothing yet |
 | Tap beside the box (page 15) | step to the section before or after; other taps do nothing |
 
 ### The climb flow
@@ -49,7 +64,19 @@ make build       # FerrataTime.prg for the epix Pro (Gen 2) 47 mm; another watch
 make run         # build, start the simulator, load it
 make test        # build the unit tests (source/tests/), run them in the simulator
 make sideload    # build for the watch on USB and copy it over (brew install libmtp)
+make export      # export/FerrataTime.iq, the store bundle for every product, signed with the key (about 70 s)
 ```
+
+Each takes `DEMO=1` for Ferrata Demo: `make build DEMO=1` builds `FerrataTime-demo.prg`, `make sideload DEMO=1` puts it on the watch beside Ferrata, and `make test DEMO=1` runs the unit tests in its build. `DEMO`, `REPLAY` and `VERSION` are read from the command line only, never from the environment.
+
+The store publishes a bundle the moment it is uploaded, so the bundles are named for where they go (playbook, `reference/store.md`):
+
+```sh
+make export DEMO=1 VERSION=beta   # export/FerrataTime-demo-beta.iq: Ferrata Demo's store beta
+make export DEMO=1                # export/FerrataTime-demo.iq: the public demo, once the beta has served; not before
+```
+
+A store beta is an app of its own, with its own id: `BETA_ID` in the `Makefile`, which `tools/export-beta.sh` puts into a copy of the tree, never into `manifest-demo.xml`, and checks in the bundle; the first beta upload creates the beta app in the store under it. Ferrata has no beta. `make check-manifests` (Python only; `make export` runs it first) checks that `manifest-demo.xml` is `manifest.xml` but for the app id, the name and the sensors' permissions: a product added to one is added to both.
 
 `tools/launcher_icon.py` renders the launcher icon, an orange climber with arms raised, clipped to the cable, in Garmin's figure style on a transparent background, from `tools/launcher_icon.svg` (needs `rsvg-convert`: `brew install librsvg` on macOS, `librsvg2-bin` on Linux). Each watch asks for its icon at its own size, so the icons are generated rather than drawn by hand (#133): `make icons` runs `garmin-graphics-generator icons` with `tools/launcher_icon.py` as its renderer, which draws the SVG at every size the supported watches ask for into `resources-icon-<size>/`, the largest also into `resources/drawables/launcher_icon.png`, maps each product in `manifest.xml` to its size in `monkey.jungle`, and writes the table under [Devices](#devices); `make check-icons` checks all of it, the icons' pixels against the drawing too (`tools/launcher_icon.py check`). The generator is not on PyPI: `make install-garmin-graphics-generator` installs it in a virtual environment of its own. Run as a script, `python3 tools/launcher_icon.py <size> <out.png>` draws one size.
 
@@ -156,7 +183,7 @@ The tool lists every problem it finds and writes nothing. The tools' tests, this
 
 ## Replay
 
-A replay build plays a recorded climb through the tracker in the simulator, faster than real time, in the place of the watch's sensors: the end-to-end test of calibration, place and pace while the routes are closed. Simulator only: it never records anything, `make sideload` refuses it, and the app's own build (`make build`) carries no recording and never plays one (it holds the `ReplayInput` class, unused, so the unit tests reach it). The recording is a FIT file (an activity recorded on a Garmin watch, with barometric altitude), which `tools/fit2replay.py` turns into `resources-replay/replay.json`: an entry every 10 s, and one at the end, `[t, alt, lat, lon]` (the local time of day in seconds, the altitude in whole metres, the position in degrees to 5 decimals), each interpolated between the records around it that have it, across any gap, and `null` before the first or after the last record that has it. Entries are written only where the recording has records: across a gap (the watch stopped, or a stretch without records) there are none, and the replay interpolates across it; the tool warns when a replay runs to more than 5000 entries (about 14 hours, some 300 KB of the watch app's 768 KB when loaded). The replay plays 60 times faster than the recording, a minute of the climb a second, so a 5 h 40 climb takes under 6 minutes, and then holds at its end. A recording is someone's own track: `resources-replay/replay.json` and every `.fit` file are ignored by git, and neither is ever committed.
+A replay build plays a recorded climb through the tracker in the simulator, faster than real time, in the place of the watch's sensors: the end-to-end test of calibration, place and pace while the routes are closed. Simulator only, and Ferrata's, not the demo's (`REPLAY=1` takes no `DEMO=1`): it never records anything, `make sideload` refuses it, and the app's own build (`make build`) carries no recording and never plays one (it holds the `ReplayInput` class, unused, so the unit tests reach it). The recording is a FIT file (an activity recorded on a Garmin watch, with barometric altitude), which `tools/fit2replay.py` turns into `resources-replay/replay.json`: an entry every 10 s, and one at the end, `[t, alt, lat, lon]` (the local time of day in seconds, the altitude in whole metres, the position in degrees to 5 decimals), each interpolated between the records around it that have it, across any gap, and `null` before the first or after the last record that has it. Entries are written only where the recording has records: across a gap (the watch stopped, or a stretch without records) there are none, and the replay interpolates across it; the tool warns when a replay runs to more than 5000 entries (about 14 hours, some 300 KB of the watch app's 768 KB when loaded). The replay plays 60 times faster than the recording, a minute of the climb a second, so a 5 h 40 climb takes under 6 minutes, and then holds at its end. A recording is someone's own track: `resources-replay/replay.json` and every `.fit` file are ignored by git, and neither is ever committed.
 
 ```sh
 pip install -r tools/requirements.txt   # the FIT SDK for Python, garmin-fit-sdk (in a virtual environment)
@@ -165,7 +192,7 @@ make run REPLAY=1                       # FerrataTime-replay.prg, the replay in 
 make test REPLAY=1                      # the unit tests in the replay build, on that recording
 ```
 
-In a replay build the replay stands in for the sensors whatever the Demo climb setting says, and starts as they do, through the climb flow: the recording plays from its start when a climb starts (the Start menu and the altitude entry only look at its first altitude), and again from its start for the next climb, after Save or Discard. The bundled route is still the demo's, not the recorded one's, until Daubenhorn comes (#55).
+In a replay build the replay stands in for the sensors, and starts as they do, through the climb flow: the recording plays from its start when a climb starts (the Start menu and the altitude entry only look at its first altitude), and again from its start for the next climb, after Save or Discard. The bundled route is still the demo's, not the recorded one's, until Daubenhorn comes (#55).
 
 ## Fonts
 

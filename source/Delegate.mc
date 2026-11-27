@@ -5,8 +5,8 @@ import Toybox.Lang;
 
 // The buttons go to the climb flow (#51) first: Start and Back open its menus (before the start Back
 // closes the app at once, #121), and Up and Down move in them while the flow has the
-// screen, else change page. Holding Up opens Ask
-// (and Settings). On page 15 a tap on a chevron steps the previewed section; other taps do nothing.
+// screen, else change page. Holding Up opens Ask.
+// On page 15 a tap on a chevron steps the previewed section; other taps do nothing.
 // A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns
 // false (BehaviorDelegate's documented order, #117).
 class Delegate extends WatchUi.BehaviorDelegate {
@@ -97,14 +97,12 @@ class Delegate extends WatchUi.BehaviorDelegate {
         menu.addItem(new WatchUi.MenuItem("So far", "summary", :soFar, null));
         menu.addItem(new WatchUi.MenuItem("Pace", "vs guidebook", :pace, null));
         menu.addItem(new WatchUi.MenuItem("Exits", "ways off", :exits, null));
-        menu.addItem(new WatchUi.MenuItem("Settings", null, :settings, null));
         WatchUi.pushView(menu, new AskDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
 }
 
-// The phone app does not exist yet: choosing a question only closes the list. Settings opens the
-// watch's settings in its place (until the climb's menus come, #51).
+// The phone app does not exist yet: choosing a question only closes the list.
 class AskDelegate extends WatchUi.Menu2InputDelegate {
 
     function initialize() {
@@ -112,10 +110,6 @@ class AskDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        if (item.getId() == :settings) {
-            WatchUi.switchToView(new SettingsMenu(), new SettingsMenuDelegate(), WatchUi.SLIDE_LEFT);
-            return;
-        }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 }
