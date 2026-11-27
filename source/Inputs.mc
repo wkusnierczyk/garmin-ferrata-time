@@ -76,10 +76,10 @@ class SensorInput extends Input {
         return p != null ? new Reading(alt, p[0], p[1], t) : new Reading(alt, null, null, t);
     }
 
-    // The position of fix f at nowSec (seconds since the epoch, as Time.now()): null without one, of
-    // too poor a quality, or older than FIX_MAX_AGE.
+    // The position of fix f at nowSec (seconds since the epoch, as Time.now()): null without one, below
+    // usable accuracy, or older than FIX_MAX_AGE (owner, #113).
     function positionOf(f as Position.Info?, nowSec as Number) as [Float, Float]? {
-        if (f == null || f.position == null || f.accuracy < Position.QUALITY_POOR) { return null; }
+        if (f == null || f.position == null || f.accuracy < Position.QUALITY_USABLE) { return null; }
         var when = f.when;
         if (when == null || nowSec - when.value() > FIX_MAX_AGE) { return null; }
         var deg = (f.position as Position.Location).toDegrees();

@@ -143,7 +143,8 @@ module InputsTest {
         return c.hour * 3600 + c.min * 60 + c.sec;
     }
 
-    // A GPS fix is a position only while it is recent: 30 s at most (from the review of #91).
+    // A GPS fix is a position only while it is recent: 30 s at most (from the review of #91), and of
+    // usable accuracy or better.
     (:test)
     function staleFixIsNoPosition(logger as Logger) as Boolean {
         var input = new SensorInput();
@@ -156,6 +157,11 @@ module InputsTest {
         Test.assertMessage(p != null && near(p[0], 46.0, 1e-4) && near(p[1], 7.0, 1e-4), "10 s old: " + p);
         Test.assertMessage(input.positionOf(fix, 1000030) != null, "30 s old");
         Test.assertMessage(input.positionOf(fix, 1000031) == null, "31 s old");
+        // At usable accuracy or better (#113, owner).
+        fix.accuracy = Position.QUALITY_USABLE;
+        Test.assertMessage(input.positionOf(fix, 1000010) != null, "usable");
+        fix.accuracy = Position.QUALITY_POOR;
+        Test.assertMessage(input.positionOf(fix, 1000010) == null, "poor");
         fix.accuracy = Position.QUALITY_NOT_AVAILABLE;
         Test.assertMessage(input.positionOf(fix, 1000010) == null, "no quality");
         Test.assertMessage(input.positionOf(null, 1000010) == null, "no fix");

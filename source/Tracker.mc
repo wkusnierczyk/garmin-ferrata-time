@@ -71,6 +71,12 @@ class Tracker {
     var endD as Float = 0.0;
     var endU as Float = 0.0;
     var endDrifts as Number = 0;
+    // On the approach, the metres to the head the last reading's GPS fix gave (#113); null when it had
+    // none, or the route no coordinates to measure it by. The route's track and the head's position,
+    // looked up once.
+    var headLeft as Float? = null;
+    var track as Array<[Float, Float, Float]>;
+    var headAt as [Float, Float]?;
 
     // Guidebook minutes done before the pace is trusted; until then it is basePace (my call, the plan).
     const PACE_AFTER = 10;
@@ -83,6 +89,8 @@ class Tracker {
 
     function initialize(r as Route) {
         route = r;
+        track = r.approachTrack();
+        headAt = r.headPosition();
     }
 
     // Start the climb where the climber says: :head (the ferrata, synced to the head),
@@ -228,6 +236,7 @@ class Tracker {
             if (pendingGuess) { guess(known, rd); } else { sync(known, rd); }
         }
         var elapsed = elapsedAt(rd.t);
+        if (approachByGps(rd, elapsed)) { return; }
         if (phase == PAUSED) {
             moveT = rd.t;
         } else if (rd.alt != null) {
@@ -246,6 +255,52 @@ class Tracker {
         // A reading without altitude moves nothing, so it leaves the pace as it was: the time it
         // skipped is caught up at the next reading at that pace (Codex on #89).
         if (phase == PAUSED || rd.alt != null) { repace(elapsed); }
+    }
+
+    // On the approach, a reading with a position (the input gives one only for a fix at most 30 s old,
+    // of usable accuracy or better) puts the place where GPS says, back as well as on: walking the wrong
+    // way shows as a longer way to the head (owner, #113). True when it did; else the place moves by
+    // time and height, as on the ferrata, from where the last fix put it.
+    function approachByGps(rd as Reading, elapsed as Float) as Boolean {
+        var left = phase == APPROACH ? gpsToHead(rd) : null;
+        headLeft = left;
+        if (left == null) { return false; }
+        var total = Climb.totalD().toFloat(), at = total - left;
+        d = at < 0 ? 0.0 : (at > total ? total : at);
+        moveT = rd.t;
+        var s = synced(rd);
+        if (s != null) { u = s; }
+        repace(elapsed);
+        return true;
+    }
+
+    // Metres from rd's position to the head: along the approach's track, snapped to it, when the route
+    // has one (two points or more with coordinates), else straight to the head when it has a position;
+    // null without a position or either.
+    function gpsToHead(rd as Reading) as Float? {
+        var lat = rd.lat, lon = rd.lon;
+        if (lat == null || lon == null) { return null; }
+        var along = Geo.snap(lat, lon, track);
+        if (along != null) { return Climb.totalD() - along; }
+        var h = headAt;
+        return h != null ? Geo.distance(lat, lon, h[0], h[1]) : null;
+    }
+
+    // On the approach, the metres and the minutes to the head (#113): the distance from the last
+    // reading's GPS fix, or else from the place, and the guidebook minutes from there at the
+    // climber's pace. Further than the approach's start (straight to the head, from off the route)
+    // counts at the approach's average minutes per metre. On the ferrata, to the top.
+    function toHead() as [Float, Float] {
+        var total = Climb.totalD().toFloat(), g = headLeft;
+        var left = g != null ? g : total - d;
+        if (left < 0) { left = 0.0; }
+        var from = total - left, m = 0.0;
+        if (from < 0) {
+            m = total > 0 ? -from * Climb.totalM() / total : 0.0;
+            from = 0.0;
+        }
+        m += Climb.totalM() - Climb.minuteAtDistance(from);
+        return [left, m * pace];
     }
 
     // The pace from the place and the time taken: elapsed minutes per guidebook minute done, once
@@ -317,6 +372,7 @@ class Tracker {
         lastT = rd.t;
         moveT = rd.t;
         pending = null;
+        headLeft = null;
         alt = rd.alt;
         startClock = rd.t / 60.0;
     }

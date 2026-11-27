@@ -206,7 +206,7 @@ Owner's decisions, 2026-11-22 to 2026-11-25, mocked in the pages mock (https://c
 - **No climber outline** on the route drawings: they draw the ferrata only, so there is no place for it until the head. Drawing the approach, with the outline on it, is parked (#111).
 - **The head as the next point**, its distance and the time to it at the climber's pace, on pages 1–7 and 12–15 only: on pages 5–7 as one line, "HEAD in {distance} {time}". Pages 16 and later show no head. Pages 20 and 21 have no row for the head: they show the grades, and the approach is not one.
 - **The activity covers everything**, the approach included: pages 35 and 36 count the walk-in as moving time.
-- The distance to the head comes from GPS where it can (#113): along the route's GPX track, else straight to the head, else by time alone. Its open points are in section 12.
+- The distance to the head comes from GPS where it can (#113): along the route's track, else straight to the head, else by time alone. A fix counts for 30 s, at the watch's usable accuracy (`Position.QUALITY_USABLE`) or better; older or worse, time alone, from where the last fix put the climber. The distance may grow: walking the wrong way shows as a longer way to the head (owner, 2026-11-27). The track is the approach's points with `lat` and `lon` (the approach's start, any danger on it, the head), which `route.py` places from the GPX track; the fix is snapped to the lines between them and the distance taken along them in the route's metres.
 - The approach's guidebook time and length come from the route data (`approach`), as the route's author gives them.
 - The forecasts (arrival, margin to the last departure, daylight, battery) include the rest of the approach, so they move with the estimates as the climber walks it.
 
@@ -251,4 +251,3 @@ Not in 0.2.0, but the route file is designed for them.
 - The Daubenhorn's section list: about 60 graded pitches from the topo, grouped into sections with heights from the owner's recording; how to mark variants (Grosser Spalt E, Via Konst bypass) until the format has them.
 - Whether a recorded mountaineering activity shows in Garmin Connect with the expected icon and our name: one sideloaded test recording.
 - The GPS prompt radius (about 50 m proposed) on the real wall.
-- The distance to the head from GPS (#113): how stale a fix may be, and whether the distance may grow (walking the wrong way) or only shrink.
