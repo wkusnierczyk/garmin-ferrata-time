@@ -475,4 +475,64 @@ module RouteTest {
         Test.assertEqualMessage(demo().approachType(), "Car park", "the demo's");
         return true;
     }
+
+    // The bundled routes for the picker (#55, #141), from the owner's recordings: each loads, with its
+    // source's totals. The Daubenhorn is the real route: 841 m gained, no section going down.
+    (:test)
+    function daubenhornLoads(logger as Logger) as Boolean {
+        var loaded = Route.fromJson(WatchUi.loadResource(Rez.JsonData.daubenhorn) as Dictionary);
+        Test.assertMessage(loaded != null, "loads");
+        var r = loaded as Route;
+        Test.assertEqualMessage(r.short, "Daubenhorn", "short");
+        Test.assertEqualMessage(r.ascent(), 841, "gained height");
+        Test.assertEqualMessage(r.guideMinutes(), 335, "guidebook minutes");
+        Test.assertEqualMessage(r.approachType(), "Top station", "the approach's start");
+        // Gemmi, head, bench, Obere Freiheit, bridge, Via Konst board, route book.
+        Test.assertEqualMessage(r.knownPoints().toString(), [0, 1, 2, 3, 4, 6, 8].toString(), "known points");
+        // The approach's start and the head have coordinates, so the approach has a track (#113).
+        Test.assertEqualMessage(r.approachTrack().size(), 2, "approach track");
+        Climb.use(r, :ferrata);
+        Test.assertEqualMessage(Climb.count(), 14, "sections");
+        Test.assertEqualMessage(Climb.totalU(), 841, "gained");
+        Test.assertEqualMessage(Climb.totalD(), 1545, "length");
+        Test.assertEqualMessage(Climb.START_ALT, 2070, "head");
+        Test.assertEqualMessage(Climb.START_ALT + Climb.netAt(Climb.count()), 2912, "top");
+        for (var i = 0; i < Climb.count(); i++) {
+            Test.assertMessage(!Climb.descends(i), "section " + i + " " + Climb.NAME[i] + " climbs");
+        }
+        Test.assertEqualMessage(Climb.EXIT_AT.toString(), [5].toString(), "exits");
+        Test.assertEqualMessage(Climb.EXIT_NAME.toString(), ["Obere Freiheit"].toString(), "exit names");
+        Test.assertEqualMessage(Climb.DANGER_AT.toString(), [895, 1115].toString(), "dangers");
+        Climb.use(r, :approach);
+        Test.assertEqualMessage(Climb.totalD(), 2400, "approach length");
+        Test.assertEqualMessage(Climb.START_ALT, 2348, "Gemmi top station");
+        return true;
+    }
+
+    // The Sulzfluh: no exit, only climbing, and an approach without coordinates (the recording starts
+    // at the head), so the approach has no track and #113 measures straight to the head.
+    (:test)
+    function sulzfluhLoads(logger as Logger) as Boolean {
+        var loaded = Route.fromJson(WatchUi.loadResource(Rez.JsonData.sulzfluh) as Dictionary);
+        Test.assertMessage(loaded != null, "loads");
+        var r = loaded as Route;
+        Test.assertEqualMessage(r.short, "Sulzfluh", "short");
+        Test.assertEqualMessage(r.ascent(), 451, "gained height");
+        Test.assertEqualMessage(r.guideMinutes(), 150, "guidebook minutes");
+        Test.assertEqualMessage(r.approachType(), "Car park", "the approach's start");
+        Test.assertEqualMessage(r.approachTrack().size(), 1, "the head alone");
+        Test.assertMessage(r.headPosition() != null, "the head's coordinates");
+        Climb.use(r, :ferrata);
+        Test.assertEqualMessage(Climb.count(), 16, "sections");
+        Test.assertEqualMessage(Climb.totalU(), 451, "gained");
+        Test.assertEqualMessage(Climb.totalD(), 595, "length");
+        Test.assertEqualMessage(Climb.START_ALT, 2366, "head");
+        Test.assertEqualMessage(Climb.START_ALT + Climb.netAt(Climb.count()), 2817, "top");
+        Test.assertEqualMessage(Climb.EXIT_AT.size(), 0, "no exits");
+        Test.assertEqualMessage(Climb.DANGER_AT.toString(), [395, 500].toString(), "dangers");
+        Climb.use(r, :approach);
+        Test.assertEqualMessage(Climb.totalD(), 3300, "approach length");
+        Test.assertEqualMessage(Climb.START_ALT, 1700, "Partnun");
+        return true;
+    }
 }

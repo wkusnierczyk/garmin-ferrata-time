@@ -1,0 +1,39 @@
+{
+  "format": 1,
+  "id": "sulzfluh",
+  "name": "Sulzfluh",
+  "short": "Sulzfluh",
+  "place": "St. Antonien",
+  "source": {"geometry": "the points' coordinates from the owner's recording, the ferrata only; sides made up for the front view", "elevation": "the owner's recording; the approach's time from the guidebook, its length an estimate", "text": "https://www.bergsteigen.com/touren/klettersteig/sulzfluh-klettersteig/"},
+  "approach": [
+    {"len": 3300, "up": 666, "grade": 0, "min": 90, "name": "Partnun to the head", "side": -1.0}
+  ],
+  "sections": [
+    {"len": 60, "up": 14, "grade": 4, "min": 5, "name": "Slab traverse", "side": 0.8},
+    {"len": 10, "up": 20, "grade": 4, "min": 6, "name": "Start-wall ladder", "side": 0.2},
+    {"len": 50, "up": 10, "grade": 4, "min": 5, "name": "Obelix traverse", "side": -0.8},
+    {"len": 60, "up": 60, "grade": 3, "min": 14, "name": "Schrofen and ramp", "side": 0.4},
+    {"len": 30, "up": 30, "grade": 4, "min": 8, "name": "Stepped", "side": 0.2},
+    {"len": 15, "up": 45, "grade": 6, "min": 14, "name": "Steep wall", "side": 0.1},
+    {"len": 70, "up": 41, "grade": 3, "min": 12, "name": "Zackengrat", "side": -0.3},
+    {"len": 20, "up": 5, "grade": -1, "min": 8, "name": "Baenkli", "side": 0.5},
+    {"len": 80, "up": 15, "grade": 2, "min": 4, "name": "Big grass band", "side": 0.9},
+    {"len": 20, "up": 37, "grade": 6, "min": 12, "name": "Ramp and Engstelle", "side": -0.2},
+    {"len": 40, "up": 31, "grade": 4, "min": 18, "name": "Panoramica", "side": -0.5},
+    {"len": 20, "up": 32, "grade": 4, "min": 12, "name": "Airy clamps", "side": -0.2},
+    {"len": 25, "up": 15, "grade": 3, "min": 4, "name": "Deichmann-Steg", "side": -0.6},
+    {"len": 15, "up": 43, "grade": 6, "min": 14, "name": "Slightly overhanging", "side": 0.2},
+    {"len": 40, "up": 34, "grade": 4, "min": 10, "name": "Bridge, summit wall", "side": 0.4},
+    {"len": 40, "up": 19, "grade": 1, "min": 4, "name": "To the summit", "side": -0.6}
+  ],
+  "points": [
+    {"kind": "approach", "at": -3300, "alt": 1700, "type": "Car park", "name": "Partnun"},
+    {"kind": "head", "at": 0, "alt": 2366, "lat": 47.01018, "lon": 9.84363, "name": "Einstieg"},
+    {"kind": "landmark", "at": 295, "alt": 2586, "type": "rest", "lat": 47.01151, "lon": 9.84188, "name": "Baenkli"},
+    {"kind": "danger", "at": 395, "name": "Engstelle"},
+    {"kind": "landmark", "at": 475, "alt": 2706, "type": "bridge", "lat": 47.01192, "lon": 9.84085, "name": "Deichmann-Steg"},
+    {"kind": "danger", "at": 500, "name": "Slightly overhanging"},
+    {"kind": "landmark", "at": 515, "alt": 2764, "type": "bridge", "lat": 47.01211, "lon": 9.84072, "name": "Bridge"},
+    {"kind": "top", "at": 595, "alt": 2817, "lat": 47.01267, "lon": 9.83981, "name": "Summit"}
+  ]
+}
