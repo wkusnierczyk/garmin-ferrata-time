@@ -425,10 +425,11 @@ module FlowDraw {
     const STEP_X = 0.06;
     const STEP_ROOM = 0.02;
 
-    // The large altitude's size (#144): the mock's, or the largest smaller one at which the route's
-    // widest altitude in either unit, range's ends in metres and in feet, fits: clear of Up's step
-    // ("+50", "–50" the widest) on its left, its unit inside the screen on its right. Measured once
-    // (FlowMenus.bigK).
+    // The large altitude's size (#144): the mock's, or the largest smaller one at which every altitude
+    // the entry can show fits, in either unit: the route's range widened by Flow.OPEN_MARGIN (where the
+    // entry may open), its ends in metres and in feet, clear of the widest step on their left (a first
+    // press bringing such an altitude in, "+328" in feet) and with the unit inside the screen on their
+    // right. Measured once (FlowMenus.bigK).
     function bigSize(d as Draw, range as [Number, Number]) as Number {
         for (var k = size(true, BIG); k > 0; k--) {
             if (bigFits(d, k, range)) { return k; }
@@ -437,16 +438,21 @@ module FlowDraw {
     }
 
     function bigFits(d as Draw, k as Number, range as [Number, Number]) as Boolean {
-        var sk = size(true, STEP_SIZE), uk = size(false, BIG_UNIT);
-        var plus = width(d, true, sk, "+50"), minus = width(d, true, sk, "–50");
-        var left = STEP_X + (plus > minus ? plus : minus) + STEP_ROOM, right = 0.5 + chord(0.5) / 2 - 0.03;
+        var ends = [range[0] - Flow.OPEN_MARGIN, range[1] + Flow.OPEN_MARGIN] as Array<Number>;
         for (var i = 0; i < 4; i++) {
-            var ft = i >= 2, str = Flow.inUnit(range[i % 2].toFloat(), ft).format("%d");
-            var vw = width(d, true, k, str);
-            if (0.5 - vw / 2 < left) { return false; }
-            if (0.5 + vw / 2 + BIG_GAP + width(d, false, uk, Flow.unit(ft)) > right) { return false; }
+            var ft = i >= 2, far = Flow.inUnit(Flow.OPEN_MARGIN.toFloat(), ft).format("%d");
+            var v = Flow.inUnit(ends[i % 2].toFloat(), ft).format("%d");
+            if (!entryClear(d, k, v, Flow.unit(ft), "–" + far)) { return false; }
         }
         return true;
+    }
+
+    // Whether the entry's large altitude v, at size k with its unit, clears Up's step on its left and
+    // keeps inside the screen on its right.
+    function entryClear(d as Draw, k as Number, v as String, unit as String, step as String) as Boolean {
+        var sk = size(true, STEP_SIZE), uk = size(false, BIG_UNIT), vw = width(d, true, k, v);
+        var left = STEP_X + width(d, true, sk, step) + STEP_ROOM, right = 0.5 + chord(0.5) / 2 - 0.03;
+        return 0.5 - vw / 2 >= left && 0.5 + vw / 2 + BIG_GAP + width(d, false, uk, unit) <= right;
     }
 
     // A name cut to max (a share of the width), with an ellipsis where it does not fit (F18's): measured

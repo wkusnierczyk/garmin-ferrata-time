@@ -53,11 +53,12 @@ module FlowFeetTest {
         row(ft[1], "1312", "ft", "400 m of ascent");
         row(ft[2], m[2].value, "", "the guidebook time");
         row(m[1], "400", "m", "in metres");
-        // Laid out from the wider unit: the same room in both.
+        // Laid out from the wider unit: the metric block keeps the room the feet take, more than its own.
         var d = PagesTest.draw();
-        var wf = FlowDraw.rowsWidth(d, ft), wm = FlowDraw.rowsWidth(d, m);
-        Test.assertMessage(near(wf, wm, 0.0001), "the same room: " + wf + ", " + wm);
-        Test.assertMessage(wf <= FlowDraw.chord(0.6), "within the screen: " + wf);
+        var wm = FlowDraw.rowsWidth(d, m), feetAlone = FlowDraw.rowsWidth(d, alone(ft)), metresAlone = FlowDraw.rowsWidth(d, alone(m));
+        Test.assertMessage(wm >= feetAlone - 0.0001, "the feet's room in metres: " + wm + ", " + feetAlone);
+        Test.assertMessage(wm > metresAlone, "more than the metres alone: " + wm + ", " + metresAlone);
+        Test.assertMessage(feetAlone <= FlowDraw.chord(0.6), "within the screen: " + feetAlone);
         return true;
     }
 
@@ -75,13 +76,39 @@ module FlowFeetTest {
         row(ft[1], "33", "ft ahead", "10 m ahead");
         row(m[0], "1310", "m", "in metres");
         var d = PagesTest.draw();
-        Test.assertMessage(near(FlowDraw.rowsWidth(d, ft), FlowDraw.rowsWidth(d, m), 0.0001), "the same room");
+        Test.assertMessage(FlowDraw.rowsWidth(d, m) >= FlowDraw.rowsWidth(d, alone(ft)) - 0.0001, "the feet's room in metres");
         f.openDetail(-1, true);
         var here = f.detail as FlowDetail;
         ft = FlowDraw.detailRows(f, here, true);
         row(ft[0], Flow.inUnit(here.alt.toFloat(), true).format("%d"), "ft", "here's altitude");
         row(ft[1], "1247", "ft along", "380 m along");
         return true;
+    }
+
+    // The details' rows fit the round screen in either unit, at their widest: a high point far along
+    // (5 digits of feet, "ft along"), and one most of a mile back. The rows' block is centred, its two
+    // rows at 0.44 and 0.615 of the height, so it must fit the narrower chord, at the second row's foot.
+    (:test)
+    function detailRowsFit(logger as Logger) as Boolean {
+        var f = ascentAt(380.0), d = PagesTest.draw();
+        var cases = [new FlowDetail(-1, true, 3999, 4999.0, 4999.0), new FlowDetail(1, true, 3999, 0.0, 1500.0),
+            new FlowDetail(1, true, 3999, 1299.0, 0.0)] as Array<FlowDetail>;
+        var room = FlowDraw.chord(0.68);
+        for (var i = 0; i < cases.size(); i++) {
+            var both = [true, false] as Array<Boolean>;
+            for (var j = 0; j < 2; j++) {
+                var w = FlowDraw.rowsWidth(d, FlowDraw.detailRows(f, cases[i], both[j]));
+                Test.assertMessage(w <= room, "case " + i + (both[j] ? " ft" : " m") + ": " + w + " in " + room);
+            }
+        }
+        return true;
+    }
+
+    // The rows as they read in their own unit alone, not laid out for the other.
+    function alone(list as Array<SymRow>) as Array<SymRow> {
+        var out = [] as Array<SymRow>;
+        for (var i = 0; i < list.size(); i++) { out.add(new SymRow(list[i].sym, list[i].value, list[i].unit)); }
+        return out;
     }
 
     // How far a point is, as the details show it: feet under 1000 ft, else miles to one place.
@@ -176,17 +203,45 @@ module FlowFeetTest {
         return true;
     }
 
-    // The large altitude's size fits the route's widest altitude in either unit beside the steps, and
-    // inside the screen: the demo's at the mock's size, a high route's 5-digit feet too.
+    // The entry opens no further than 100 m outside the route's altitudes: a reading 30 m low opens as
+    // it is, in feet, its first press "+99"; one 290 m low opens 100 m low.
+    (:test)
+    function entryOpensNearTheRoute(logger as Logger) as Boolean {
+        var f = flow();
+        FlowTest.watchReads(f, 1240.0);
+        f.press(:start);
+        FlowTest.choose(f, :atAltitude);
+        var e = f.entry as FlowEntry;
+        Test.assertEqualMessage(e.value, 4068, "1240 m as it is");
+        var s = Flow.steps(e.value, e.range, true);
+        Test.assertMessage("+99".equals(s[0]) && "+99".equals(s[1]), "both bring it in: " + s);
+        var d = PagesTest.draw(), k = FlowDraw.bigSize(d, f.range);
+        Test.assertMessage(FlowDraw.entryClear(d, k, "4068", "ft", s[0]), "clear of its step");
+        f.press(:back);
+        FlowTest.watchReads(f, 980.0);
+        FlowTest.choose(f, :atAltitude);
+        e = f.entry as FlowEntry;
+        Test.assertEqualMessage(e.value, Flow.inUnit(1170.0, true), "100 m under the Car park");
+        s = Flow.steps(e.value, e.range, true);
+        Test.assertMessage(FlowDraw.entryClear(d, k, e.value.format("%d"), "ft", s[0]), "clear of its step: " + s);
+        f.press(:back);
+        FlowTest.watchReads(f, 2000.0);
+        FlowTest.choose(f, :atAltitude);
+        Test.assertEqualMessage((f.entry as FlowEntry).value, Flow.inUnit(1680.0, true), "100 m over the top");
+        return true;
+    }
+
+    // The large altitude: the demo's at the mock's size; a route near 3000 m, five digits in feet with
+    // its margin, smaller, and its highest entry ("10171 ft", 3100 m) clear of a 100 m first press.
     (:test)
     function bigAltitudeFits(logger as Logger) as Boolean {
-        var d = PagesTest.draw();
-        var ranges = [[1270, 1580], [2900, 3100], [4400, 4810]] as Array<[Number, Number]>;
-        for (var i = 0; i < ranges.size(); i++) {
-            var k = FlowDraw.bigSize(d, ranges[i]);
-            Test.assertMessage(FlowDraw.bigFits(d, k, ranges[i]), ranges[i] + " at " + k);
-        }
-        Test.assertEqualMessage(FlowDraw.bigSize(d, ranges[0]), FlowDraw.size(true, 0.2), "the demo's at the mock's size");
+        var d = PagesTest.draw(), mock = FlowDraw.size(true, 0.2);
+        Test.assertEqualMessage(FlowDraw.bigSize(d, [1270, 1580]), mock, "the demo's at the mock's size");
+        var k = FlowDraw.bigSize(d, [2800, 3000]);
+        Test.assertMessage(k < mock, "five digits of feet smaller: " + k + ", mock " + mock);
+        Test.assertMessage(!FlowDraw.entryClear(d, mock, "10171", "ft", "–328"), "at the mock's size it would not fit");
+        Test.assertMessage(FlowDraw.entryClear(d, k, "10171", "ft", "–328"), "at its own it does");
+        Test.assertMessage(FlowDraw.entryClear(d, k, "3100", "m", "–100"), "and in metres");
         return true;
     }
 }

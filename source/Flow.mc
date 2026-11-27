@@ -23,6 +23,9 @@ module Flow {
     // #144).
     const STEP = 10;
     const STEP_FT = 50;
+    // How far outside the route's range of altitudes the entry may open, in metres (#144): a reading
+    // further off opens at this far, so the first press, which brings it in, is at most this big.
+    const OPEN_MARGIN = 100;
     // Feet in a metre, the pages' (Widgets), and metres in a mile.
     const FT = 3.28084;
     const MILE = 1609.344;
@@ -133,7 +136,8 @@ module Flow {
 
     // How far a point at at is from the place d, as a value and its unit for a details screen (#121):
     // "here" (within 5 m), or metres under a kilometre, else kilometres to one place, ahead or back; in
-    // feet (#144), feet under 1000 ft, else miles to one place.
+    // feet (#144), feet under 1000 ft, else miles to one place. The switch is at the rounded value: 999.5
+    // m rounds to 1000 and reads 1.0 km, so "1000 m" is never shown.
     function ahead(at as Float, d as Float, ft as Boolean) as [String, String] {
         var v = at - d, a = v.abs(), way = v > 0 ? " ahead" : " back";
         if (a < 5) { return ["here", ""]; }

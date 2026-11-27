@@ -107,9 +107,8 @@ class FlowMenus {
     var range as [Number, Number];
     // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
     // confirmation (the altitude calibrated to, in metres, and the point it was at, -1 for an altitude
-    // entered), a
-    // toast over the ready screen. Back on the ready screen closes the app at once, to the watch's
-    // activities (quit, which the view acts on; owner, 2026-11-26: no APP CLOSED).
+    // entered), a toast over the ready screen. Back on the ready screen closes the app at once, to the
+    // watch's activities (quit, which the view acts on; owner, 2026-11-26: no APP CLOSED).
     var menu as FlowMenu? = null;
     var entry as FlowEntry? = null;
     var detail as FlowDetail? = null;
@@ -400,7 +399,8 @@ class FlowMenus {
     }
 
     // The altitude entry, from the barometer before a start, else from the estimated place's altitude,
-    // in the unit the watch shows.
+    // in the unit the watch shows; no further than Flow.OPEN_MARGIN outside the route's range, so the
+    // large altitude and the first step keep within the room laid out for them (FlowDraw.bigFits).
     function openEntry(parent as FlowMenu, start as Boolean) as Void {
         var est = 0.0;
         if (start) {
@@ -409,7 +409,8 @@ class FlowMenus {
         } else {
             est = feed.tracker.state().altitude().toFloat();
         }
-        var ft = feet();
+        var ft = feet(), lo = (range[0] - Flow.OPEN_MARGIN).toFloat(), hi = (range[1] + Flow.OPEN_MARGIN).toFloat();
+        est = est < lo ? lo : (est > hi ? hi : est);
         entry = new FlowEntry(start, Flow.inUnit(est, ft), parent, ft, Flow.rangeIn(range, ft));
     }
 
