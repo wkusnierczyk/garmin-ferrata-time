@@ -129,7 +129,9 @@ class Draw {
     // The colour of what is drawn next, its fill opaque too where the API has fills: after shade() the
     // fill is half-transparent, and the SDK's docs say setFill wins over setColor; only the simulator
     // was seen to make the next setColor's fill opaque again (the review of #124). The opaque colour is
-    // made once per change.
+    // made once per change. Opaque white, 0xffffffff, is -1 as a Number, which is
+    // Graphics.COLOR_TRANSPARENT: setFill would fill nothing, on MIP and AMOLED alike (#135; so does
+    // COLOR_WHITE, whose alpha is 0). White's fill is one step off in blue, 0xfffffe, which draws white.
     var fillOf as Number = -1;
     var fillIs as Number = 0;
 
@@ -139,6 +141,7 @@ class Draw {
         if (c != fillOf) {
             fillOf = c;
             fillIs = Graphics.createColor(0xff, (c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff);
+            if (fillIs == Graphics.COLOR_TRANSPARENT) { fillIs = Graphics.createColor(0xff, 0xff, 0xff, 0xfe); }
         }
         dc.setFill(fillIs);
     }

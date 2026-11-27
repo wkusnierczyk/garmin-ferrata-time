@@ -293,6 +293,20 @@ module PagesTest {
         return true;
     }
 
+    // A fill is never Graphics.COLOR_TRANSPARENT (-1), which opaque white made with createColor is: the
+    // white shapes (the route's top, the current page's dot, a white box) drew nothing (#135).
+    (:test)
+    function fillsAreNeverTransparent(logger as Logger) as Boolean {
+        var d = draw();
+        if (!(d.dc has :setFill) || !(Graphics has :createColor)) { return true; }
+        var colours = [Graphics.COLOR_WHITE, 0xffffff, Graphics.COLOR_BLACK, 0x4a5050, 0xfffffe] as Array<Number>;
+        for (var i = 0; i < colours.size(); i++) {
+            d.ink(colours[i]);
+            Test.assertMessage(d.fillIs != Graphics.COLOR_TRANSPARENT, "the fill of " + colours[i].format("%06x") + " is transparent");
+        }
+        return true;
+    }
+
     // Pages 1 and 2 place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
     // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
     // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
