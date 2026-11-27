@@ -25,7 +25,8 @@ def test_the_repository_manifests_agree():
 
 @pytest.mark.parametrize("change, expect", [
     (lambda t: t.replace('<iq:product id="venu3"/>', ""), "products only in the app: ['venu3']"),
-    (lambda t: t.replace('<iq:uses-permission id="Sensor"/>', ""), "permissions"),
+    (lambda t: t.replace("<iq:permissions/>", '<iq:permissions><iq:uses-permission id="Positioning"/></iq:permissions>'),
+     "permissions"),
     (lambda t: t.replace('version="0.1.0"', 'version="0.1.1"'), "version"),
     (lambda t: t.replace("63bb9612-97e7-4341-bce5-d32228087caa", "d05650dc-a1c7-46a5-9055-4e98ac0e00d1"), "the same id"),
     (lambda t: t.replace("@Strings.DemoAppName", "@Strings.AppName"), "the same name"),
@@ -35,6 +36,18 @@ def test_each_difference_is_found(tmp_path, change, expect):
     assert changed != DEMO
     found = check.differences(REPO / "manifest.xml", write(tmp_path, changed))
     assert any(expect in f for f in found), found
+
+
+def test_the_demo_wants_the_apps_permissions_less_the_sensors(tmp_path):
+    app = tmp_path / "manifest.xml"
+    app.write_text(APP.replace('<iq:uses-permission id="Sensor"/>', '<iq:uses-permission id="Sensor"/>\n<iq:uses-permission id="Fit"/>'))
+    found = check.differences(app, REPO / "manifest-demo.xml")
+    assert any("['Fit'] wanted" in f for f in found), found
+
+
+def test_main_refuses_one_argument(capsys):
+    assert check.main(["check-manifests.py", "manifest.xml"]) == 2
+    assert "usage" in capsys.readouterr().err
 
 
 def test_main_exits_1_on_a_difference(tmp_path, capsys):

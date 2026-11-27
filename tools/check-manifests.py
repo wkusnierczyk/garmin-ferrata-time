@@ -2,13 +2,14 @@
 """Check that Ferrata Demo's manifest is Ferrata's but for the app id and name (#140).
 
 The two apps build from one source and share monkey.jungle, whose launcher icon mapping covers
-manifest.xml's products, so manifest-demo.xml must list the same products, ask for the same
-permissions (the code that needs them is in both) and carry the same version, type, entry, icon,
-API level, languages and barrels. Only the application id and name tell them apart, and those must
-differ. Checked rather than generated, as Matrix Time's edition manifests are: the duplicate is
+manifest.xml's products, so manifest-demo.xml must list the same products and carry the same
+version, type, entry, icon, API level, languages and barrels. The application id and name tell them
+apart, and those must differ. So do the permissions, in one known way: the demo reads no sensors
+(SensorInput is (:nodemo)), so it asks for the app's permissions less SENSORS_ONLY; every other
+permission the app asks for, the demo's code needs too. Checked rather than generated, as Matrix Time's edition manifests are: the duplicate is
 small, and a check in CI cannot be forgotten. Pure Python, no SDK.
 
-    python3 tools/check-manifests.py [APP_MANIFEST DEMO_MANIFEST]
+    python3 tools/check-manifests.py [APP_MANIFEST DEMO_MANIFEST]   (both, or neither)
 
 Exits 1 and lists every difference, or 0.
 """
@@ -20,6 +21,8 @@ REPO = Path(__file__).resolve().parent.parent
 NS = {"iq": "http://www.garmin.com/xml/connectiq"}
 # The attributes that tell the two apps apart; every other one must match.
 OWN = ("id", "name")
+# The permissions only the sensors' code needs, which the demo leaves out.
+SENSORS_ONLY = {"Positioning", "Sensor"}
 
 
 def read(path):
@@ -53,20 +56,26 @@ def differences(app_path, demo_path):
             found.append(f"products only in the app: {only_a}; only in the demo: {only_d}")
         else:
             found.append("the products are the same but in another order")
-    for key in ("permissions", "languages", "barrels"):
+    want = sorted(set(a["permissions"]) - SENSORS_ONLY)
+    if d["permissions"] != want:
+        found.append(f"permissions: {d['permissions']} in the demo, {want} wanted (the app's, less {sorted(SENSORS_ONLY)})")
+    for key in ("languages", "barrels"):
         if a[key] != d[key]:
             found.append(f"{key}: {a[key]} in the app, {d[key]} in the demo")
     return found
 
 
 def main(argv):
+    if len(argv) not in (1, 3):
+        print(f"usage: {argv[0]} [APP_MANIFEST DEMO_MANIFEST]", file=sys.stderr)
+        return 2
     app_path, demo_path = (argv[1], argv[2]) if len(argv) == 3 else (REPO / "manifest.xml", REPO / "manifest-demo.xml")
     found = differences(app_path, demo_path)
     for f in found:
         print(f"{Path(demo_path).name}: {f}", file=sys.stderr)
     if found:
         return 1
-    print(f"{Path(demo_path).name} is {Path(app_path).name} but for the app id and name.")
+    print(f"{Path(demo_path).name} is {Path(app_path).name} but for the app id, name and the sensors' permissions.")
     return 0
 
 

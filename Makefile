@@ -417,10 +417,10 @@ export: check-manifests
 	@echo "Export complete: $(EXPORT)"
 
 # Pure Python, no SDK.
-## Check that manifest-demo.xml is manifest.xml but for the app id and name
+## Check that manifest-demo.xml is manifest.xml but for the app id, name and the sensors' permissions
 check-manifests:
 	@echo "Checking the two apps' manifests against each other..."
-	@python3 tools/check-manifests.py
+	@$(PYTHON) tools/check-manifests.py
 
 ## Remove build output
 clean:

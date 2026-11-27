@@ -44,9 +44,13 @@ class Feed {
         return isDemo ? new DemoInput(route) as Input : sensors();
     }
 
-    // The watch's sensors; in a replay build, the recording (resources-replay/replay.json).
-    (:noreplay)
+    // The watch's sensors; in a replay build, the recording (resources-replay/replay.json). Ferrata Demo
+    // has none (#140): wantsDemo is true there, so this is never asked for but by a test's feed.
+    (:noreplay, :nodemo)
     function sensors() as Input { return new SensorInput(); }
+
+    (:demo)
+    function sensors() as Input { return new Input(); }
 
     (:replay)
     function sensors() as Input {

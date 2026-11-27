@@ -203,14 +203,15 @@ module FeedTest {
     }
 
     // The properties resource is there, so a property can be read at all (playbook,
-    // reference/settings.md): an unknown key gives the default, and the marker reads as a Number.
+    // reference/settings.md): an unknown key raises an exception the app can catch (with no property
+    // table the failure cannot be caught), and the marker reads back as a Number.
     (:test)
     function propertiesResourceDeclared(logger as Logger) as Boolean {
-        var unknown = null, marker = null;
-        try { unknown = Properties.getValue("noSuchProperty"); } catch (e) { unknown = 42; }
-        Test.assertEqualMessage(unknown, 42, "an unknown key gives the default");
-        marker = Properties.getValue("settingsSchema");
-        Test.assertMessage(marker instanceof Number, "the marker is a Number: " + marker);
+        var caught = false;
+        try { Properties.getValue("noSuchProperty"); } catch (e) { caught = true; }
+        Test.assertMessage(caught, "an unknown key raises a catchable exception");
+        var marker = Properties.getValue("settingsSchema");
+        Test.assertMessage(marker instanceof Number, "the settingsSchema marker reads back as a Number, not " + marker);
         return true;
     }
 }
