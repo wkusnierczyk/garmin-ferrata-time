@@ -251,9 +251,11 @@ class Tracker {
         var elapsed = elapsedAt(rd.t);
         if (approachByGps(rd, elapsed)) { return; }
         if (phase == APPROACH && rd.alt != null) { walkBeyond(rd); }
+        // While metres beyond the approach's start are carried, the place holds at the start: neither
+        // time nor height moves it (Codex on #139).
         if (phase == PAUSED) {
             moveT = rd.t;
-        } else if (rd.alt != null) {
+        } else if (rd.alt != null && !(phase == APPROACH && beyond > 0)) {
             var active = (rd.t - moveT) / 60.0;
             moveT = rd.t;
             var timeD = Climb.distanceAtMinute(Climb.minuteAtDistance(d) + active / pace);
