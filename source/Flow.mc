@@ -19,8 +19,31 @@ module Flow {
 
     // The GPS prompt's reach, in metres (#52): a landmark it prompted stays suggested this near.
     const GPS = 50;
-    // The altitude entry's step, in metres.
+    // The altitude entry's step, in metres, or in feet when the watch shows feet (owner, 2026-11-27,
+    // #144).
     const STEP = 10;
+    const STEP_FT = 50;
+    // Feet in a metre, the pages' (Widgets), and metres in a mile.
+    const FT = 3.28084;
+    const MILE = 1609.344;
+
+    // The units are the watch's (Widgets.feet; #144): a value in feet is converted, never relabelled.
+    // The route and the tracker stay in metres; only what is shown converts.
+    function inUnit(m as Float, ft as Boolean) as Number {
+        return Math.round(ft ? m * FT : m).toNumber();
+    }
+
+    function unit(ft as Boolean) as String { return ft ? "ft" : "m"; }
+
+    // An altitude entered in the unit shown, back in metres.
+    function toMetres(v as Number, ft as Boolean) as Float {
+        return ft ? v / FT : v.toFloat();
+    }
+
+    // The route's range of altitudes (metres) in the unit shown.
+    function rangeIn(range as [Number, Number], ft as Boolean) as [Number, Number] {
+        return [inUnit(range[0].toFloat(), ft), inUnit(range[1].toFloat(), ft)];
+    }
 
     // The kinds a calibration may use: the head, the landmarks, the exits and the top.
     function isMark(kind as Object?) as Boolean {
@@ -79,15 +102,17 @@ module Flow {
         return ((r.points[point]["at"] as Number) - d).abs();
     }
 
-    // The altitude entry's steps: the first press goes to the next 10 m mark up or down, later presses
-    // 10 m between marks, kept within range (the route's lowest and highest altitude); an altitude
-    // outside it comes in at the first press.
-    function altUp(v as Number, range as [Number, Number]) as Number {
-        return within(Math.floor(v.toFloat() / STEP).toNumber() * STEP + STEP, range);
+    // The altitude entry's steps, in the unit shown: the first press goes to the next 10 m (50 ft) mark
+    // up or down, later presses 10 m (50 ft) between marks, kept within range (the route's lowest and
+    // highest altitude, in that unit); an altitude outside it comes in at the first press.
+    function altUp(v as Number, range as [Number, Number], ft as Boolean) as Number {
+        var step = ft ? STEP_FT : STEP;
+        return within(Math.floor(v.toFloat() / step).toNumber() * step + step, range);
     }
 
-    function altDown(v as Number, range as [Number, Number]) as Number {
-        return within(Math.ceil(v.toFloat() / STEP).toNumber() * STEP - STEP, range);
+    function altDown(v as Number, range as [Number, Number], ft as Boolean) as Number {
+        var step = ft ? STEP_FT : STEP;
+        return within(Math.ceil(v.toFloat() / step).toNumber() * step - step, range);
     }
 
     function within(v as Number, range as [Number, Number]) as Number {
@@ -97,8 +122,8 @@ module Flow {
     // The steps beside Up and Down: the change each press would make, with its own sign, "+4" and
     // "–6", "+0" or "–0" where it makes none; out of range both bring the altitude in, so both may read
     // "+12" (the review of #124). The fonts have the en dash, not the minus sign.
-    function steps(v as Number, range as [Number, Number]) as [String, String] {
-        return [step(altUp(v, range) - v, true), step(altDown(v, range) - v, false)];
+    function steps(v as Number, range as [Number, Number], ft as Boolean) as [String, String] {
+        return [step(altUp(v, range, ft) - v, true), step(altDown(v, range, ft) - v, false)];
     }
 
     function step(change as Number, up as Boolean) as String {
@@ -107,15 +132,29 @@ module Flow {
     }
 
     // How far a point at at is from the place d, as a value and its unit for a details screen (#121):
-    // "here", or metres under a kilometre, else kilometres to one place, ahead or back.
-    function ahead(at as Float, d as Float) as [String, String] {
+    // "here" (within 5 m), or metres under a kilometre, else kilometres to one place, ahead or back; in
+    // feet (#144), feet under 1000 ft, else miles to one place.
+    function ahead(at as Float, d as Float, ft as Boolean) as [String, String] {
         var v = at - d, a = v.abs(), way = v > 0 ? " ahead" : " back";
         if (a < 5) { return ["here", ""]; }
-        if (a < 1000) { return [Math.round(a).toNumber().format("%d"), "m" + way]; }
-        return [(a / 1000).format("%.1f"), "km" + way];
+        if (inUnit(a, ft) < 1000) { return [inUnit(a, ft).format("%d"), unit(ft) + way]; }
+        var long = far(a, ft);
+        return [long[0], long[1] + way];
     }
 
-    // A whole number of metres with its sign, + or - (the fonts have no minus sign).
+    // A distance in kilometres, or miles in feet, to one place (the approach's to the head, #144).
+    function far(m as Float, ft as Boolean) as [String, String] {
+        return [(m / (ft ? MILE : 1000)).format("%.1f"), ft ? "mi" : "km"];
+    }
+
+    // The summary's figures and their units (#144): the height climbed, the activity's time (seconds,
+    // shown as h:mm) and the drift, signed; heights in the unit shown.
+    function summary(climbed as Number, activeS as Number, drift as Float, ft as Boolean) as Array<Array<String> > {
+        return [[inUnit(climbed.toFloat(), ft).format("%d"), hours(activeS / 60), signed(inUnit(drift, ft))],
+            [unit(ft), "", unit(ft)]] as Array<Array<String> >;
+    }
+
+    // A whole number of metres or feet with its sign, + or - (the fonts have no minus sign).
     function signed(v as Number) as String {
         return (v >= 0 ? "+" : "-") + v.abs().format("%d");
     }

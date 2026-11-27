@@ -50,18 +50,24 @@ class FlowMenu {
 // The altitude entry: whether it starts the climb, the altitude it started from (the barometer's
 // before a start, the head's when it has none, else the estimate), the altitude shown, and the menu
 // Back returns to. It shows the altitude alone (#121); the tracker works out where on the route it is.
+// The altitudes and the range they step within are in the unit shown when it opened, feet or metres
+// (ft; #144).
 class FlowEntry {
 
     var start as Boolean;
     var est as Number;
     var value as Number;
     var parent as FlowMenu;
+    var ft as Boolean;
+    var range as [Number, Number];
 
-    function initialize(s as Boolean, e as Number, p as FlowMenu) {
+    function initialize(s as Boolean, e as Number, p as FlowMenu, inFeet as Boolean, r as [Number, Number]) {
         start = s;
         est = e;
         value = e;
         parent = p;
+        ft = inFeet;
+        range = r;
     }
 }
 
@@ -100,13 +106,14 @@ class FlowMenus {
     var feed as Feed;
     var range as [Number, Number];
     // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
-    // confirmation (the altitude calibrated to, and the point it was at, -1 for an altitude entered), a
+    // confirmation (the altitude calibrated to, in metres, and the point it was at, -1 for an altitude
+    // entered), a
     // toast over the ready screen. Back on the ready screen closes the app at once, to the watch's
     // activities (quit, which the view acts on; owner, 2026-11-26: no APP CLOSED).
     var menu as FlowMenu? = null;
     var entry as FlowEntry? = null;
     var detail as FlowDetail? = null;
-    var calibrated as Number? = null;
+    var calibrated as Float? = null;
     var calibratedPoint as Number = -1;
     // The point's name under CALIBRATED as drawn, cut to its room once (FlowDraw), and its size.
     var calibratedName as String? = null;
@@ -122,19 +129,31 @@ class FlowMenus {
     var approachShown as Boolean = true;
     var prompted as Array<Number> = [] as Array<Number>;
     // The ready screen's figures, worked out once (#121): the ferrata's path, its length and height
-    // together as page 16 counts it, its ascent and its guidebook time, as shown.
-    var figures as Array<String>;
+    // together as page 16 counts it, and its ascent, in metres; its guidebook time as shown.
+    var path as Float = 0.0;
+    var ascent as Number;
+    var guide as String;
+    // The large altitude's size (FlowDraw.bigSize), worked out once; -1 until then.
+    var bigK as Number = -1;
 
     function initialize(f as Feed) {
         feed = f;
         var r = f.route;
         range = r.altRange();
-        var path = 0.0;
         for (var i = 0; i < r.sections.size(); i++) {
             var len = r.sections[i]["len"] as Number, up = r.sections[i]["up"] as Number;
-            path += Math.sqrt(len * len + up * up);
+            path += Math.sqrt(len * len + up * up).toFloat();
         }
-        figures = [Math.round(path).toNumber().format("%d"), r.ascent().format("%d"), Flow.hours(r.guideMinutes())];
+        ascent = r.ascent();
+        guide = Flow.hours(r.guideMinutes());
+    }
+
+    // Whether the watch shows feet: the system's setting, never the app's (#144). A test's flow says.
+    function feet() as Boolean { return Widgets.feet(); }
+
+    // The ready screen's path, ascent and guidebook time, as shown in feet or metres.
+    function figures(ft as Boolean) as Array<String> {
+        return [Flow.inUnit(path, ft).format("%d"), Flow.inUnit(ascent.toFloat(), ft).format("%d"), guide];
     }
 
     // A new climb from the settings: the ready screen, nothing open, no toast, no quit.
@@ -333,7 +352,7 @@ class FlowMenus {
             menu = null;
             feed.calibrateAt(dt.point);
             quietNear();
-            calibrated = dt.alt;
+            calibrated = dt.alt.toFloat();
             calibratedPoint = dt.point;
             calibratedName = null;
         }
@@ -364,21 +383,23 @@ class FlowMenus {
 
     function pressEntry(e as FlowEntry, key as Symbol) as Void {
         if (key == :up) {
-            e.value = Flow.altUp(e.value, range);
+            e.value = Flow.altUp(e.value, e.range, e.ft);
         } else if (key == :down) {
-            e.value = Flow.altDown(e.value, range);
+            e.value = Flow.altDown(e.value, e.range, e.ft);
         } else if (key == :back) {
             entry = null;
         } else if (key == :start) {
             entry = null;
             menu = null;
+            // Entered in feet, set in metres (#144).
+            var m = Flow.toMetres(e.value, e.ft);
             if (e.start) {
                 newClimb();
-                feed.startAt(e.value.toFloat());
+                feed.startAt(m);
             } else {
-                feed.calibrateTo(e.value.toFloat());
+                feed.calibrateTo(m);
                 quietNear();
-                calibrated = e.value;
+                calibrated = m;
                 calibratedPoint = -1;
             }
         }
@@ -389,16 +410,18 @@ class FlowMenus {
         menu = m;
     }
 
-    // The altitude entry, from the barometer before a start, else from the estimated place's altitude.
+    // The altitude entry, from the barometer before a start, else from the estimated place's altitude,
+    // in the unit the watch shows.
     function openEntry(parent as FlowMenu, start as Boolean) as Void {
-        var est = 0;
+        var est = 0.0;
         if (start) {
             var a = feed.peek();
-            est = a != null ? Math.round(a).toNumber() : feed.route.headAlt();
+            est = a != null ? a : feed.route.headAlt().toFloat();
         } else {
-            est = feed.tracker.state().altitude();
+            est = feed.tracker.state().altitude().toFloat();
         }
-        entry = new FlowEntry(start, est, parent);
+        var ft = feet();
+        entry = new FlowEntry(start, Flow.inUnit(est, ft), parent, ft, Flow.rangeIn(range, ft));
     }
 
     function showToast(text as String, colour as Number) as Void {
