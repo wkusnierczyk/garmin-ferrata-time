@@ -98,10 +98,12 @@ class Tracker {
     function initialize(r as Route) {
         route = r;
         headAt = r.headPosition();
-        // A track that does not reach the head is no track: snapped to it, the distance could never
-        // fall below its last point's (Codex on #139). The head, at 0, is the last point when it has
-        // coordinates.
-        track = headAt != null ? r.approachTrack() : [] as Array<[Float, Float, Float]>;
+        // A track that does not cover the whole approach is no track (Codex on #139): snapped to one that
+        // stops short of the head, the distance could never fall below its last point's; to one that
+        // starts partway, a climber before its first point would be put there. It covers it when the
+        // head (at 0, the last point) and the approach's start (at 0 along, the first) have coordinates.
+        var tr = r.approachTrack();
+        track = headAt != null && tr.size() >= 2 && tr[0][2] <= 0.0 ? tr : [] as Array<[Float, Float, Float]>;
     }
 
     // Start the climb where the climber says: :head (the ferrata, synced to the head),
