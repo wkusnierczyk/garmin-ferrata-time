@@ -128,6 +128,34 @@ class Route {
         return (points[i]["alt"] as Object?) != null;
     }
 
+    // The approach's track for GPS (#113): its known points with lat and lon (the approach's start, the
+    // head, and any landmark, danger or exit before the head), each [lat, lon, metres along the
+    // approach from its start], in the order they come. route.py fills their coordinates from the
+    // route's GPX track, so it follows the path as closely as the points do.
+    function approachTrack() as Array<[Float, Float, Float]> {
+        var out = [] as Array<[Float, Float, Float]>;
+        var shift = lengthOf(approach);
+        for (var i = 0; i < points.size(); i++) {
+            var p = points[i];
+            if (!isKnownKind(p["kind"] as String) || p["lat"] == null || p["lon"] == null) { continue; }
+            var at = p["at"] as Number;
+            if (at > 0 || at < -shift) { continue; }
+            var v = [(p["lat"] as Numeric).toFloat(), (p["lon"] as Numeric).toFloat(), (at + shift).toFloat()]
+                as [Float, Float, Float];
+            var j = out.size();
+            out.add(v);
+            while (j > 0 && out[j - 1][2] > v[2]) { out[j] = out[j - 1]; out[j - 1] = v; j--; }
+        }
+        return out;
+    }
+
+    // The head's lat and lon, or null when the route has none.
+    function headPosition() as [Float, Float]? {
+        var p = points[point("head")];
+        if (p["lat"] == null || p["lon"] == null) { return null; }
+        return [(p["lat"] as Numeric).toFloat(), (p["lon"] as Numeric).toFloat()];
+    }
+
     // What the approach's start is, "Top station" or "Car park" (the route tool requires it): the Start
     // menu names the point by it, never by its own name (#121). Empty without one.
     function approachType() as String {
