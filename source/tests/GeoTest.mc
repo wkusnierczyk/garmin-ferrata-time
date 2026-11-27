@@ -143,6 +143,20 @@ module GeoTest {
     // approach is carried, and time takes it off first; the next fix, or the ferrata, clears it.
     const FAR = [45.98202, 7.0129] as [Float, Float];
 
+    // While metres beyond the approach's start are carried, the place holds at the start: an altitude
+    // 50 m above it must not move it up leg 2 (Codex on #139), on the fix's reading or after.
+    (:test)
+    function offRouteHoldsThePlace(logger as Logger) as Boolean {
+        var t = walking(route(false, true));
+        t.update(new Reading(1050.0, FAR[0], FAR[1], 600));
+        Test.assertMessage(near(t.d, 0.0, 0.01), "held on the fix: " + t.d);
+        Test.assertMessage(near(t.toHead()[0], 3000.0, 5.0), "straight: " + t.toHead()[0]);
+        t.update(new Reading(1050.0, null, null, 900));
+        Test.assertMessage(near(t.d, 0.0, 0.01), "held without a fix: " + t.d);
+        Test.assertMessage(near(t.toHead()[0], 2800.0, 5.0), "carried on by time: " + t.toHead()[0]);
+        return true;
+    }
+
     (:test)
     function offRouteDistanceCarried(logger as Logger) as Boolean {
         var t = walking(route(false, true));
