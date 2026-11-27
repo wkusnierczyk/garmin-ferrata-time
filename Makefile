@@ -339,6 +339,8 @@ check-icons:
 	$(require_graphics_tool)
 	@echo "Checking the launcher icons..."
 	@$(ICONS_TOOL) icons $(ICONS_README) --check
+	@echo "Checking the icons' pixels against the renderer..."
+	@"$(GRAPHICS_PYTHON)" tools/launcher_icon.py check
 
 ## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
 ## runs them in the replay build, on resources-replay/replay.json
