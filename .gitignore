@@ -37,3 +37,8 @@ furenwand-simulator/
 resources-replay/replay.json
 *.fit
 *.FIT
+
+# A route's GPX track (routes/<id>.gpx, which make routes reads when it is there): a track that is
+# someone's own recording stays out of git, so none is committed; the points' coordinates go in the
+# source by hand.
+routes/*.gpx
