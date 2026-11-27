@@ -499,7 +499,7 @@ module RouteTest {
         // Net as much as gained: nothing goes down. The route book's own altitude is 2912, a metre
         // above the head's 2070 and the sections' 841 (the tool allows 15).
         Test.assertEqualMessage(Climb.netAt(Climb.count()), 841, "net");
-        Test.assertEqualMessage(r.points[r.point("top")]["alt"], 2912, "the route book");
+        Test.assertEqualMessage(r.points[r.point("top")]["alt"] as Number, 2912, "the route book");
         for (var i = 0; i < Climb.count(); i++) {
             Test.assertMessage(!Climb.descends(i), "section " + i + " " + Climb.NAME[i] + " climbs");
         }
@@ -531,7 +531,7 @@ module RouteTest {
         Test.assertEqualMessage(Climb.totalD(), 595, "length");
         Test.assertEqualMessage(Climb.START_ALT, 2366, "head");
         Test.assertEqualMessage(Climb.netAt(Climb.count()), 451, "net");
-        Test.assertEqualMessage(r.points[r.point("top")]["alt"], 2817, "the summit");
+        Test.assertEqualMessage(r.points[r.point("top")]["alt"] as Number, 2817, "the summit");
         Test.assertEqualMessage(Climb.EXIT_AT.size(), 0, "no exits");
         Test.assertEqualMessage(Climb.DANGER_AT.toString(), [395, 500].toString(), "dangers");
         Climb.use(r, :approach);
