@@ -15,14 +15,35 @@ APP      := FerrataTime
 # DEMO=1 builds Ferrata Demo, the made-up climb always on and nothing recorded, an app of its own with
 # its own id and name (demo.jungle, manifest-demo.xml). Each its own .prg, so both can be on a watch.
 # The app's jungle comes last: monkey.jungle names no manifest.
+#
+# DEMO and REPLAY are taken from the command line only, as Matrix Time takes VERSION: a DEMO=1 or
+# REPLAY=1 left exported in the shell would otherwise quietly build, sideload or export the other app.
+# Their origin is "environment", or "environment override" under make -e, where only override beats it.
+## 1 builds Ferrata Demo; command line only
+DEMO ?=
+ifneq ($(findstring environment,$(origin DEMO)),)
+  override DEMO :=
+endif
+## 1 builds the replay build (Ferrata's, simulator only); command line only
+REPLAY ?=
+ifneq ($(findstring environment,$(origin REPLAY)),)
+  override REPLAY :=
+endif
+# BETA_ID: the application id of the app's store beta, a separate Connect IQ app (playbook,
+# reference/store.md), which make export VERSION=beta puts into a copy of the tree only, so the
+# tracked manifest keeps the public id (tools/export-beta.sh). Ferrata Demo goes to the store as a
+# beta first (owner, 2026-11-27); the id below is the beta's from its first upload on. Ferrata has
+# no beta, so its beta export is refused.
 ifeq ($(DEMO),1)
 APP_JUNGLE := demo.jungle
 MANIFEST := manifest-demo.xml
 BUILD    := $(APP)-demo
+BETA_ID  := 11675b84-e77b-4984-9d82-9222aa076932
 else
 APP_JUNGLE := ferrata.jungle
 MANIFEST := manifest.xml
 BUILD    := $(APP)
+BETA_ID  :=
 endif
 # REPLAY=1: the replay build (#57, replay.jungle): the recording resources-replay/replay.json, made by
 # make replay, played in the sensors' place in the simulator. The app's, not the demo's. Its own .prg,
@@ -34,8 +55,18 @@ else
 JUNGLE   := monkey.jungle;$(APP_JUNGLE)
 OUTPUT   := $(BUILD).prg
 endif
-# The store bundle, every product in the manifest (make export).
-EXPORT   := export/$(BUILD).iq
+# Which store app make export packages for: public, the app's own listing under its manifest's id
+# (for the demo, the public demo to come), or beta, its store beta under BETA_ID. From the command
+# line only, for the reason DEMO is: VERSION is a common name for an environment variable, and one
+# set to beta would turn a plain make export into a beta export.
+## public, the app's store listing, or beta, its store beta (DEMO=1 only); export only
+VERSION ?= public
+ifneq ($(findstring environment,$(origin VERSION)),)
+  override VERSION := public
+endif
+# The store bundle, every product in the manifest (make export); the beta's has a name of its own,
+# so the two cannot be mistaken for each other in export/.
+EXPORT   := export/$(BUILD)$(if $(filter beta,$(VERSION)),-beta).iq
 REPLAY_JSON := resources-replay/replay.json
 PYTHON   ?= python3
 
@@ -405,16 +436,33 @@ replay:
 	@$(PYTHON) tools/fit2replay.py "$(FIT)" -o $(REPLAY_JSON) && echo "$(REPLAY_JSON)"
 
 # The store bundle (#140): every product in the app's manifest, signed with the developer key (the
-# store's identity for the app, so never CI's throwaway one), in release mode. About 70 s. DEMO=1
-# exports Ferrata Demo, for its store beta.
-## Build the signed .iq store bundle, export/FerrataTime.iq [DEMO=1: export/FerrataTime-demo.iq]
+# store's identity for the app, so never CI's throwaway one), in release mode. About 70 s.
+# Uploading a bundle publishes it at once (playbook, reference/store.md), so which one goes where:
+#   make export                       export/FerrataTime.iq, Ferrata's listing
+#   make export DEMO=1 VERSION=beta   export/FerrataTime-demo-beta.iq, Ferrata Demo's store beta (BETA_ID)
+#   make export DEMO=1                export/FerrataTime-demo.iq, the public demo, once the owner is
+#                                     happy with the beta; not before
+## Build the signed .iq store bundle [DEMO=1 VERSION=public|beta]
 export: check-manifests
 	@test "$(REPLAY)" != 1 || { echo "The replay build is for the simulator only."; exit 1; }
 	@test -f "$(KEY)" || { echo "No developer key at $(KEY). Pass its path: make export DEV_KEY=/path/to/developer_key"; exit 1; }
+	@rm -f $(EXPORT)
+ifeq ($(VERSION),beta)
+	@test -n "$(BETA_ID)" || { echo "Ferrata has no store beta; Ferrata Demo has: make export DEMO=1 VERSION=beta."; exit 1; }
+	@SDK_BIN="$(SDK_BIN)" DEV_KEY="$(KEY)" DEMO="$(DEMO)" MANIFEST="$(MANIFEST)" BETA_ID="$(BETA_ID)" \
+	  tools/export-beta.sh $(EXPORT)
+else
+	@test "$(VERSION)" = public || { echo 'VERSION must be public or beta, not "$(VERSION)".'; exit 1; }
+	@id=$$(sed -nE 's/.*<iq:application[^>]* id="([^"]*)".*/\1/p' $(MANIFEST) | tr -d '-' | tr '[:upper:]' '[:lower:]'); \
+	  beta=$$(printf '%s' "$(BETA_ID)" | tr -d '-' | tr '[:upper:]' '[:lower:]'); \
+	  test -z "$$beta" -o "$$id" != "$$beta" || { \
+	  echo "$(MANIFEST) carries the beta id $(BETA_ID): a public export of it would be the beta's."; \
+	  echo "Put the public id back, and use VERSION=beta for a beta."; exit 1; }
 	@echo "Exporting $(EXPORT) for every product in $(MANIFEST)..."
-	@mkdir -p export && rm -f $(EXPORT)
+	@mkdir -p export
 	@$(MONKEYC) -f "$(JUNGLE)" -e -r -w -y "$(KEY)" -o $(EXPORT)
 	@echo "Export complete: $(EXPORT)"
+endif
 
 # Pure Python, no SDK.
 ## Check that manifest-demo.xml is manifest.xml but for the app id, name and the sensors' permissions
