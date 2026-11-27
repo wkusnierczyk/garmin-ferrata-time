@@ -833,10 +833,11 @@ module FlowTest {
     }
 
     // The review of #114: the Start menu and the altitude entry read the barometer without starting
-    // the replay's clock; the recording plays from its start when the climb starts.
+    // the replay's clock; the recording plays from its start when the climb starts. On a route from
+    // 1000 m, so the recording's 1000 m is within the entry's reach (Flow.OPEN_MARGIN, #144).
     (:test)
     function startMenuLeavesReplayClock(logger as Logger) as Boolean {
-        var f = new UnitsFlow(new ReplayFeed(RouteTest.demo()), false);
+        var f = new UnitsFlow(new ReplayFeed(RouteTest.made([[100, 100]])), false);
         var input = f.feed.input as ReplayInput;
         f.press(:start);
         choose(f, :atAltitude);

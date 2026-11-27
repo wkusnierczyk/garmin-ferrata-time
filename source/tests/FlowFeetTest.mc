@@ -231,17 +231,20 @@ module FlowFeetTest {
         return true;
     }
 
-    // The large altitude: the demo's at the mock's size; a route near 3000 m, five digits in feet with
-    // its margin, smaller, and its highest entry ("10171 ft", 3100 m) clear of a 100 m first press.
+    // The large altitude: the demo's at the mock's size, and a route near 3000 m too: its highest entry,
+    // "10171 ft" (3100 m with the margin), fits there beside a 100 m first press ("–328"), measured.
+    // Only a wider value takes a smaller size: a route reaching below sea level by 10 km, "-33136 ft".
     (:test)
     function bigAltitudeFits(logger as Logger) as Boolean {
         var d = PagesTest.draw(), mock = FlowDraw.size(true, 0.2);
         Test.assertEqualMessage(FlowDraw.bigSize(d, [1270, 1580]), mock, "the demo's at the mock's size");
-        var k = FlowDraw.bigSize(d, [2800, 3000]);
-        Test.assertMessage(k < mock, "five digits of feet smaller: " + k + ", mock " + mock);
-        Test.assertMessage(!FlowDraw.entryClear(d, mock, "10171", "ft", "–328"), "at the mock's size it would not fit");
-        Test.assertMessage(FlowDraw.entryClear(d, k, "10171", "ft", "–328"), "at its own it does");
-        Test.assertMessage(FlowDraw.entryClear(d, k, "3100", "m", "–100"), "and in metres");
+        Test.assertEqualMessage(FlowDraw.bigSize(d, [2800, 3000]), mock, "five digits of feet too");
+        Test.assertMessage(FlowDraw.entryClear(d, mock, "10171", "ft", "–328"), "10171 ft clear of its step");
+        Test.assertMessage(FlowDraw.entryClear(d, mock, "3100", "m", "–100"), "and 3100 m");
+        var k = FlowDraw.bigSize(d, [-10000, 1000]);
+        Test.assertMessage(k < mock, "six characters smaller: " + k + ", mock " + mock);
+        Test.assertMessage(!FlowDraw.entryClear(d, mock, "-33136", "ft", "–328"), "not at the mock's size");
+        Test.assertMessage(FlowDraw.entryClear(d, k, "-33136", "ft", "–328"), "at its own");
         return true;
     }
 }
