@@ -296,25 +296,30 @@ module PagesTest {
     // Pages 1 and 2 place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
     // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
     // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
-    // just until it does not, the profile's right end where it was.
+    // just until it does not, the profile's right end where it was. Those places are the mock's, at 416
+    // px; at every other size (#116) the fonts' whole pixels move the ink, and only the rule is checked:
+    // on every route the ink on the screen, and a line moved right by no more than it needs.
     (:test, :noreplay)
     function ascentNumbersStayOnTheScreen(logger as Logger) as Boolean {
-        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w;
-        var routes = [RouteTest.demo(), daubenhorn(true)] as Array<Route>, names = ["the demo: ", "the mock's Daubenhorn: "];
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w, mock = d.w == 416;
+        var routes = [RouteTest.demo(), daubenhorn(true), daubenhorn(false)] as Array<Route>;
+        var names = ["the demo: ", "the mock's Daubenhorn: ", "the Daubenhorn: "];
         for (var r = 0; r < routes.size(); r++) {
             Climb.use(routes[r], :ferrata);
-            Test.assertEqualMessage(Pages.profileLeft(d), Pages.PROFILE_X0, names[r] + "the profile's left where the mock has it");
-            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h);
-            logger.debug(names[r] + "the ink comes within " + (-at0) + " px of the edge");
-            Test.assertMessage(at0 <= 0, names[r] + "the ink past the edge by " + at0 + " px");
+            var x = Pages.profileLeft(d), moved = (x - Pages.PROFILE_X0) * d.w;
+            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h), atX = inkPastEdge(d, x, y0, h);
+            logger.debug(names[r] + "the ink " + at0 + " px past the edge where the mock has the line; moved " + moved + " px");
+            Test.assertMessage(atX <= 0, names[r] + "moved " + moved + " px, the ink still past the edge by " + atX + " px");
+            if (moved > 0) {
+                var less = inkPastEdge(d, x - px, y0, h);
+                Test.assertMessage(less > 0, names[r] + "moved " + moved + " px, one fewer would do: the ink " + less + " px past the edge");
+            }
+            if (mock && r < 2) {
+                Test.assertEqualMessage(x, Pages.PROFILE_X0, names[r] + "the profile's left where the mock has it");
+            } else if (mock) {
+                Test.assertMessage(at0 > 0, names[r] + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
+            }
         }
-        Climb.use(daubenhorn(false), :ferrata);
-        var x = Pages.profileLeft(d), moved = (x - Pages.PROFILE_X0) * d.w, where = "the Daubenhorn: ";
-        var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h), atX = inkPastEdge(d, x, y0, h), less = inkPastEdge(d, x - px, y0, h);
-        logger.debug(where + "the ink " + at0 + " px past the edge where the mock has the line; moved " + moved + " px");
-        Test.assertMessage(at0 > 0, where + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
-        Test.assertMessage(atX <= 0, where + "moved " + moved + " px, the ink still past the edge by " + atX + " px");
-        Test.assertMessage(less > 0, where + "moved " + moved + " px, one fewer would do: the ink " + less + " px past the edge");
         for (var p = 0; p < 2; p++) { Pages.draw(p, d, at(Climb.totalD() / 2.0)); }
         return true;
     }
