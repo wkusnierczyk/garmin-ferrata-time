@@ -134,7 +134,8 @@ module GeoTest {
         t.update(fix([46.0, 7.0] as [Float, Float], 60));
         // 1001 m south and 996 m west of the head; snapped to the ford it would be 1000 m along.
         Test.assertMessage(near(t.toHead()[0], 1412.0, 5.0), "straight to the head: " + t.toHead()[0]);
-        Test.assertMessage(near(t.d, 40.0, 1.0), "the place by time: " + t.d);
+        // A minute of leg 1's 50 m a minute.
+        Test.assertMessage(near(t.d, 50.0, 1.0), "the place by time: " + t.d);
         return true;
     }
 
