@@ -293,7 +293,7 @@ module PagesTest {
         return true;
     }
 
-    // A fill is never Graphics.COLOR_TRANSPARENT (-1), which opaque white made with createColor is: the
+    // A fill is opaque and never Graphics.COLOR_TRANSPARENT (-1), which opaque white made with createColor is: the
     // white shapes (the route's top, the current page's dot, a white box) drew nothing (#135).
     (:test)
     function fillsAreNeverTransparent(logger as Logger) as Boolean {
@@ -302,7 +302,9 @@ module PagesTest {
         var colours = [Graphics.COLOR_WHITE, 0xffffff, Graphics.COLOR_BLACK, 0x4a5050, 0xfffffe] as Array<Number>;
         for (var i = 0; i < colours.size(); i++) {
             d.ink(colours[i]);
-            Test.assertMessage(d.fillIs != Graphics.COLOR_TRANSPARENT, "the fill of " + colours[i].format("%06x") + " is transparent");
+            var at = "the fill of " + colours[i].format("%06x");
+            Test.assertMessage(d.fillIs != Graphics.COLOR_TRANSPARENT, at + " is transparent");
+            Test.assertEqualMessage((d.fillIs >> 24) & 0xff, 0xff, at + " is not opaque");
         }
         return true;
     }
