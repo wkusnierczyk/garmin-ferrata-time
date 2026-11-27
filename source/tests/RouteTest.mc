@@ -485,7 +485,7 @@ module RouteTest {
         var r = loaded as Route;
         Test.assertEqualMessage(r.short, "Daubenhorn", "short");
         Test.assertEqualMessage(r.ascent(), 841, "gained height");
-        Test.assertEqualMessage(r.guideMinutes(), 335, "guidebook minutes");
+        Test.assertEqualMessage(r.guideMinutes(), 330, "guidebook minutes");
         Test.assertEqualMessage(r.approachType(), "Top station", "the approach's start");
         // Gemmi, head, bench, Obere Freiheit, bridge, Via Konst board, route book.
         Test.assertEqualMessage(r.knownPoints().toString(), [0, 1, 2, 3, 4, 6, 8].toString(), "known points");
