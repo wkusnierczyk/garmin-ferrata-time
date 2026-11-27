@@ -53,35 +53,66 @@ module GeoTest {
         return true;
     }
 
+    // On leg 1, 250 m and 800 m from the car park; the ford, 1000 m.
+    const AT250 = [46.00225, 7.0003] as [Float, Float];
+    const AT800 = [46.0072, 7.0003] as [Float, Float];
+    const FORD = [46.009, 7.0] as [Float, Float];
+
     (:test)
     function snapsToTheTrack(logger as Logger) as Boolean {
         var t = walking(route(true, true));
-        t.update(fix(LEG1, 600));
+        t.update(fix(AT250, 300));
+        t.update(fix(LEG1, 900));
         var h = t.toHead();
         // Along the track: 500 m of leg 1 and all of leg 2; straight to the head it would be 1094 m.
         Test.assertMessage(near(h[0], 1500.0, 10.0), "along the track: " + h[0]);
         Test.assertMessage(near(t.d, 500.0, 10.0), "the place follows: " + t.d);
-        // 10 guidebook minutes done in 10: pace 1, so the 40 minutes ahead.
-        Test.assertMessage(near(h[1], 40.0, 0.5), "time at the pace: " + h[1]);
+        // 10 guidebook minutes done in 15: pace 1.5, so the 40 minutes ahead take 60.
+        Test.assertMessage(near(t.pace, 1.5, 0.02), "pace from the fixes: " + t.pace);
+        Test.assertMessage(near(h[1], 60.0, 1.0), "time at the pace: " + h[1]);
         t.update(fix(LEG2, 1200));
         Test.assertMessage(near(t.toHead()[0], 500.0, 10.0), "on leg 2: " + t.toHead()[0]);
         return true;
     }
 
+    // An ALTITUDE start on the flat leg puts the climber at the car park; the first fix says the ford,
+    // 1000 m in. The skipped stretch is not counted as walked (the review of #139): without that, a
+    // pace of 0.05 and a minute to the head.
+    (:test)
+    function firstFixDoesNotCountTheSkippedStretch(logger as Logger) as Boolean {
+        var t = new Tracker(route(true, true));
+        t.startAt(1000.0, new Reading(1000.0, null, null, 0));
+        Test.assertMessage(near(t.d, 0.0, 0.01), "placed at the car park: " + t.d);
+        t.update(fix(FORD, 60));
+        var h = t.toHead();
+        Test.assertMessage(near(h[0], 1000.0, 5.0), "from the ford: " + h[0]);
+        Test.assertMessage(near(t.pace, 1.0, 0.001), "pace as assumed: " + t.pace);
+        Test.assertMessage(near(h[1], 30.0, 0.5), "leg 2's 30 minutes: " + h[1]);
+        // 15 guidebook minutes walked from the ford in 10: a pace that follows the walk.
+        t.update(fix(LEG2, 660));
+        Test.assertMessage(t.pace > 0.5 && t.pace < 1.0, "pace from the ford on: " + t.pace);
+        return true;
+    }
+
+    // Straight to the head is a distance, not a place on the route: the place moves by time and
+    // height, and the time to the head is the guidebook's from there (the review of #139).
     (:test)
     function straightLineWithoutTrack(logger as Logger) as Boolean {
         var t = walking(route(false, true));
         t.update(fix(LEG1, 600));
-        var left = t.toHead()[0];
+        var h = t.toHead();
         // 500 m south and 973 m west of the head.
-        Test.assertMessage(near(left, 1094.0, 5.0), "straight to the head: " + left);
+        Test.assertMessage(near(h[0], 1094.0, 5.0), "straight to the head: " + h[0]);
+        Test.assertMessage(near(t.d, 500.0, 0.5), "the place by time: " + t.d);
+        Test.assertMessage(near(t.pace, 1.0, 0.001), "pace by time: " + t.pace);
+        Test.assertMessage(near(h[1], 40.0, 0.5), "the guidebook's 40 minutes: " + h[1]);
         return true;
     }
 
     (:test)
     function timeAloneWithoutCoordinates(logger as Logger) as Boolean {
         var t = walking(route(false, false));
-        // GPS would say 500 m; time alone says 10 of the 20 minutes of leg 1 done.
+        // GPS would say 500 m; time says 10 of the 20 minutes of leg 1 done.
         t.update(fix(LEG2, 600));
         var h = t.toHead();
         Test.assertMessage(near(h[0], 1500.0, 0.5), "by time: " + h[0]);
@@ -90,16 +121,18 @@ module GeoTest {
     }
 
     // A stale or poor fix reaches the tracker as a reading without a position (SensorInput.positionOf,
-    // InputsTest): time moves the place on from where the last fix put it.
+    // InputsTest): time and height move the place on from where the last fix put it.
     (:test)
     function staleFixFallsBackToTime(logger as Logger) as Boolean {
         var t = walking(route(true, true));
-        t.update(fix(LEG1, 600));
-        t.update(new Reading(1000.0, null, null, 1200));
+        // Time says 500 m at minute 10; the fix says 800 m.
+        t.update(fix(AT800, 600));
+        t.update(new Reading(1000.0, null, null, 780));
         var h = t.toHead();
-        // From 500 m at minute 10, 10 more minutes at pace 1: the end of leg 1.
-        Test.assertMessage(near(h[0], 1000.0, 10.0), "by time from the fix: " + h[0]);
-        Test.assertMessage(near(h[1], 30.0, 0.5), "time: " + h[1]);
+        // From 800 m (minute 16), 3 more minutes at pace 1: 950 m. From time's 500 m it would be 650.
+        Test.assertMessage(near(t.d, 950.0, 5.0), "on from the fix: " + t.d);
+        Test.assertMessage(near(h[0], 1050.0, 5.0), "to the head: " + h[0]);
+        Test.assertMessage(near(h[1], 31.0, 0.5), "time: " + h[1]);
         return true;
     }
 
@@ -115,12 +148,65 @@ module GeoTest {
         return true;
     }
 
+    // Paused, fixes move nothing and the distance stays as it was; after the resume, the next fix
+    // counts.
+    (:test)
+    function pauseKeepsTheDistance(logger as Logger) as Boolean {
+        var t = walking(route(true, true));
+        t.update(fix(LEG1, 600));
+        t.pause(fix(LEG1, 660));
+        t.update(fix(LEG2, 900));
+        Test.assertMessage(near(t.toHead()[0], 1500.0, 10.0), "paused: " + t.toHead()[0]);
+        Test.assertMessage(near(t.d, 500.0, 10.0), "the place paused: " + t.d);
+        t.resume(fix(LEG2, 960));
+        t.update(fix(LEG2, 1020));
+        Test.assertMessage(near(t.toHead()[0], 500.0, 10.0), "after the resume: " + t.toHead()[0]);
+        return true;
+    }
+
+    // Paused, a reading without a fix leaves the straight distance shown (the review of #139), not the
+    // place's 1500 m.
+    (:test)
+    function pauseKeepsTheStraightDistance(logger as Logger) as Boolean {
+        var t = walking(route(false, true));
+        t.update(fix(LEG1, 600));
+        t.pause(fix(LEG1, 660));
+        t.update(new Reading(1000.0, null, null, 900));
+        Test.assertMessage(near(t.toHead()[0], 1094.0, 5.0), "paused: " + t.toHead()[0]);
+        return true;
+    }
+
+    (:test)
+    function ferrataClearsTheDistance(logger as Logger) as Boolean {
+        var t = walking(route(true, true));
+        t.update(fix(LEG1, 600));
+        t.startAscent(new Reading(1100.0, null, null, 660));
+        Test.assertMessage(t.headLeft == null, "no GPS distance on the ferrata");
+        Test.assertMessage(near(t.toHead()[0], 100.0, 0.01), "the ferrata's 100 m: " + t.toHead()[0]);
+        return true;
+    }
+
     (:test)
     function gpsLeavesTheFerrataAlone(logger as Logger) as Boolean {
         var t = new Tracker(route(true, true));
         t.start(:head, new Reading(1100.0, null, null, 0));
         t.update(new Reading(1100.0, LEG1[0], LEG1[1], 60));
         Test.assertMessage(near(t.d, 0.0, 0.01), "still at the head: " + t.d);
+        return true;
+    }
+
+    // The demo's position on the approach counts from its start, as the place does (the review of
+    // #139): 500 m in is halfway along leg 1, not the head.
+    (:test)
+    function demoPositionOnTheApproach(logger as Logger) as Boolean {
+        var r = route(true, true);
+        var input = new DemoInput(r);
+        Climb.use(r, :approach);
+        var p = input.positionAt(500.0);
+        Test.assertMessage(p != null && near(p[0], 46.0045, 1e-5) && near(p[1], 7.0, 1e-5), "approach: " + p);
+        Climb.use(r, :ferrata);
+        p = input.positionAt(0.0);
+        Test.assertMessage(p != null && near(p[0], 46.009, 1e-5) && near(p[1], 7.0129, 1e-5), "head: " + p);
         return true;
     }
 }
