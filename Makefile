@@ -29,7 +29,8 @@ MONKEYDO  = "$(SDK_BIN)/monkeydo"
 CONNECTIQ = "$(SDK_BIN)/connectiq"
 
 .PHONY: all build sim run sideload clean routes replay fonts check-fonts font-sources check-ttf2bmp \
-  install-ttf2bmp check-garmin-font-scaler install-garmin-font-scaler
+  install-ttf2bmp check-garmin-font-scaler install-garmin-font-scaler icons check-icons \
+  check-garmin-graphics-generator install-garmin-graphics-generator
 
 all: build
 
@@ -259,6 +260,85 @@ font-sources:
 	done; \
 	cp "$$tmp/OFL.txt" resources/fonts/OFL-BarlowSemiCondensed.txt; \
 	"$(FONTTOOLS_PYTHON)" tools/digit-ink.py resources/fonts/BarlowSemiCondensedTabular-SemiBold.ttf source/DigitInk.mc
+
+# The launcher icons (#133). Their size is a per-device property (each definition's launcherIcon),
+# not a per-resolution one, so the icons and the per-product jungle mapping that serves them are
+# generated from the SDK's device definitions rather than kept by hand, by garmin-graphics-generator's
+# icons command with the renderer tools/launcher_icon.py, which draws tools/launcher_icon.svg at each
+# size through rsvg-convert. The command writes resources-icon-<size>/, the fallback
+# resources/drawables/launcher_icon.png (the largest size), the block between the markers in
+# monkey.jungle, and README.md's size table that follows the sentence in ICONS_README. --check
+# needs no SDK: it cross-checks the mapping with the device definitions when they are there.
+#
+# The tool is not on PyPI: install-garmin-graphics-generator installs it from its tag, in a virtual
+# environment of its own, GRAPHICS_VENV, as Climber Time does (playbook, reference/graphics.md), with
+# Pillow pinned, which writes the PNGs. It runs through GRAPHICS_PYTHON, not through the tool's own
+# garmin-graphics-generator script, which may belong to another interpreter. 0.8.1 is the first
+# release that records the renderer in the jungle's "Regenerate with:" line.
+## The generator's virtual environment, which install-garmin-graphics-generator replaces
+GRAPHICS_VENV ?= $(HOME)/.local/share/venvs/garmin-graphics-generator
+# test -x, not $(wildcard): wildcard splits a path with spaces, and reads [ and * as patterns.
+## The Python icons and check-icons run in: GRAPHICS_VENV's, else python3
+GRAPHICS_PYTHON ?= $(shell test -x "$(GRAPHICS_VENV)/bin/python" && printf '%s' "$(GRAPHICS_VENV)/bin/python" || echo python3)
+# The same choice as the scaler's environment (FONT_SCALER_PYTHON, above), for the same reason.
+## The Python to build the generator's environment on; empty tries /usr/bin/python3, then python3
+GRAPHICS_VENV_PYTHON ?=
+GRAPHICS_TOOL_VERSION := 0.8.1
+GRAPHICS_TOOL_REPO := https://github.com/wkusnierczyk/garmin-graphics-generator
+GRAPHICS_PILLOW_VERSION := 11.3.0
+# Prints the generator's version in $(1), a Python, or nothing.
+graphics_tool_version = "$(1)" -c 'from importlib.metadata import version; print(version("garmin_graphics_generator"))' 2>/dev/null
+
+define require_graphics_tool
+@"$(GRAPHICS_PYTHON)" -c 'import sys; from importlib.metadata import version; \
+  number = lambda v: tuple(int(part) for part in v.split(".")[:3]); \
+  raise SystemExit(number(version("garmin_graphics_generator")) < number(sys.argv[1]))' \
+  '$(GRAPHICS_TOOL_VERSION)' 2>/dev/null || { \
+  echo "make $@ needs garmin-graphics-generator $(GRAPHICS_TOOL_VERSION) or newer, installed for"; \
+  echo "GRAPHICS_PYTHON ($(GRAPHICS_PYTHON)). Install it into GRAPHICS_VENV with:"; \
+  echo "  make install-garmin-graphics-generator"; exit 1; }
+endef
+
+## Check that GRAPHICS_PYTHON has garmin-graphics-generator, new enough for the icons [GRAPHICS_PYTHON]
+check-garmin-graphics-generator:
+	$(require_graphics_tool)
+	@echo "garmin-graphics-generator $$($(call graphics_tool_version,$(GRAPHICS_PYTHON))) for $(GRAPHICS_PYTHON)."
+
+# The package with its dependencies and Pillow at GRAPHICS_PILLOW_VERSION, in one resolve; then
+# checked for the version, and for that Pillow.
+## Install garmin-graphics-generator in its own environment, GRAPHICS_VENV [GRAPHICS_VENV GRAPHICS_VENV_PYTHON]
+install-garmin-graphics-generator:
+	@$(call make_venv,$(GRAPHICS_VENV),$(GRAPHICS_VENV_PYTHON),GRAPHICS_VENV_PYTHON); \
+	echo "Installing garmin-graphics-generator $(GRAPHICS_TOOL_VERSION) and Pillow $(GRAPHICS_PILLOW_VERSION)..."; \
+	"$$venv/bin/python" -m pip install --quiet --disable-pip-version-check \
+	  "garmin-graphics-generator @ git+$(GRAPHICS_TOOL_REPO)@v$(GRAPHICS_TOOL_VERSION)" \
+	  "Pillow==$(GRAPHICS_PILLOW_VERSION)" || { echo "pip install failed."; restore; exit 1; }; \
+	got=$$($(call graphics_tool_version,$$venv/bin/python)); \
+	$(call version_at_least,$$got,$(GRAPHICS_TOOL_VERSION)) || { \
+	  echo "The installed garmin-graphics-generator is not $(GRAPHICS_TOOL_VERSION) or newer."; restore; exit 1; }; \
+	"$$venv/bin/python" -c 'import garmin_graphics_generator.cli' || { \
+	  echo "The installed garmin-graphics-generator does not import."; restore; exit 1; }; \
+	pil=$$("$$venv/bin/python" -c 'import PIL; print(PIL.__version__)' 2>/dev/null); \
+	test "$$pil" = "$(GRAPHICS_PILLOW_VERSION)" || { \
+	  echo "The environment has Pillow $${pil:-none}, not $(GRAPHICS_PILLOW_VERSION)."; restore; exit 1; }; \
+	trap - INT TERM; rm -rf "$$old"; \
+	echo "Installed garmin-graphics-generator $$got, with Pillow $$pil, in $$venv."
+
+ICONS_TOOL = "$(GRAPHICS_PYTHON)" -c 'import sys; from garmin_graphics_generator.cli import main; \
+  sys.argv[0] = "garmin-graphics-generator"; sys.exit(main())'
+ICONS_README := --readme-anchor 'Each supported product is mapped to the icon its device asks for'
+
+## Regenerate the launcher icons, their mapping in monkey.jungle and README.md's table (needs rsvg-convert) [GRAPHICS_PYTHON]
+icons:
+	$(require_graphics_tool)
+	@echo "Generating the launcher icons..."
+	@$(ICONS_TOOL) icons -R tools/launcher_icon.py $(ICONS_README)
+
+## Check the launcher icons, their mapping in monkey.jungle and README.md's table [GRAPHICS_PYTHON]
+check-icons:
+	$(require_graphics_tool)
+	@echo "Checking the launcher icons..."
+	@$(ICONS_TOOL) icons $(ICONS_README) --check
 
 ## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); REPLAY=1
 ## runs them in the replay build, on resources-replay/replay.json
