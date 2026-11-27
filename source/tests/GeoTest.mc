@@ -122,6 +122,22 @@ module GeoTest {
         return true;
     }
 
+    // A track that starts partway (the ford and the head have coordinates, the car park none) is no
+    // track either: at the car park, snapped to it, the climber would be at the ford (Codex on #139).
+    // The straight line to the head instead.
+    (:test)
+    function trackStartingPartwayIsNoTrack(logger as Logger) as Boolean {
+        var r = route(true, true);
+        r.points[0].remove("lat");
+        r.points[0].remove("lon");
+        var t = walking(r);
+        t.update(fix([46.0, 7.0] as [Float, Float], 60));
+        // 1001 m south and 996 m west of the head; snapped to the ford it would be 1000 m along.
+        Test.assertMessage(near(t.toHead()[0], 1412.0, 5.0), "straight to the head: " + t.toHead()[0]);
+        Test.assertMessage(near(t.d, 40.0, 1.0), "the place by time: " + t.d);
+        return true;
+    }
+
     // 3 km south of the head, on a 2 km approach (Codex on #139): when the fix goes, the 1 km beyond the
     // approach is carried, and time takes it off first; the next fix, or the ferrata, clears it.
     const FAR = [45.98202, 7.0129] as [Float, Float];
