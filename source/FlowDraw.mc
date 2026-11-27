@@ -85,10 +85,11 @@ module FlowDraw {
         Symbols.startArc(d, Widgets.GREEN);
     }
 
-    // F4, F20: on the approach, the distance and the time left to the head, then "to HEAD", HEAD green
-    // at the values' left and "to" right-aligned with the symbols; the two values at F26's place.
+    // F4, F20: on the approach, the distance and the time left to the head (from GPS where it can,
+    // Tracker.toHead, #113), then "to HEAD", HEAD green at the values' left and "to" right-aligned with
+    // the symbols; the two values at F26's place.
     function approach(d as Draw, f as FlowMenus) as Void {
-        var st = f.feed.tracker.state(), left = Climb.totalD() - st.d, minutes = st.left();
+        var h = f.feed.tracker.toHead(), left = h[0], minutes = h[1];
         title(d, "APPROACH", Flow.WHITE);
         var to = new SymRow(null, "HEAD", "");
         to.colour = Widgets.GREEN;
