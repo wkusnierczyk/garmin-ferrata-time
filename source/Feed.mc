@@ -121,18 +121,21 @@ class Feed {
     function start(where as Symbol) as Void {
         if (demo) { demoPart(where == :head); }
         tracker.start(where, reading());
+        Pages.prepare();
     }
 
     // Start at an altitude the climber entered.
     function startAt(known as Float) as Void {
         if (demo) { demoPart(!route.hasApproach()); }
         tracker.startAt(known, reading());
+        Pages.prepare();
     }
 
     // From the approach onto the ferrata, calibrated at the head.
     function startAscent() as Void {
         if (demo) { demoPart(true); }
         tracker.startAscent(reading());
+        Pages.prepare();
     }
 
     // A pause's readings are taken first; a resume's while still paused, as the tracker's resume wants.
