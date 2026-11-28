@@ -281,11 +281,12 @@ module FlowTest {
         f.press(:start);
         Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "Start pauses");
         var m = f.menu as FlowMenu;
-        Test.assertMessage(rows(m, [:continue, :startAscent, :endHere]), "Continue approach, Start from head, End here: " + ids(m));
+        Test.assertMessage(rows(m, [:continue, :startAscent, :endHere, :discard]), "Continue approach, Start from head, End here, Discard: " + ids(m));
         Test.assertEqualMessage(m.items[0].label, "Continue approach", "Continue approach");
         Test.assertEqualMessage(m.items[1].label, "Start from head", "Start from head, green");
         Test.assertEqualMessage(m.items[1].colour, Widgets.GREEN, "green");
         Test.assertEqualMessage(m.items[2].colour, Widgets.RED, "End here red");
+        Test.assertEqualMessage(m.items[3].colour, Widgets.RED, "Discard red");
         choose(f, :startAscent);
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "on the ferrata");
         Test.assertMessage(Climb.FERRATA && f.menu == null, "the ferrata, nothing open");
@@ -296,7 +297,9 @@ module FlowTest {
     function ascentPauseMenu(logger as Logger) as Boolean {
         var f = ascentAt(120.0);
         f.press(:start);
-        Test.assertMessage(rows(f.menu, [:continue, :calibrate, :end]), "Continue, Calibrate, End: " + ids(f.menu));
+        Test.assertMessage(rows(f.menu, [:continue, :calibrate, :end, :discard]), "Continue, Calibrate, End, Discard: " + ids(f.menu));
+        Test.assertEqualMessage((f.menu as FlowMenu).items[3].colour, Widgets.RED, "Discard red, as End");
+        Test.assertEqualMessage((f.menu as FlowMenu).sel, 0, "Continue selected");
         return true;
     }
 
@@ -320,6 +323,54 @@ module FlowTest {
         Test.assertEqualMessage((f.menu as FlowMenu).id, :paused, "so does Start");
         choose(f, :continue);
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "Continue resumes");
+        return true;
+    }
+
+    // Discard from the pause menu (#158): DISCARD? at once; No, or Back, returns to the pause menu with
+    // the climb still paused.
+    (:test)
+    function discardFromPauseAsksFirst(logger as Logger) as Boolean {
+        var f = ascentAt(120.0);
+        f.press(:start);
+        var pause = f.menu as FlowMenu;
+        choose(f, :discard);
+        Test.assertEqualMessage((f.menu as FlowMenu).id, :confirm, "asks at once");
+        Test.assertMessage(rows(f.menu, [:no, :yes]), "NO, DISCARD: " + ids(f.menu));
+        Test.assertEqualMessage((f.menu as FlowMenu).sel, 0, "No selected");
+        Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "still paused while it asks");
+        choose(f, :no);
+        Test.assertMessage(f.menu == pause, "No: back to the pause menu");
+        Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "still paused");
+        choose(f, :discard);
+        f.press(:back);
+        Test.assertMessage(f.menu == pause, "Back: back to the pause menu");
+        Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "still paused");
+        choose(f, :continue);
+        Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
+        return true;
+    }
+
+    // Discard there drops the climb as the summary's does: nothing saved, DISCARDED for 3 s, then the
+    // ready screen; on the ferrata and on the approach.
+    (:test)
+    function discardFromPauseDrops(logger as Logger) as Boolean {
+        var fs = [ascentAt(300.0), flow()] as Array<FlowMenus>;
+        fs[1].feed.start(:approachPoint);
+        for (var i = 0; i < fs.size(); i++) {
+            var f = fs[i];
+            var old = f.feed.tracker;
+            f.press(:start);
+            choose(f, :discard);
+            choose(f, :yes);
+            Test.assertEqualMessage(f.phase(), Tracker.IDLE, "a new climb, ready");
+            Test.assertMessage(f.feed.tracker != old && f.feed.tracker.d == 0.0, "the climb dropped");
+            Test.assertMessage(f.menu == null, "no summary: nothing to save");
+            text(f.toast, "DISCARDED", "DISCARDED shows");
+            f.tick(2999);
+            Test.assertMessage(f.toast != null, "for 3 s");
+            f.tick(1);
+            Test.assertMessage(f.toast == null && !f.quit && !f.isOpen(), "then the ready screen");
+        }
         return true;
     }
 
@@ -912,6 +963,11 @@ module FlowTest {
         f.feed.tracker.d = 380.0;
         f.press(:start);
         Test.assertMessage(FlowDraw.draw(d, f), "F7, the pause menu");
+        pick(f, 3);
+        Test.assertMessage(FlowDraw.draw(d, f), "F7d, the pause menu, Discard selected");
+        f.press(:start);
+        Test.assertMessage(FlowDraw.draw(d, f) && FlowDraw.banded(f), "F15 from the pause menu, under the pause symbol");
+        f.press(:back);
         f.press(:back);
         Test.assertMessage(!FlowDraw.draw(d, f) && FlowDraw.banded(f), "F21, the pages under the pause symbol (View)");
         f.press(:start);
