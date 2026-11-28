@@ -175,8 +175,10 @@ class Feed {
 
     function unend() as Void { tracker.unend(); }
 
-    // Save or discard the ended climb, then the ready screen, a replay rewound to its start. The
-    // Recorder (#53) saves or discards the activity here; until then nothing is recorded.
+    // Save or discard the climb, then the ready screen, a replay rewound to its start. Save follows an
+    // end; Discard may also drop a paused climb that never ended (the pause menu's Discard, #158), so
+    // the Recorder (#53), which saves or discards the activity here, must handle a session not ended.
+    // Until then nothing is recorded.
     function save() as Void { input.rewind(); ready(); }
 
     function discard() as Void { input.rewind(); ready(); }
