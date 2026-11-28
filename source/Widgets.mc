@@ -1709,7 +1709,7 @@ module Widgets {
     function frontStretch(d as Draw, pts as Array<Array<Float>>, d0 as Float, d1 as Float, pen as Float, c as Number) as Void {
         if (d1 <= d0) { return; }
         var dc = d.dc, r = d.s(pen) / 2;
-        dc.setColor(c, Graphics.COLOR_TRANSPARENT);
+        d.ink(c);
         dc.setPenWidth(d.s(pen));
         var p = frontAt(pts, d0);
         dc.fillCircle(d.s(p[0]), d.s(p[1]), r);
