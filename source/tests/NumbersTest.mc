@@ -56,14 +56,15 @@ module NumbersTest {
 
     function text(r as Array<String>) as String { return r[0] + " of " + r[1] + " " + r[2]; }
 
-    // Pages 16 to 19 follow page 15 in the cycle, page 19 the last; the tap zone stays page 15's.
+    // Pages 16 to 19 follow page 15 in the cycle, page 20 after them (GradesTest); the tap zone stays
+    // page 15's.
     (:test)
     function progressPagesFollowPageFifteen(logger as Logger) as Boolean {
         Test.assertEqualMessage(Pages.pageAt(Pages.SECTION_PAGE), 14, "page 15 at the tap zone's place");
         for (var k = 0; k < 4; k++) {
             Test.assertEqualMessage(Pages.pageAt(Pages.SECTION_PAGE + 1 + k), 15 + k, "page " + (16 + k) + " after page " + (15 + k));
         }
-        Test.assertEqualMessage(Pages.pageAt(Pages.COUNT - 1), 18, "page 19 last");
+        Test.assertEqualMessage(Pages.pageAt(Pages.SECTION_PAGE + 5), 19, "page 20 after page 19");
         return true;
     }
 
@@ -309,7 +310,7 @@ module NumbersTest {
         Climb.use(PagesTest.daubenhorn(false), :ferrata);
         var d = PagesTest.draw(), total = Climb.totalD().toFloat(), peak = 0;
         var sts = [at(0.0, 0.0, 1.0), at(total / 2, 60.0, 1.0), at(total, 140.0, 1.0)] as Array<Climb.State>;
-        for (var page = 0; page <= 18; page++) {
+        for (var page = 0; page <= 19; page++) {
             for (var s = 0; s < sts.size(); s++) { Pages.drawPage(page, d, shown(sts[s])); }
             var used = System.getSystemStats().usedMemory;
             if (used > peak) { peak = used; }

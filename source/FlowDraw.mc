@@ -122,6 +122,8 @@ module FlowDraw {
             titleParts(d, [["at ", Flow.GREY, false], ["LANDMARK", Flow.WHITE, true]]);
         } else if (id == :routes) {
             title(d, "ROUTES", Flow.WHITE);
+        } else if (id == :zeroRows) {
+            titleParts(d, [["ROWS", Flow.WHITE, true], [" at 0:00", Flow.GREY, false]]);
         } else {
             titleParts(d, [[id == :start ? "START" : (id == :end ? "END" : "CALIBRATE"), Flow.WHITE, true],
                 [" at", Flow.GREY, false]]);

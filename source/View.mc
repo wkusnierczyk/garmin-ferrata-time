@@ -173,6 +173,14 @@ class View extends WatchUi.View {
         return fl != null && fl.onScreen();
     }
 
+    // Holding Up: the page's menu where the page has one (page 20, #68); false where none opens.
+    function openPageMenu() as Boolean {
+        var fl = flow;
+        if (fl == null || !fl.openPageMenu(page)) { return false; }
+        WatchUi.requestUpdate();
+        return true;
+    }
+
     // A button for the climb flow (:start, :back, :up, :down); false when it does not take it.
     function press(key as Symbol) as Boolean {
         var fl = flow;

@@ -1,3 +1,4 @@
+using Toybox.Application;
 using Toybox.Graphics;
 using Toybox.Math;
 
@@ -5,7 +6,8 @@ import Toybox.Lang;
 
 // The number pages, 16 to 37 of the pages mock (design/demo/page-16.html and on; the Daubenhorn and
 // Sulzfluh grids), one issue each (#67 on), ported from the demo the owner checked on the watch
-// (2026-11-27): so far pages 16 to 19 (#67), progress as done and total (design/page-16.md). Sizes are
+// (2026-11-27): so far pages 16 to 19 (#67), progress as done and total (design/page-16.md), and page
+// 20 (#68), the time per grade (design/page-20.md). Sizes are
 // shares of the screen's width, the mocks' px at 416 divided by 416. A size that depends on the route is
 // chosen once per part: the page's own, or the largest below it in the size table (FontSizes.SEMI) at
 // which the page fits (pages 17 to 19 6 % of the width clear of the edge, page 16's rows 4 %),
@@ -20,6 +22,7 @@ module Numbers {
     // Font sizes (shares): SemiBold 104, 84, 52, 40 and 32 px at 416.
     const F104 = 0.25;
     const F84 = 0.2019;
+    const F64 = 0.1538;
     const F52 = 0.125;
     const F40 = 0.0962;
     const F32 = 0.0769;
@@ -33,12 +36,13 @@ module Numbers {
     // ---------------------------------------------------------------- per part
 
     // Sizes worked out once per part, by page (0 for page 16, 1 to 3 for pages 17 to 19): [the size,
-    // 1 if the time's estimate was ten hours or more].
+    // 1 if the time's estimate was ten hours or more]; page 20's layout (GRADES_KEY, gradesLayout).
     var cache as Dictionary<Number, Array<Float>> = {} as Dictionary<Number, Array<Float>>;
 
     // Climb.use calls this, through Widgets.forgetRoute, on every change of route or part.
     function forget() as Void {
         cache = {} as Dictionary<Number, Array<Float>>;
+        grades = null;
     }
 
     // Whether the box [x0, y0, x1, y1] keeps clear of the edge: every corner within r of the centre.
@@ -235,6 +239,182 @@ module Numbers {
         if (uw > 0) {
             right(d, xr, y1, uf, r[2], GREY);
             right(d, xr, y2, uf, r[2], GREY);
+        }
+    }
+
+    // ---------------------------------------------------------------- page 20: time per grade
+
+    // Whether page 20 shows the grades still at 0:00 (its menu, FlowMenus.pageMenu; the mock's default),
+    // kept in the watch's storage across launches.
+    var showZero as Boolean = true;
+    const SHOW_ZERO = "showZero";
+
+    // The choice kept, read as the app starts; none kept, or one of another type, leaves Show.
+    function loadShowZero() as Void {
+        try {
+            var v = Application.Storage.getValue(SHOW_ZERO);
+            if (v instanceof Boolean) { showZero = v; }
+        } catch (e) {
+        }
+    }
+
+    // A storage that cannot take it (full) is no reason to stop the climb: the choice is then kept
+    // only until the app closes.
+    function keepShowZero(show as Boolean) as Void {
+        showZero = show;
+        try {
+            Application.Storage.setValue(SHOW_ZERO, show);
+        } catch (e) {
+        }
+    }
+
+    // The rows 1.05 of the size apart (digits and capitals only, so a third of the size between them),
+    // the gap either side of "in", page 21's between its ascent and "m" (pages 20 and 21 share one
+    // size, the mock), and page 20's place in the cache.
+    const GRADES_PITCH = 1.05;
+    const IN_GAP = 0.024038;
+    const UNIT_GAP = 0.004808;
+    const GRADES_KEY = 4;
+
+    // The grades the part has, hardest first, a walk (W) the last; a rest is no row (the mock: owner,
+    // 2026-11-22). Worked out once per part.
+    var grades as Array<Number>? = null;
+
+    function partGrades() as Array<Number> {
+        var g = grades;
+        if (g == null) {
+            g = [] as Array<Number>;
+            for (var h = 12; h >= 0; h--) {
+                for (var i = 0; i < Climb.count(); i++) { if (Climb.GRADE[i] == h) { g.add(h); break; } }
+            }
+            grades = g;
+        }
+        return g;
+    }
+
+    // The minutes spent in each grade so far, by grade (0 the walk to 12 F/G): the guidebook's minutes
+    // of its sections done and of the current one up to the place, at the climber's pace (the tracker's,
+    // as the time left). A rest counts in none.
+    function spent(st as Climb.State) as Array<Float> {
+        var t = new Array<Float>[13];
+        for (var g = 0; g < 13; g++) { t[g] = 0.0; }
+        for (var i = 0; i <= st.cur; i++) {
+            var g = Climb.GRADE[i];
+            if (g < 0 || g > 12) { continue; }
+            var m = i < st.cur ? Climb.MIN[i].toFloat() : st.m - Climb.mAt(i);
+            t[g] += m > 0 ? m : 0.0;
+        }
+        for (var g = 0; g < 13; g++) { t[g] *= st.pace; }
+        return t;
+    }
+
+    // The current section's grade, -1 on a rest (no row is current then).
+    function currentGrade(st as Climb.State) as Number {
+        var g = Climb.GRADE[st.cur];
+        return g >= 0 && g <= 12 ? g : -1;
+    }
+
+    // The rows shown, top to bottom: every grade of the part, or with Hide those with time (at least
+    // the half minute 0:01 rounds from) and the current one.
+    function shownGrades(st as Climb.State) as Array<Number> {
+        var all = partGrades();
+        if (showZero) { return all; }
+        var t = spent(st), cur = currentGrade(st), out = [] as Array<Number>;
+        for (var k = 0; k < all.size(); k++) {
+            if (t[all[k]] >= 0.5 || all[k] == cur) { out.add(all[k]); }
+        }
+        return out;
+    }
+
+    // The largest Bold size not above f: the grades never outgrow the times beside them (the mock's
+    // atMost; the large Bold sizes hold the grades' letters, W and the slash).
+    function boldAtMost(f as Float) as Float {
+        var b = FontSizes.BOLD, best = b[0];
+        for (var i = 1; i < b.size(); i++) { if (b[i] <= f + 0.0001) { best = b[i]; } }
+        return best;
+    }
+
+    // The two columns' widths at size f, the grades at gf: [the left, as wide as the widest time (h:mm,
+    // or hh:mm past ten hours) and page 21's widest ascent in metres and feet (as many digits as the
+    // most the part climbs in one grade, with its unit), the right, the widest grade name]. Digits are
+    // tabular, so one string stands for every value of its length.
+    function gradeColumns(d as Draw, f as Float, gf as Float, long as Boolean) as Array<Float> {
+        var font = Fonts.semiOnce(Fonts.nearest(f, FontSizes.SEMI)), uf = d.semi(F32), gfont = d.bold(gf);
+        var all = partGrades(), up = 1;
+        for (var k = 0; k < all.size(); k++) {
+            var s = 0;
+            for (var i = 0; i < Climb.count(); i++) { if (Climb.GRADE[i] == all[k]) { s += Climb.gain(i); } }
+            if (s > up) { up = s; }
+        }
+        var lw = d.width(font, long ? "00:00" : "0:00");
+        var mW = d.width(font, zeros(up.format("%d").length())) + UNIT_GAP + d.width(uf, "m");
+        var ftW = d.width(font, zeros(int(up * FEET).length())) + UNIT_GAP + d.width(uf, "ft");
+        if (mW > lw) { lw = mW; }
+        if (ftW > lw) { lw = ftW; }
+        var rw = 0.0;
+        for (var k = 0; k < all.size(); k++) {
+            var w = d.width(gfont, Widgets.BOX_NAME[all[k]]);
+            if (w > rw) { rw = w; }
+        }
+        return [lw, rw] as Array<Float>;
+    }
+
+    function zeros(n as Number) as String {
+        var s = "";
+        for (var i = 0; i < n; i++) { s += "0"; }
+        return s;
+    }
+
+    // Whether a grade has ten hours or more (h:mm a digit wider): the one change in width a time can
+    // make within a part, so the layout is chosen again then.
+    function longGrade(t as Array<Float>) as Boolean {
+        for (var g = 0; g < 13; g++) { if (t[g] >= 599.5) { return true; } }
+        return false;
+    }
+
+    // Page 20's layout, once per part (again only when a grade passes ten hours): [the size, the grades'
+    // size, the "in" column's centre across, 1 past ten hours]. The size the largest from 64 down the
+    // table (64, 58, 52 ... 32, the mock's STEPS) at which a row for every grade of the part keeps 6 % of
+    // the width clear of the edge, each row's own box (from the widest time to the widest grade name,
+    // from the digits' top to the baseline), the middle rows having more room than the top and bottom
+    // ones on the round screen; 32 if none does. The rows are centred as a block, the "in" column off
+    // the middle by half the difference of the columns' widths. Hidden rows do not change it, so the
+    // columns stay put as rows come in.
+    function gradesLayout(d as Draw, st as Climb.State) as Array<Float> {
+        var long = longGrade(spent(st)), L = cache[GRADES_KEY];
+        if (L != null && (L[3] > 0.5) == long) { return L; }
+        var n = partGrades().size(), inW = d.width(d.semi(F32), "in"), size = F32, cx = 0.5;
+        for (var i = 0; sizeBelow(F64, i) >= F32 - 0.0001; i++) {
+            var f = sizeBelow(F64, i), cols = gradeColumns(d, f, boldAtMost(f), long), lw = cols[0], rw = cols[1];
+            var x = 0.5 + (lw - rw) / 2, p = d.whole(f * GRADES_PITCH), top = 0.5 - (n - 1) * p / 2 + CAP * f / 2, ok = true;
+            for (var k = 0; k < n && ok; k++) {
+                var y = top + k * p;
+                ok = fits([x - inW / 2 - IN_GAP - lw, y - CAP * f, x + inW / 2 + IN_GAP + rw, y] as Array<Float>, FIT_R);
+            }
+            size = f;
+            cx = x;
+            if (ok) { break; }
+        }
+        L = [size, boldAtMost(size), cx, long ? 1.0 : 0.0] as Array<Float>;
+        cache[GRADES_KEY] = L;
+        return L;
+    }
+
+    // Page 20: the time spent in each grade, "{time} in {grade}", aligned on "in": the times white,
+    // right-aligned before it, "in" grey, the grades Bold in their colours after it, hardest at the top.
+    // A grade at 0:00 that is not the current one is dimmed to 0.4, the current one at full brightness,
+    // the others at 0.85 (the mock). With Hide, the rows still at 0:00 are left out and the rest centred.
+    function timePerGrade(d as Draw, st as Climb.State) as Void {
+        var rows = shownGrades(st), n = rows.size();
+        if (n == 0) { return; }
+        var L = gradesLayout(d, st), fs = L[0], font = d.semi(fs), gfont = d.bold(L[1]), inF = d.semi(F32);
+        var inW = d.width(inF, "in"), cx = L[2], pitch = d.whole(fs * GRADES_PITCH), t = spent(st), cur = currentGrade(st);
+        var y0 = 0.5 - (n - 1) * pitch / 2 + CAP * fs / 2;
+        for (var k = 0; k < n; k++) {
+            var g = rows[k], y = y0 + k * pitch, op = g == cur ? 1.0 : (t[g] < 0.5 ? 0.4 : 0.85);
+            right(d, cx - inW / 2 - IN_GAP, y, font, hmm(t[g]), d.darken(WHITE, op));
+            d.textBase(cx, y, inF, "in", d.darken(GREY, op), Graphics.TEXT_JUSTIFY_CENTER);
+            left(d, cx + inW / 2 + IN_GAP, y, gfont, Widgets.BOX_NAME[g], d.darken(d.grade(g, false), op));
         }
     }
 }

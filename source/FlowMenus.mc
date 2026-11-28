@@ -24,8 +24,9 @@ class FlowItem {
     }
 }
 
-// A menu: which one (:routes, :start, :paused, :calibrate, :landmarks, :end, :head, :summary or :confirm),
-// which also says its title (FlowDraw), its rows, the one selected, and the menu Back returns to.
+// A menu: which one (:routes, :start, :paused, :calibrate, :landmarks, :end, :head, :summary, :confirm,
+// or page 20's :zeroRows), which also says its title (FlowDraw), its rows, the one selected, and the
+// menu Back returns to.
 class FlowMenu {
 
     var id as Symbol;
@@ -380,6 +381,9 @@ class FlowMenus {
             showToast("DISCARDED", Widgets.RED);
         } else if (id == :no) {
             menu = m.parent;
+        } else if (id == :showZero || id == :hideZero) {
+            menu = null;
+            keepShowZero(id == :showZero);
         }
     }
 
@@ -448,6 +452,21 @@ class FlowMenus {
             }
         }
     }
+
+    // A page's menu (#68): holding Up on page 20 (its place in the cycle, Pages.GRADES_PAGE) opens ROWS
+    // at 0:00, Show or Hide, on the one in use, while the climb goes on; Start on a row sets it, Back
+    // leaves it as it was. Not while the flow has the screen. False when none opens.
+    function openPageMenu(place as Number) as Boolean {
+        if (place != Pages.GRADES_PAGE || onScreen()) { return false; }
+        var m = new FlowMenu(:zeroRows, [new FlowItem(:showZero, "Show", Flow.WHITE),
+            new FlowItem(:hideZero, "Hide", Flow.WHITE)] as Array<FlowItem>);
+        m.sel = Numbers.showZero ? 0 : 1;
+        open(m, null);
+        return true;
+    }
+
+    // Kept across launches (Numbers); a test's flow keeps it itself.
+    function keepShowZero(show as Boolean) as Void { Numbers.keepShowZero(show); }
 
     function open(m as FlowMenu, parent as FlowMenu?) as Void {
         m.parent = parent;
