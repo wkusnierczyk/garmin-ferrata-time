@@ -327,6 +327,12 @@ font-sources:
 # Pillow pinned, which writes the PNGs. It runs through GRAPHICS_PYTHON, not through the tool's own
 # garmin-graphics-generator script, which may belong to another interpreter. 0.8.1 is the first
 # release that records the renderer in the jungle's "Regenerate with:" line.
+#
+# Both apps, every time (#149): Ferrata Demo's icons are the app's with a white outline, drawn by the
+# same file's render_demo into demo/resources-icon-<size>/ and mapped from demo.jungle, which only the
+# demo's build reads. A change to the drawing is a change to both. No fallback icon for the demo:
+# every product is mapped. The README's table serves both apps, as their products are the same
+# (make check-manifests): the app's call writes it, and both check it.
 ## The generator's virtual environment, which install-garmin-graphics-generator replaces
 GRAPHICS_VENV ?= $(HOME)/.local/share/venvs/garmin-graphics-generator
 # test -x, not $(wildcard): wildcard splits a path with spaces, and reads [ and * as patterns.
@@ -379,19 +385,24 @@ install-garmin-graphics-generator:
 ICONS_TOOL = "$(GRAPHICS_PYTHON)" -c 'import sys; from garmin_graphics_generator.cli import main; \
   sys.argv[0] = "garmin-graphics-generator"; sys.exit(main())'
 ICONS_README := --readme-anchor 'Each supported product is mapped to the icon its device asks for'
+DEMO_ICONS := --manifest manifest-demo.xml --jungle demo.jungle --icon-root demo --no-fallback-icon
 
-## Regenerate the launcher icons, their mapping in monkey.jungle and README.md's table (needs rsvg-convert) [GRAPHICS_PYTHON]
+## Regenerate both apps' launcher icons, their mappings in monkey.jungle and demo.jungle and README.md's table (needs rsvg-convert) [GRAPHICS_PYTHON]
 icons:
 	$(require_graphics_tool)
 	@echo "Generating the launcher icons..."
 	@$(ICONS_TOOL) icons -R tools/launcher_icon.py $(ICONS_README)
+	@echo "Generating Ferrata Demo's launcher icons..."
+	@$(ICONS_TOOL) icons -R tools/launcher_icon.py:render_demo $(DEMO_ICONS)
 
-## Check the launcher icons, their mapping in monkey.jungle and README.md's table [GRAPHICS_PYTHON]
+## Check both apps' launcher icons, their mappings in monkey.jungle and demo.jungle and README.md's table [GRAPHICS_PYTHON]
 check-icons:
 	$(require_graphics_tool)
 	@echo "Checking the launcher icons..."
 	@$(ICONS_TOOL) icons $(ICONS_README) --check
-	@echo "Checking the icons' pixels against the renderer..."
+	@echo "Checking Ferrata Demo's launcher icons..."
+	@$(ICONS_TOOL) icons $(DEMO_ICONS) $(ICONS_README) --check
+	@echo "Checking the icons' pixels against the renderers..."
 	@"$(GRAPHICS_PYTHON)" tools/launcher_icon.py check
 
 ## Run the unit tests in the simulator (source/tests/; Toybox.Test, built with --unit-test); DEMO=1
