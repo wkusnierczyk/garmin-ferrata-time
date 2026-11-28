@@ -1,4 +1,7 @@
-<!-- The route the app climbs, built by make routes from routes/demo.src.json (tools/route.py). -->
+<!-- The bundled routes, built by make routes from routes/<id>.src.json (tools/route.py). The app climbs
+     route, the demo climb; daubenhorn and sulzfluh are the routes it will pick from (#141). -->
 <resources>
     <jsonData id="route" filename="demo.json"/>
+    <jsonData id="daubenhorn" filename="daubenhorn.json"/>
+    <jsonData id="sulzfluh" filename="sulzfluh.json"/>
 </resources>
