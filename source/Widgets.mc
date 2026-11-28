@@ -362,33 +362,39 @@ module Widgets {
         if (c != null && c[0] == x && c[1] == y0 && c[2] == h) { return c[3]; }
         var font = d.semi(NUMBER_SIZE), nx = x - RING_OUTER - NUMBER_SPACE;
         var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
-        // Each number's y falls as the climber rises, and it changes glyphs only where it gains a digit
-        // or a sign, its first glyph a 1 or a minus there; the screen's edge is convex, so the ink of a
-        // number of one width reaches furthest past it at an end of the stretch of heights it is drawn
-        // over. The heights checked: the route's lowest and highest, and either side of each change of
-        // width (0, 1, 9, 10, 99, 100 ... above the head and below it, and as far from the top's height).
+        // Each number's y falls as the climber rises, and its first glyph, the one whose ink reaches
+        // furthest left, changes only where it gains a digit or a sign or its first digit changes; the
+        // screen's edge is convex, so the ink of a number of one width and first glyph reaches furthest
+        // past it at an end of the stretch of heights it is drawn over. The heights checked: the route's
+        // lowest and highest, and either side of each such change (0, 1, 2 ... 9, 10, 19, 20 ... 99, 100,
+        // 199, 200 ... above the head and below it, and as far from the top's height; #148: checking only
+        // the changes of width missed the Daubenhorn's 2000 ft, its 2 reaching further left than a 1).
         // Each height once: the route's ends exactly, and the sides of a change only within the route
         // (clamped to an end, they repeated it many times over, and the first frame tripped the watchdog
         // on the watch, #119). Next to an end needs no check of its own: lo + 0.49 and hi - 0.49 are
         // either the sides of a change (the head's 0, the top) or drawn as the end itself, the climber's
         // share clamped and the number rounded. In feet (#148) the same, the numbers in steps of 5 ft
-        // (0, 5, 10, 95, 100 ...), the sides of each 2.45 ft from it, in metres: the line stands where
-        // the numbers of either unit need it.
+        // (0, 5, 10, 15, 20 ... 95, 100 ...), the sides of each 2.45 ft from it, in metres: the line
+        // stands where the numbers of either unit need it.
         var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh(), need = 0.0;
         for (var u = 0; u < 2; u++) {
             var ft = u == 1, step = ft ? 5 : 1, k = ft ? 3.28084 : 1.0, topU = ascentHeight(top.toFloat(), ft);
-            var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>;
-            var ts = [step, 10, 100, 1000, 10000] as Array<Number>;
-            for (var q = 0; q < ts.size(); q++) {
-                // At the first step, step - step and step - step are both the head's 0: once.
-                var t = ts[q], pts = (q == 0 ? [t, 0, -t] : [t, t - step, -t, step - t]) as Array<Number>;
-                for (var i = 0; i < pts.size(); i++) {
-                    for (var j = 0; j < 2; j++) {
-                        var a = j == 0 ? pts[i] : topU + pts[i];
-                        for (var side = -1; side <= 1; side += 2) {
-                            var n = (a + side * 0.49 * step) / k;
-                            if (n > lo && n < hi) { heights.add(n.toFloat()); }
-                        }
+            var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>, pts = [0] as Array<Number>;
+            for (var t = 1; t <= 10000; t *= 10) {
+                for (var g = 1; g <= 9; g++) {
+                    // Each first digit's first number and the one before it, once: the step's own number
+                    // follows the head's 0.
+                    var v = g * t;
+                    if (v % step != 0) { continue; }
+                    pts.addAll(v == step ? [v, -v] : [v, v - step, -v, step - v]);
+                }
+            }
+            for (var i = 0; i < pts.size(); i++) {
+                for (var j = 0; j < 2; j++) {
+                    var a = j == 0 ? pts[i] : topU + pts[i];
+                    for (var side = -1; side <= 1; side += 2) {
+                        var n = (a + side * 0.49 * step) / k;
+                        if (n > lo && n < hi) { heights.add(n.toFloat()); }
                     }
                 }
             }
