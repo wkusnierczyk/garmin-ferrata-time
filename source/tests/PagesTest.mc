@@ -565,7 +565,8 @@ module PagesTest {
 
     // Pages 12 to 14 put what comes next above the box and the altitude below it (#157; owner,
     // 2026-11-28), but not on a section that descends, where what comes next is below, nor on the
-    // approach, whose pages stay as they were.
+    // approach, whose pages stay as they were. Pages 3 and 4's group never flips. One section of each
+    // kind, checked on the lines the pages drew: the altitude below the box's centre (0.5) when flipped.
     (:test)
     function nextAboveButOnADescentOrTheApproach(logger as Logger) as Boolean {
         Climb.use(RouteTest.demo(), :ferrata);
@@ -574,48 +575,52 @@ module PagesTest {
             if (Climb.descends(i)) { if (down < 0) { down = i; } } else if (up < 0) { up = i; }
         }
         Test.assertMessage(down >= 0 && up >= 0, "the demo has a descent and a climb");
-        var mid = (Climb.dAt(up) + Climb.dAt(up + 1)) / 2.0;
-        Test.assertMessage(Widgets.nextAbove(at(mid)), "next above on a climbing section");
-        mid = (Climb.dAt(down) + Climb.dAt(down + 1)) / 2.0;
-        Test.assertMessage(!Widgets.nextAbove(at(mid)), "next below on a descent");
+        var d = draw();
+        checkFlip(d, middle(up), true, "a climbing section");
+        checkFlip(d, middle(down), false, "the descent");
+        Pages.drawPage(2, d, middle(up));
+        Test.assertMessage(altitudeAbove(), "page 3's group keeps the altitude above");
         Climb.use(RouteTest.demo(), :approach);
-        for (var i = 0; i < Climb.count(); i++) {
-            var st = at((Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0);
-            Test.assertMessage(!Widgets.nextAbove(st), "the approach unchanged, section " + i);
-        }
+        checkFlip(d, middle(0), false, "the approach");
+        // Back to the ferrata, as the other tests expect.
+        Climb.use(RouteTest.demo(), :ferrata);
         return true;
     }
 
-    // The lines around the box, mirrored when flipped (#157): the upper line's baseline GROUP_GAP above
-    // the box, the lower line's capitals' top GROUP_GAP below it, the poi word's capitals 0.0288 under
-    // the lower line's baseline.
-    (:test)
-    function groupLinesMirror(logger as Logger) as Boolean {
-        var by = 0.5, bh = 0.149038, a = 0.0962, n = 0.0865, g = Widgets.GROUP_GAP;
-        var above = by - bh / 2 - g, below = by + bh / 2 + g, poi = 0.028846 + 0.7 * 0.0673;
-        var was = Widgets.groupLines(by, bh, a, n, false), now = Widgets.groupLines(by, bh, a, n, true);
-        Test.assertMessage(RouteTest.near(was[0], above), "the altitude above the box");
-        Test.assertMessage(RouteTest.near(was[1], below + 0.7 * n), "the next line below it");
-        Test.assertMessage(RouteTest.near(was[2], was[1] + poi), "the poi under the next line");
-        Test.assertMessage(RouteTest.near(now[1], above), "flipped: the next line above the box");
-        Test.assertMessage(RouteTest.near(now[0], below + 0.7 * a), "flipped: the altitude below it");
-        Test.assertMessage(RouteTest.near(now[2], now[0] + poi), "flipped: the poi under the altitude");
-        return true;
+    // The climber halfway along section i.
+    function middle(i as Number) as Climb.State { return at((Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0); }
+
+    // Whether the last lines drawn put the altitude above the box and the next line below it.
+    function altitudeAbove() as Boolean {
+        var l = Widgets.linesDrawn as [Float, Float, Float];
+        return l[0] < 0.5 && l[1] > 0.5 && l[2] > l[1];
     }
 
-    // Pages 12 to 14 draw on a climbing section, on a descent and on the approach.
-    (:test)
-    function flippedPagesDraw(logger as Logger) as Boolean {
-        var d = draw(), parts = [:ferrata, :approach];
-        for (var p = 0; p < parts.size(); p++) {
-            Climb.use(RouteTest.demo(), parts[p] as Symbol);
-            for (var i = 0; i < Climb.count(); i++) {
-                var st = at((Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0);
-                Pages.drawPage(11, d, st);
-                Pages.drawPage(12, d, st);
-                Pages.drawPage(13, d, st);
+    // Pages 12, 13 and 14 drawn at st: what comes next above (flipped) or below.
+    function checkFlip(d as Draw, st as Climb.State, flipped as Boolean, where as String) as Void {
+        Test.assertEqualMessage(Widgets.nextAbove(st), flipped, where);
+        for (var p = 11; p <= 13; p++) {
+            Widgets.linesDrawn = null;
+            Pages.drawPage(p, d, st);
+            var l = Widgets.linesDrawn as [Float, Float, Float];
+            if (flipped) {
+                Test.assertMessage(l[1] < 0.5 && l[0] > 0.5 && l[2] > l[0], "page " + (p + 1) + ", " + where + ": next above");
+            } else {
+                Test.assertMessage(altitudeAbove(), "page " + (p + 1) + ", " + where + ": the altitude above");
             }
         }
+    }
+
+    // The lines around the box, mirrored when flipped (#157): the upper line's baseline as far above the
+    // box as the lower line's capitals are below it, and the poi word as far under the lower line.
+    (:test)
+    function groupLinesMirror(logger as Logger) as Boolean {
+        var by = 0.5, bh = 0.149038, a = 0.0962, n = 0.0865;
+        var was = Widgets.groupLines(by, bh, a, n, false), now = Widgets.groupLines(by, bh, a, n, true);
+        Test.assertMessage(RouteTest.near(now[1], was[0]), "flipped: the next line where the altitude was");
+        Test.assertMessage(RouteTest.near(now[0] - 0.7 * a, was[1] - 0.7 * n), "flipped: the altitude's capitals where the next line's were");
+        Test.assertMessage(RouteTest.near(now[2] - now[0], was[2] - was[1]), "the poi as far under the lower line");
+        Test.assertMessage(RouteTest.near(by - bh / 2 - was[0], was[1] - 0.7 * n - (by + bh / 2)), "the same gap above and below");
         return true;
     }
 

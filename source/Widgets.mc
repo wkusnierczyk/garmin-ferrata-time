@@ -1785,10 +1785,15 @@ module Widgets {
     // the next line, the poi word]. The upper line's baseline GROUP_GAP above the box, the lower line's
     // capitals' top GROUP_GAP below it (0.7 of its size, alt or next); the altitude above and the next
     // line below, or flipped (nextAbove); the poi word's capitals 0.0288 under the lower line's baseline.
+    // The last lines placed (pages 12 to 14 and the group on 3 and 4), for the tests.
+    var linesDrawn as [Float, Float, Float]? = null;
+
     function groupLines(by as Float, bh as Float, alt as Float, next as Float, flip as Boolean) as [Float, Float, Float] {
         var above = by - bh / 2 - GROUP_GAP, below = by + bh / 2 + GROUP_GAP;
         var a = flip ? below + 0.7 * alt : above, n = flip ? above : below + 0.7 * next;
-        return [a, n, (flip ? a : n) + 0.028846 + 0.7 * 0.0673];
+        var lines = [a, n, (flip ? a : n) + 0.028846 + 0.7 * 0.0673] as [Float, Float, Float];
+        linesDrawn = lines;
+        return lines;
     }
 
     // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
@@ -1804,11 +1809,13 @@ module Widgets {
             flips as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k, Climb.descends(st.cur));
-        var lines = groupLines(by, bh, 0.0625 * k, 0.0577 * k, flips && nextAbove(st)), alt = altitudeNow(st, feet());
+        // The altitude's size as drawn: 26 px at 416 times k on page 14, 40 whatever k on pages 3 and 4.
+        var altSize = points ? 0.0625 * k : 0.0962;
+        var lines = groupLines(by, bh, altSize, 0.0577 * k, flips && nextAbove(st)), alt = altitudeNow(st, feet());
         if (points) {
-            altitudeCentred(d, cx, lines[0], alt, d.semi(0.0625 * k), d.semi(0.0385 * k), 0.007212 * k);
+            altitudeCentred(d, cx, lines[0], alt, d.semi(altSize), d.semi(0.0385 * k), 0.007212 * k);
         } else {
-            altitudeCentred(d, cx, lines[0], alt, d.semi(0.0962), d.semi(0.0577), 0.007212);
+            altitudeCentred(d, cx, lines[0], alt, d.semi(altSize), d.semi(0.0577), 0.007212);
         }
         nextUp(d, st, cx, lines[1], 0.0577 * k);
         if (points) {
@@ -1835,6 +1842,8 @@ module Widgets {
     // at its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
     // keeps clear of it. Worked out once per part and unit, for the unit shown (#148, as the owner decided
     // for the summary, #144: a change of units may move it); nothing in it changes as the climber moves.
+    // It lays out the unflipped group only, the altitude above the box: pages 3 and 4 never flip (#157,
+    // the flip is page 14's, whose group is centred on the screen).
     const GROUP_MARGIN = 0.019231;
     var groupPlaced as Array<Float>? = null;
     var groupFeet as Boolean = false;
