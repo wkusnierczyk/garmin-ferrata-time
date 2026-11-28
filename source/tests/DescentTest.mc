@@ -150,7 +150,7 @@ module DescentTest {
         for (var p = 0; p < places.size(); p++) {
             var st = PagesTest.at(places[p]);
             Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), shares[p]), "at " + places[p] + ": share " + Widgets.ascentShare(st));
-            Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), numbers[p].toString(), "at " + places[p]);
+            Test.assertEqualMessage(Widgets.ascentNumbers(st, false).toString(), numbers[p].toString(), "at " + places[p]);
         }
         Test.assertEqualMessage(PagesTest.at(150.0).climbed(), 100, "climbed stays gained height");
         return true;
@@ -164,10 +164,13 @@ module DescentTest {
         // Net -20 at 50 m, 80 at 150 m; the top 70.
         var st = PagesTest.at(50.0);
         Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 0.0), "the dip at the start");
-        Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [-20, 90].toString(), "below the head");
+        Test.assertEqualMessage(Widgets.ascentNumbers(st, false).toString(), [-20, 90].toString(), "below the head");
         st = PagesTest.at(150.0);
         Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 1.0), "the high point at the top");
-        Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [80, -10].toString(), "above the top");
+        Test.assertEqualMessage(Widgets.ascentNumbers(st, false).toString(), [80, -10].toString(), "above the top");
+        // In feet (#148), to 5 ft: -20 m is -66 ft, -65; the top's 70 m 230 ft, and 295 above the climber.
+        st = PagesTest.at(50.0);
+        Test.assertEqualMessage(Widgets.ascentNumbers(st, true).toString(), [-65, 295].toString(), "below the head, in feet");
         return true;
     }
 
@@ -184,7 +187,7 @@ module DescentTest {
                 var st = PagesTest.at(places[p]);
                 Test.assertMessage(RouteTest.near(Widgets.ascentShare(st), 0.0),
                     "route " + r + " at " + places[p] + ": share " + Widgets.ascentShare(st));
-                Test.assertEqualMessage(Widgets.ascentNumbers(st).toString(), [0, 0].toString(),
+                Test.assertEqualMessage(Widgets.ascentNumbers(st, false).toString(), [0, 0].toString(),
                     "route " + r + " at " + places[p]);
             }
         }
