@@ -31,7 +31,7 @@
     {"kind": "exit", "at": 790, "alt": 2303, "lat": 46.38551, "lon": 7.60992, "name": "Obere Freiheit"},
     {"kind": "landmark", "at": 815, "alt": 2369, "type": "bridge", "name": "2-rope bridge"},
     {"kind": "danger", "at": 895, "name": "Grosser Spalt, E variant"},
-    {"kind": "landmark", "at": 1115, "alt": 2694, "type": "sign", "lat": 46.38382, "lon": 7.60514, "name": "Via Konst board"},
+    {"kind": "landmark", "at": 1115, "alt": 2694, "type": "sign", "name": "Via Konst board"},
     {"kind": "danger", "at": 1115, "name": "Via Konst, extremely exposed"},
     {"kind": "top", "at": 1545, "alt": 2912, "lat": 46.38795, "lon": 7.60291, "name": "Route book"}
   ]

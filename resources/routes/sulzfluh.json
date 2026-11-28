@@ -4,9 +4,9 @@
   "name": "Sulzfluh",
   "short": "Sulzfluh",
   "place": "St. Antonien",
-  "source": {"geometry": "the points' coordinates from the owner's recording, the ferrata only; sides made up for the front view", "elevation": "the owner's recording; the approach's time from the guidebook, its length an estimate", "text": "https://www.bergsteigen.com/touren/klettersteig/sulzfluh-klettersteig/"},
+  "source": {"geometry": "the points' coordinates from the owner's recording; the approach's start, the Partnun car park P6, from bergsteigen.com's planned track; sides made up for the front view", "elevation": "the owner's recording; the approach's length along bergsteigen.com's planned track from P6 to the head, its time from the guidebook", "text": "https://www.bergsteigen.com/touren/klettersteig/sulzfluh-klettersteig/"},
   "approach": [
-    {"len": 3300, "up": 666, "grade": 0, "min": 90, "name": "Partnun to the head", "side": -1.0}
+    {"len": 2778, "up": 666, "grade": 0, "min": 90, "name": "Partnun to the head", "side": -1.0}
   ],
   "sections": [
     {"len": 60, "up": 14, "grade": 4, "min": 5, "name": "Slab traverse", "side": 0.8},
@@ -27,7 +27,7 @@
     {"len": 40, "up": 19, "grade": 1, "min": 4, "name": "To the summit", "side": -0.6}
   ],
   "points": [
-    {"kind": "approach", "at": -3300, "alt": 1700, "type": "Car park", "name": "Partnun"},
+    {"kind": "approach", "at": -2778, "alt": 1700, "type": "Car park", "lat": 46.99595, "lon": 9.85491, "name": "Partnun"},
     {"kind": "head", "at": 0, "alt": 2366, "lat": 47.01018, "lon": 9.84363, "name": "Einstieg"},
     {"kind": "landmark", "at": 295, "alt": 2586, "type": "rest", "lat": 47.01151, "lon": 9.84188, "name": "Baenkli"},
     {"kind": "danger", "at": 395, "name": "Engstelle"},

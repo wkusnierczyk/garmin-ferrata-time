@@ -500,6 +500,10 @@ module RouteTest {
         Test.assertEqualMessage(r.knownPoints().toString(), [0, 1, 2, 3, 4, 6, 8].toString(), "known points");
         // The approach's start and the head have coordinates, so the approach has a track (#113).
         Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "sign"].toString(), "landmark types");
+        // Neither the 2-rope bridge nor the Via Konst board has coordinates until a climb places them
+        // (owner, 2026-11-28); the bench has.
+        Test.assertMessage((r.points[4]["lat"] as Object?) == null && (r.points[6]["lat"] as Object?) == null, "bridge and board unplaced");
+        Test.assertMessage((r.points[2]["lat"] as Object?) != null, "the bench placed");
         // The approach's start and the head, 0 and 2400 m along it.
         var track = r.approachTrack();
         Test.assertEqualMessage(track.size(), 2, "approach track");
@@ -525,8 +529,7 @@ module RouteTest {
         return true;
     }
 
-    // The Sulzfluh: no exit, only climbing, and an approach without coordinates (the recording starts
-    // at the head), so the approach has no track and #113 measures straight to the head.
+    // The Sulzfluh: no exit, only climbing, and an approach from the Partnun car park P6.
     (:test)
     function sulzfluhLoads(logger as Logger) as Boolean {
         var loaded = Route.fromJson(WatchUi.loadResource(Rez.JsonData.sulzfluh) as Dictionary);
@@ -537,9 +540,10 @@ module RouteTest {
         Test.assertEqualMessage(r.guideMinutes(), 150, "guidebook minutes");
         Test.assertEqualMessage(r.approachType(), "Car park", "the approach's start");
         Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "bridge"].toString(), "landmark types");
+        // The car park P6 and the head, 0 and 2778 m along it.
         var track = r.approachTrack();
-        Test.assertEqualMessage(track.size(), 1, "the head alone");
-        Test.assertMessage(near(track[0][2], 3300.0), "the head 3300 m along, " + track);
+        Test.assertEqualMessage(track.size(), 2, "approach track");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2778.0), "along " + track);
         Test.assertMessage(r.headPosition() != null, "the head's coordinates");
         Climb.use(r, :ferrata);
         Test.assertEqualMessage(Climb.count(), 16, "sections");
@@ -551,7 +555,7 @@ module RouteTest {
         Test.assertEqualMessage(Climb.EXIT_AT.size(), 0, "no exits");
         Test.assertEqualMessage(Climb.DANGER_AT.toString(), [395, 500].toString(), "dangers");
         Climb.use(r, :approach);
-        Test.assertEqualMessage(Climb.totalD(), 3300, "approach length");
+        Test.assertEqualMessage(Climb.totalD(), 2778, "approach length");
         Test.assertEqualMessage(Climb.START_ALT, 1700, "Partnun");
         return true;
     }
