@@ -136,7 +136,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 - Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart, none after the last, so the gauge ends where the gap ascent's top dot is; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
-- The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
+- The climber as a thicker orange line (0.0288 of the screen wide, the sections' width, round ends; twice the first 0.0144, #156; its ends at least 2° inside the gauge's, so the caps stay clear of the ascent numbers) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
 - By length (page 12) or by ascent (page 13): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart. By ascent a section that loses height climbs none, and takes 3° as a flat one does (#56).
 
 ## gap ascent
@@ -168,7 +168,8 @@ The current difficulty with what surrounds it, as one unit; its sizes scale toge
 - The current difficulty in a filled box (0.2115 by 0.1490 of the screen at base size), Bold 0.1106, a rest as `W`; a trapezium narrower at its foot for a section that loses height (*difficulty*, #100). The group's placement on pages 3 and 4 is the rectangle's: the trapezium's top is as wide.
 - Above it, the altitude with its unit, centred on the box together (owner, 2026-11-23), its baseline 0.0288 of the screen above the box (below it, the next line's capitals as far below; the same gap on pages 3, 4 and 12 to 15): on pages 3 and 4 SemiBold 0.0962 and 0.0577 whatever the scale; on page 14 0.0625 and 0.0385 times the scale.
 - Below it, **next** without "in": "C/D 125 m", Bold 0.0577 times the scale, the grade in its colour, centred.
-- Page 14 only: the point of interest as a word under the next line (Bold 0.0673, letter-spaced, in its colour, centred), the ferrata's head (`HEAD`, green; never START, as the climb may start on the approach, owner 2026-11-23) and the route's top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Pages 3 and 4 show none (owner, 2026-11-22).
+- Page 14 only, as pages 12 and 13 (#157; owner, 2026-11-28): the two lines swapped, next above the box (its baseline 0.0288 above it) and the altitude below (its capitals 0.0288 below it), except on a section that descends and on the approach; pages 3 and 4 keep the altitude above.
+- Page 14 only: the point of interest as a word under the lower line (the altitude, or next where not swapped) (Bold 0.0673, letter-spaced, in its colour, centred), the ferrata's head (`HEAD`, green; never START, as the climb may start on the approach, owner 2026-11-23) and the route's top (`TOP`, red) too while the uncertainty reaches them; the nearest wins, on a tie danger, exit, rest, top, start. Pages 3 and 4 show none (owner, 2026-11-22).
 
 ## Groups
 

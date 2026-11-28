@@ -33,6 +33,13 @@ module Fonts {
         return f;
     }
 
+    // SemiBold t[i], the one loaded if it is, else loaded for the caller only, not kept: pages 5 and 6
+    // measure fonts they may not draw in (Widgets.columnFit, #160).
+    function semiOnce(i as Number) as Graphics.FontType {
+        var f = semiLoaded[i];
+        return f != null ? f : WatchUi.loadResource(FontSizes.semiId(i)) as Graphics.FontType;
+    }
+
     // Bold, the letters in the difficulty boxes and the words beside them, at the size nearest share.
     function bold(share as Numeric) as Graphics.FontType {
         var i = nearest(share, FontSizes.BOLD), f = boldLoaded[i];
@@ -359,7 +366,19 @@ class Draw {
 
     // Text whose capitals are centred vertically on y, justified as given.
     function textCapMiddle(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
-        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, justify);
+        textTop(x, capTop(y, font), font, str, c, justify);
+    }
+
+    // Where textCapMiddle puts the text's top for capitals centred on y.
+    function capTop(y as Numeric, font as Graphics.FontType) as Float {
+        return (y + capHeight(font) / 2 - ascent(font)).toFloat();
+    }
+
+    // The middle of those capitals in pixels, once the text's top is rounded: what to centre a shape
+    // around the text on.
+    function capMiddlePx(y as Numeric, font as Graphics.FontType) as Float {
+        var a = Graphics.getFontAscent(font);
+        return s(capTop(y, font)) + a - a * CAP / 2;
     }
 
     // A round brush along a line: filled circles every BRUSH_STEP, so ends and bends come out round.

@@ -131,9 +131,15 @@ module Pages {
     // ---------------------------------------------------------------- pages 5 and 6: the difficulty column
 
     // design/page-5.md: the difficulty column group, centred, with an altitude at the column's top edge
-    // too; page 6 (relative) the altitudes relative to the current section's bottom.
+    // too; page 6 (relative) the altitudes relative to the current section's bottom. On the ferrata as
+    // large as fits, 4 % of the width and a pixel from the bezel (Widgets.columnFilled, #160); on the
+    // approach at page 7's size, as the HEAD line needs the room.
     function columnPage(d as Draw, st as Climb.State, relative as Boolean) as Void {
-        Widgets.columnGroup(d, st, 0.5, true, relative);
+        if (Climb.FERRATA) {
+            Widgets.columnFilled(d, st, relative);
+        } else {
+            Widgets.columnGroup(d, st, 0.5, true, relative);
+        }
     }
 
     // ---------------------------------------------------------------- page 7: side by side
@@ -177,20 +183,22 @@ module Pages {
 
     // design/page-12.md: the gauge, each section's arc its length along the route (page 12) or the
     // metres it climbs (byUp, page 13); the current difficulty in a large box centred on the screen;
-    // above it the altitude with its unit; below it what comes next, and under that the point of
-    // interest as a word, all centred; the ascent along the gauge's gap at the bottom.
+    // above it what comes next, below it the altitude with its unit, and under that the point of
+    // interest as a word, all centred (#157; owner, 2026-11-28); on a descent and on the approach the
+    // altitude above and what comes next below (Widgets.nextAbove); the ascent along the gauge's gap
+    // at the bottom.
     function gaugePage(d as Draw, st as Climb.State, byUp as Boolean) as Void {
         var bw = SECTION_BW, bh = SECTION_BH, by = 0.5;
         Widgets.gauge(d, st, byUp);
         Widgets.bigDifficultyOf(d, Widgets.section(st.cur, false), 0.5, by, bw, bh, 0.1683, Climb.descends(st.cur));
-        altitudeLine(d, by - bh / 2 - Widgets.GROUP_GAP, Widgets.altitudeNow(st, Widgets.feet()));
-        // What comes next, Bold 36 px at 416, its capitals' top GROUP_GAP below the box (owner, 2026-11-23).
-        var nextBase = by + bh / 2 + Widgets.GROUP_GAP + 0.7 * 0.0865;
-        Widgets.nextUp(d, st, 0.5, nextBase, 0.0865);
+        // The altitude SemiBold 40 px at 416, what comes next Bold 36, GROUP_GAP from the box (owner, 2026-11-23).
+        var lines = Widgets.groupLines(by, bh, 0.0962, 0.0865, Widgets.nextAbove(st));
+        altitudeLine(d, lines[0], Widgets.altitudeNow(st, Widgets.feet()));
+        Widgets.nextUp(d, st, 0.5, lines[1], 0.0865);
         var kind = Widgets.poiNear(st, false);
         if (kind >= 0) {
-            d.spaced(0.5, nextBase + 0.028846 + 0.7 * 0.0673, d.bold(0.0673), Widgets.POI_WORD[kind],
-                Widgets.POI_COLOUR[kind], Graphics.TEXT_JUSTIFY_CENTER);
+            d.spaced(0.5, lines[2], d.bold(0.0673), Widgets.POI_WORD[kind], Widgets.POI_COLOUR[kind],
+                Graphics.TEXT_JUSTIFY_CENTER);
         }
         Widgets.ascentGap(d, st);
     }
@@ -216,16 +224,17 @@ module Pages {
         } else {
             Widgets.frontView(d, st, 0.442308, 0.884615, 0.153846, 0.846154);
         }
-        Widgets.group(d, st, place[0], 0.5, FRONT_GROUP, false);
+        Widgets.group(d, st, place[0], 0.5, FRONT_GROUP, false, false);
     }
 
     // ---------------------------------------------------------------- page 14: the centre
 
-    // design/page-14.md: the current difficulty group in the middle, 50 % larger, with the point of
-    // interest as a word under it; the ascent as a gauge around the edge.
+    // design/page-14.md: the current difficulty group in the middle, 50 % larger, what comes next above
+    // the box and the altitude below it as on pages 12 and 13 (#157), with the point of interest as a
+    // word under it; the ascent as a gauge around the edge.
     function centrePage(d as Draw, st as Climb.State) as Void {
         Widgets.ascentGauge(d, st, true);
-        Widgets.group(d, st, 0.5, 0.5, 1.5, true);
+        Widgets.group(d, st, 0.5, 0.5, 1.5, true, true);
     }
 
     // ---------------------------------------------------------------- page 15: a section preview
