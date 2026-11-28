@@ -165,7 +165,7 @@ module NumbersTest {
     }
 
     // Whether (x, y) is within r of the screen's centre (FIT_R: 6 % of the width clear of the edge;
-    // SCREEN_R: on the screen), to half a pixel.
+    // 0.46: 4 % clear), to half a pixel.
     function clear(d as Draw, x as Float, y as Float, r as Float) as Boolean {
         var dx = x - 0.5, dy = y - 0.5, e = r + 0.5 / d.w;
         return dx * dx + dy * dy <= e * e;
@@ -185,14 +185,39 @@ module NumbersTest {
         return (0.5 - Math.sqrt(worst)).toFloat();
     }
 
+    // Page 16 as the review of #142 first measured it: one box, the widest total's width (with the wider
+    // unit) at every row's height and the top symbol's: kept to show where that overstated the corner.
+    function oneBoxOf(d as Draw, st as Climb.State, f as Float) as Array<Float> {
+        var font = d.semi(f), widest = 0.0;
+        for (var k = 0; k < 6; k++) {
+            var w = d.width(font, Numbers.rowIn(st, k % 3, k >= 3)[1]);
+            if (w > widest) { widest = w; }
+        }
+        var ofW = d.whole(f * 0.87), gap = 0.028846, pitch = d.whole(f * 1.4), top = 0.5 + Numbers.CAP * f / 2 - pitch;
+        var ftW = d.width(d.semi(Numbers.F32), "ft"), up = 0.36 * f + ofW / 2, down = ofW / 2 - 0.36 * f;
+        return [0.5 - ofW / 2 - gap - widest, top - (up > Numbers.CAP * f ? up : Numbers.CAP * f),
+            0.5 + ofW / 2 + gap + widest + 0.009615 + ftW, top + 2 * pitch + (down > 0 ? down : 0.0)] as Array<Float>;
+    }
+
+    // How near a row's text comes to the edge, measured here: from its value done to its total and unit,
+    // from its digits' top to its baseline.
+    function rowClearance(d as Draw, st as Climb.State, f as Float, k as Number, ft as Boolean) as Float {
+        var font = d.semi(f), row = Numbers.rowIn(st, k, ft), ofW = d.whole(f * 0.87), gap = 0.028846;
+        var pitch = d.whole(f * 1.4), y = 0.5 + Numbers.CAP * f / 2 - pitch + k * pitch;
+        var x1 = 0.5 + ofW / 2 + gap + d.width(font, row[1]);
+        if (row[2].length() > 0) { x1 += 0.009615 + d.width(d.semi(Numbers.F32), row[2]); }
+        return margin([0.5 - ofW / 2 - gap - d.width(font, row[0]), y - Numbers.CAP * f, x1, y] as Array<Float>);
+    }
+
     // Page 16 at every place of every part, in metres and in feet: the size is the one chosen at the
     // start (each place chooses anew, the cache dropped, so it is the layout that holds, not the cache):
     // 52 with totals of four digits or fewer, in either unit (owner, 2026-11-28), and a size of the
-    // table below 52 for the 12 km approach's five-digit path; the rows, measured here in the font drawn
-    // from the values at that place, stay on the screen.
+    // table below 52 for the 12 km approach's five-digit path; every row keeps 4 % of the width clear of
+    // the edge, measured here row by row in the font drawn. Logged per part: the nearest row with the
+    // estimate under ten hours and past it, and what the one-box measure made of them.
     (:test)
     function pageSixteenFitsAndHoldsItsSize(logger as Logger) as Boolean {
-        var d = PagesTest.draw(), ps = parts();
+        var d = PagesTest.draw(), ps = parts(), e = 0.5 / d.w;
         for (var p = 0; p < ps.size(); p++) {
             Climb.use(ps[p][0] as Route, ps[p][1] as Symbol);
             var sts = states(), where = "part " + p + ": ";
@@ -203,24 +228,34 @@ module NumbersTest {
             } else {
                 Test.assertMessage(fs < Numbers.F52 && FontSizes.SEMI.indexOf(fs) >= 0, where + "a five-digit total steps down: " + fs);
             }
-            var nearest = 1.0;
+            // [the nearest, its state, its row, the one box's nearest], under ten hours and past it.
+            var near = [[1.0, -1, "", 1.0], [1.0, -1, "", 1.0]] as Array<Array>;
             for (var s = 0; s < sts.size(); s++) {
                 Numbers.forget();
-                var f = Numbers.progressSize(d, shown(sts[s]));
-                if (!Numbers.longTime(sts[s])) { Test.assertEqualMessage(f, fs, where + "the same size at state " + s); }
-                var font = d.semi(f), widest = 0.0;
+                var st = shown(sts[s]), f = Numbers.progressSize(d, st), long = Numbers.longTime(st) ? 1 : 0;
+                if (long == 0) { Test.assertEqualMessage(f, fs, where + "the same size at state " + s); }
+                var font = d.semi(f), n = near[long], box = margin(oneBoxOf(d, st, f));
+                if (box < (n[3] as Float)) { n[3] = box; }
                 for (var u = 0; u < 2; u++) {
                     for (var k = 0; k < 3; k++) {
-                        var row = Numbers.rowIn(sts[s], k, u == 1), wd = d.width(font, row[0]), wt = d.width(font, row[1]);
-                        Test.assertMessage(wd <= wt, where + "done " + row[0] + " wider than its total " + row[1]);
-                        if (wt > widest) { widest = wt; }
+                        var row = Numbers.rowIn(st, k, u == 1);
+                        Test.assertMessage(d.width(font, row[0]) <= d.width(font, row[1]), where + "done " + row[0] + " wider than its total " + row[1]);
+                        var c = rowClearance(d, st, f, k, u == 1);
+                        Test.assertMessage(c >= Numbers.ROWS_CLEAR - e, where + "state " + s + ", " + row[1] + " " + row[2] + " at " + f + ": " + c + " clear");
+                        if (c < (n[0] as Float)) { n[0] = c; n[1] = s; n[2] = row[1] + " " + row[2]; }
                     }
                 }
-                var b = Numbers.progressBox(d, f, widest);
-                if (margin(b) < nearest) { nearest = margin(b); }
-                Test.assertMessage(boxClear(d, b, Numbers.SCREEN_R), where + "state " + s + " at " + f + ": " + b + " not clear of the edge");
+                Test.assertMessage(Numbers.progressClearance(d, st, f) >= Numbers.ROWS_CLEAR - e, where + "state " + s + ": the symbols too");
             }
-            logger.debug(where + "size " + fs + ", " + nearest + " of the width clear of the edge at the nearest");
+            for (var l = 0; l < 2; l++) {
+                var n = near[l];
+                if ((n[1] as Number) < 0) { continue; }
+                var at = n[1] as Number, size = l == 0 ? fs : Numbers.progressSize(d, shown(sts[at]));
+                var line = where + (l == 0 ? "under ten hours" : "past ten hours") + ": size " + size.toString()
+                    + ", nearest row " + (n[2] as String) + " at state " + at.toString() + ", " + (n[0] as Float).toString()
+                    + " of the width clear; the one box said " + (n[3] as Float).toString();
+                logger.debug(line);
+            }
         }
         return true;
     }

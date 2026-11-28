@@ -8,7 +8,7 @@ import Toybox.Lang;
 // (2026-11-27): so far pages 16 to 19 (#67), progress as done and total (design/page-16.md). Sizes are
 // shares of the screen's width, the mocks' px at 416 divided by 416. A size that depends on the route is
 // chosen once per part: the page's own, or the largest below it in the size table (FontSizes.SEMI) at
-// which the page fits (pages 17 to 19 6 % of the width clear of the edge, page 16 on the screen),
+// which the page fits (pages 17 to 19 6 % of the width clear of the edge, page 16's rows 4 %),
 // measured in the fonts drawn. The number fonts are
 // tabular, and a value's space is laid out from the widest it can get, so nothing moves as it changes.
 module Numbers {
@@ -25,10 +25,10 @@ module Numbers {
     const F32 = 0.0769;
     // Capitals and digits stand 0.71 of the size above the baseline (the mocks' CAP).
     const CAP = 0.71;
-    // Pages 17 to 19 keep 6 % of the width clear of the edge; page 16's rows need only stay on the
-    // screen (owner, 2026-11-28: its 52 px leave about 4 % beside four-digit totals).
+    // Pages 17 to 19 keep 6 % of the width clear of the edge; page 16's rows 4 % (owner, 2026-11-28:
+    // its 52 px leave about that beside four-digit totals).
     const FIT_R = 0.44;
-    const SCREEN_R = 0.5;
+    const ROWS_CLEAR = 0.04;
 
     // ---------------------------------------------------------------- per part
 
@@ -128,35 +128,42 @@ module Numbers {
         return f;
     }
 
-    // Page 16's extent at size f, [x0, y0, x1, y1], with the totals widest wide: the values done
-    // right-aligned before the symbols as wide as the totals at most, the totals and the unit after.
-    // The symbols reach 0.36 of the size plus half their own above the baseline, and as much below it
-    // as that leaves.
-    function progressBox(d as Draw, f as Float, widest as Float) as Array<Float> {
-        var ofW = d.whole(f * 0.87), gap = 0.028846, pitch = d.whole(f * 1.4), top = 0.5 + CAP * f / 2 - pitch;
-        var mW = d.width(d.semi(F32), "m"), ftW = d.width(d.semi(F32), "ft");
-        var unitW = 0.009615 + (ftW > mW ? ftW : mW), up = 0.36 * f + ofW / 2, down = ofW / 2 - 0.36 * f;
-        return [0.5 - ofW / 2 - gap - widest, top - (up > CAP * f ? up : CAP * f),
-            0.5 + ofW / 2 + gap + widest + unitW, top + 2 * pitch + (down > 0 ? down : 0.0)] as Array<Float>;
+    // How near page 16's rows come to the edge at size f, as a share of the width (0.04: 4 % clear),
+    // in metres and in feet: each row measured on its own, from its value done (as wide as its total at
+    // most) to its total and unit, from its digits' top to its baseline, and its symbol's box. Done
+    // never passes the total, so the totals set the extent wherever the climber is.
+    function progressClearance(d as Draw, st as Climb.State, f as Float) as Float {
+        var font = d.semi(f), uf = d.semi(F32), ofW = d.whole(f * 0.87), gap = 0.028846;
+        var pitch = d.whole(f * 1.4), top = 0.5 + CAP * f / 2 - pitch, worst = 0.0;
+        for (var u = 0; u < 2; u++) {
+            for (var k = 0; k < 3; k++) {
+                var r = rowIn(st, k, u == 1), wt = d.width(font, r[1]), y = top + k * pitch, sy = y - f * 0.36;
+                var uw = r[2].length() > 0 ? 0.009615 + d.width(uf, r[2]) : 0.0;
+                var pts = [0.5 - ofW / 2 - gap - wt, y - CAP * f, 0.5 + ofW / 2 + gap + wt + uw, y,
+                    0.5 - ofW / 2, sy - ofW / 2, 0.5 + ofW / 2, sy + ofW / 2] as Array<Float>;
+                for (var a = 0; a < 8; a += 4) {
+                    for (var c = 0; c < 4; c++) {
+                        var dx = pts[a + (c % 2 == 0 ? 0 : 2)] - 0.5, dy = pts[a + (c < 2 ? 1 : 3)] - 0.5;
+                        var q = dx * dx + dy * dy;
+                        if (q > worst) { worst = q; }
+                    }
+                }
+            }
+        }
+        return (0.5 - Math.sqrt(worst)).toFloat();
     }
 
     // Page 16's size: 52, as the demo and the later pages' rows of figures (owner, 2026-11-28), or,
-    // only where a row would leave the screen (a five-digit total, such as a 12 km approach's path), the
-    // largest below it in the table at which the rows stay on it, with the widest totals in metres or
-    // feet, whichever is wider (and the wider unit), so nothing moves through the climb; the smallest if
-    // none does.
+    // only where a row would come closer than 4 % of the width to the edge (a five-digit total, such as
+    // a 12 km approach's path), the largest below it in the table at which none does, in metres and in
+    // feet, so nothing moves through the climb; the smallest if none does.
     function progressSize(d as Draw, st as Climb.State) as Float {
         var f = cached(0, st);
         if (f != null) { return f; }
         var last = F52;
         for (var i = 0; sizeBelow(F52, i) > 0; i++) {
             last = sizeBelow(F52, i);
-            var font = d.semi(last), widest = 0.0;
-            for (var k = 0; k < 6; k++) {
-                var w = d.width(font, rowIn(st, k % 3, k >= 3)[1]);
-                if (w > widest) { widest = w; }
-            }
-            if (fits(progressBox(d, last, widest), SCREEN_R)) { break; }
+            if (progressClearance(d, st, last) >= ROWS_CLEAR) { break; }
         }
         return keep(0, st, last);
     }
