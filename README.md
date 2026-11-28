@@ -28,6 +28,7 @@ One source builds two apps (#140), each with its own app id, name and `.prg`, so
 | Records | the climb, once recording comes (#53) | never |
 | Manifest | `manifest.xml` | `manifest-demo.xml`: its own app id and name, and no permissions, as it reads no sensors; the rest as `manifest.xml` (`make check-manifests`) |
 | Jungle | `monkey.jungle;ferrata.jungle` | `monkey.jungle;demo.jungle` |
+| Launcher icon | the orange climber, `resources-icon-<size>/` | the same climber with a white outline, `demo/resources-icon-<size>/`, mapped in `demo.jungle` (#149) |
 | Build | `make build`, `make sideload`, `make export` | the same with `DEMO=1` |
 | Store | the app: `make export` | a beta first, an app of its own under the beta's id: `make export DEMO=1 VERSION=beta`; once the owner is happy with it, the public demo under `manifest-demo.xml`'s id: `make export DEMO=1` |
 

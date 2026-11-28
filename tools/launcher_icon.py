@@ -13,7 +13,9 @@ python3 tools/launcher_icon.py <size> <out.png>
 python3 tools/launcher_icon.py demo <size> <out.png>
 python3 tools/launcher_icon.py check
 
-Needs rsvg-convert (macOS: brew install librsvg; Linux: librsvg2-bin); render() needs Pillow too.
+Needs rsvg-convert (macOS: brew install librsvg; Linux: librsvg2-bin). Pillow too for render(),
+render_demo(), check and the demo mode: the environment make install-garmin-graphics-generator
+makes has it. The demo mode writes PNG whatever the output's name.
 """
 import pathlib
 import shutil
@@ -36,6 +38,7 @@ OUTLINE = 0.03
 OUTLINE_COLOUR = (0xFF, 0xFF, 0xFF)
 SUPERSAMPLE = 8
 NO_RSVG = "rsvg-convert not found: brew install librsvg (macOS) or apt install librsvg2-bin (Linux)"
+NO_PILLOW = "Pillow not found: run with the generator's Python (make install-garmin-graphics-generator)"
 
 
 def rasterise(size):
@@ -122,8 +125,10 @@ if __name__ == "__main__":
         sys.exit(USAGE)
     try:
         if demo:
-            render_demo(int(args[0])).save(args[1])
+            render_demo(int(args[0])).save(args[1], format="PNG")
         else:
             pathlib.Path(args[1]).write_bytes(rasterise(int(args[0])))
     except RuntimeError as error:
         sys.exit(str(error))
+    except ImportError:
+        sys.exit(NO_PILLOW)
