@@ -106,7 +106,7 @@ class FlowMenus {
 
     var feed as Feed;
     // The routes on the watch, in the route list's order (F0, #141), and which of them the feed climbs.
-    var routes as Array<Route>;
+    var routes as Array<RouteEntry>;
     var current as Number = 0;
     var range as [Number, Number] = [0, 0];
     // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
@@ -143,7 +143,7 @@ class FlowMenus {
     // The feed's route alone, until offer() gives the routes on the watch.
     function initialize(f as Feed) {
         feed = f;
-        routes = [f.route] as Array<Route>;
+        routes = [Routes.entry(f.route)] as Array<RouteEntry>;
         figure(f.route);
     }
 
@@ -163,7 +163,7 @@ class FlowMenus {
     // The routes on the watch, the feed on the last one used (last), as the app opens (#141, variant A
     // of the flow mock): with more than one, on the route list (F0), that one selected; with one, on
     // the ready screen (F1).
-    function offer(list as Array<Route>, last as Number) as Void {
+    function offer(list as Array<RouteEntry>, last as Number) as Void {
         routes = list;
         current = last;
         if (list.size() > 1) { openRoutes(); }
@@ -175,21 +175,25 @@ class FlowMenus {
         open(m, null);
     }
 
-    // Start on the route list: the ready screen for the selected route, now the last one used.
+    // Start on the route list: the ready screen for the selected route, now the last one used, read
+    // only now (Routes.open); the route climbed before is let go. One that cannot be read (none: each
+    // was read when the list was made) leaves the list open.
     function pickRoute(i as Number) as Void {
-        menu = null;
-        var r = routes[i];
-        if (r != feed.route) {
+        var e = routes[i];
+        if (!e.id.equals(feed.route.id)) {
+            var r = Routes.open(e);
+            if (r == null) { return; }
             feed.use(r);
             figure(r);
             newClimb();
         }
+        menu = null;
         current = i;
-        remember(r);
+        remember(e.id);
     }
 
     // Kept across launches (Routes); a test's flow keeps it itself.
-    function remember(r as Route) as Void { Routes.remember(r); }
+    function remember(id as String) as Void { Routes.remember(id); }
 
     // Whether the watch shows feet: the system's setting, never the app's (#144). A test's flow says.
     function feet() as Boolean { return Widgets.feet(); }
