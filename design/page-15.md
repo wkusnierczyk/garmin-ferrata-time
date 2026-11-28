@@ -5,7 +5,7 @@ Revised: on the watch as the revised mocks draw them (the Daubenhorn grid, owner
 Reference mock: `design/demo/page-15.html` (the dial held on the left; click the chevrons, or press the left and right arrow keys)  
 Widgets: `design/widgets.md` (*gauge*, *gap ascent*, and new here: *selection gauge*, *chevron*, *section points*)
 
-A preview of a section the user picks, built on page 13. The app's last page for now, after page 14.
+A preview of a section the user picks, built on page 13, after page 14; pages 16 to 19 follow it (`design/page-16.md`).
 
 ## Layout
 
