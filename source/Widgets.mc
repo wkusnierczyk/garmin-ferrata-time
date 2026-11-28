@@ -1221,9 +1221,11 @@ module Widgets {
         var around = st.stretch(), lo = around[0], hi = around[1];
         // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
         var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
-        if (a0 > G_FROM - G_CAP) { a0 = G_FROM - G_CAP; }
-        if (a1 < G_FROM - G_SPAN + G_CAP) { a1 = G_FROM - G_SPAN + G_CAP; }
-        if (a1 > a0) { a1 = a0; }
+        // Both ends into the allowed range, each clamped both ways: a stretch wholly within the last
+        // (or first) G_CAP degrees collapses onto the limit rather than past it.
+        var hiA = G_FROM - G_CAP, loA = G_FROM - G_SPAN + G_CAP;
+        a0 = a0 > hiA ? hiA : (a0 < loA ? loA : a0);
+        a1 = a1 > hiA ? hiA : (a1 < loA ? loA : a1);
         // The climber: an orange line inside the gauge, with round ends.
         var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
         d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
