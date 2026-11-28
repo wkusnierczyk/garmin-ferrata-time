@@ -80,9 +80,16 @@ module FlowDraw {
     // green arc by Start.
     function ready(d as Draw, f as FlowMenus) as Void {
         title(d, f.feed.route.name.toUpper(), Flow.WHITE);
-        symbolRows(d, [new SymRow(:path, f.figures[0], "m"), new SymRow(:ascent, f.figures[1], "m"),
-            new SymRow(:watch, f.figures[2], "")] as Array<SymRow>, 0.4);
+        symbolRows(d, readyRows(f, f.feet()), 0.4);
         Symbols.startArc(d, Widgets.GREEN);
+    }
+
+    // F1's rows in feet or metres (#144), each laid out as wide as in either unit.
+    function readyRows(f as FlowMenus, ft as Boolean) as Array<SymRow> {
+        var v = f.figures(ft), o = f.figures(!ft);
+        return [new SymRow(:path, v[0], Flow.unit(ft)).inOther(o[0], Flow.unit(!ft)),
+            new SymRow(:ascent, v[1], Flow.unit(ft)).inOther(o[1], Flow.unit(!ft)),
+            new SymRow(:watch, v[2], "")] as Array<SymRow>;
     }
 
     // F4, F20: on the approach, the distance and the time left to the head (from GPS where it can,
@@ -96,7 +103,8 @@ module FlowDraw {
         to.bold = true;
         to.word = "to";
         to.share = 0.065 * GROW;
-        symbolRows(d, [new SymRow(:path, ((left > 0 ? left : 0) / 1000.0).format("%.1f"), "km"),
+        var ft = f.feet(), far = Flow.far(left > 0 ? left : 0.0, ft), other = Flow.far(left > 0 ? left : 0.0, !ft);
+        symbolRows(d, [new SymRow(:path, far[0], far[1]).inOther(other[0], other[1]),
             new SymRow(:watch, Flow.hours(Math.round(minutes > 0 ? minutes : 0).toNumber()), ""), to] as Array<SymRow>, 0.44);
     }
 
@@ -157,15 +165,15 @@ module FlowDraw {
         }
     }
 
-    // F3, F10: "at ALTITUDE", going on from START at and CALIBRATE at; the altitude alone in the middle;
-    // beside Up and Down the step each makes (to the next 10 m mark, then 10 m); a green check by
-    // Start, a red cross by Back.
+    // F3, F10: "at ALTITUDE", going on from START at and CALIBRATE at; the altitude alone in the middle,
+    // in the entry's unit; beside Up and Down the step each makes (to the next 10 m or 50 ft mark, then
+    // 10 m or 50 ft); a green check by Start, a red cross by Back.
     function entry(d as Draw, f as FlowMenus, e as FlowEntry) as Void {
         titleParts(d, [["at ", Flow.GREY, false], ["ALTITUDE", Flow.WHITE, true]]);
-        bigAltitude(d, e.value, 0.5);
-        var steps = Flow.steps(e.value, f.range), big = font(d, true, size(true, 0.08));
-        var up = Flow.altUp(e.value, f.range) != e.value, down = Flow.altDown(e.value, f.range) != e.value;
-        d.textCapMiddle(0.06, 0.5, big, steps[0], up ? Flow.WHITE : Flow.DIM, LEFT);
+        bigAltitude(d, f, e.value, Flow.unit(e.ft), 0.5);
+        var steps = Flow.steps(e.value, e.range, e.ft), big = font(d, true, size(true, STEP_SIZE));
+        var up = Flow.altUp(e.value, e.range, e.ft) != e.value, down = Flow.altDown(e.value, e.range, e.ft) != e.value;
+        d.textCapMiddle(STEP_X, 0.5, big, steps[0], up ? Flow.WHITE : Flow.DIM, LEFT);
         d.textCapMiddle(0.12, 0.72, big, steps[1], down ? Flow.WHITE : Flow.DIM, LEFT);
         Symbols.check(d, Widgets.GREEN);
         Symbols.cross(d, Widgets.RED);
@@ -177,10 +185,8 @@ module FlowDraw {
     // route), the first at 0.44 of the height; the check by Start, the cross by Back.
     function detail(d as Draw, f as FlowMenus, dt as FlowDetail) as Void {
         var r = f.feed.route, p = dt.point;
-        var second = null as SymRow?;
         if (p < 0) {
             title(d, "HERE", Flow.WHITE);
-            second = new SymRow(:path, Math.round(dt.d).toNumber().format("%d"), "m along");
         } else {
             var pt = r.points[p], kind = pt["kind"] as String;
             titleParts(d, [["at ", Flow.GREY, false], [Flow.word(pt), Flow.colour(pt), true]]);
@@ -192,24 +198,39 @@ module FlowDraw {
                 }
                 d.textCapCentre(0.5, 0.28, font(d, true, k), shown, Flow.WHITE);
             }
-            var how = Flow.ahead(dt.at, dt.d);
-            second = new SymRow(:path, how[0], how[1]);
         }
-        symbolRows(d, [new SymRow(:peak, dt.alt.format("%d"), "m"), second as SymRow] as Array<SymRow>, 0.44);
+        symbolRows(d, detailRows(f, dt, f.feet()), 0.44);
         Symbols.check(d, Widgets.GREEN);
         Symbols.cross(d, Widgets.RED);
     }
 
+    // The details' rows in feet or metres (#144), each laid out as wide as in either unit: the altitude,
+    // and how far the point is (here: how far along the route).
+    function detailRows(f as FlowMenus, dt as FlowDetail, ft as Boolean) as Array<SymRow> {
+        var alt = dt.alt.toFloat();
+        var rows = [new SymRow(:peak, Flow.inUnit(alt, ft).format("%d"), Flow.unit(ft))
+            .inOther(Flow.inUnit(alt, !ft).format("%d"), Flow.unit(!ft))] as Array<SymRow>;
+        if (dt.point < 0) {
+            rows.add(new SymRow(:path, Flow.inUnit(dt.d, ft).format("%d"), Flow.unit(ft) + " along")
+                .inOther(Flow.inUnit(dt.d, !ft).format("%d"), Flow.unit(!ft) + " along"));
+        } else {
+            var how = Flow.ahead(dt.at, dt.d, ft), other = Flow.ahead(dt.at, dt.d, !ft);
+            rows.add(new SymRow(:path, how[0], how[1]).inOther(other[0], other[1]));
+        }
+        return rows;
+    }
+
     // F14: the route's name; one line of three figures, each after its symbol (the height climbed, the
-    // activity's time, the drift), units grey on the baseline; a rule; then Save, Resume and Discard.
+    // activity's time, the drift), in feet or metres, units grey on the baseline; a rule; then Save,
+    // Resume and Discard.
     function summary(d as Draw, f as FlowMenus, m as FlowMenu) as Void {
-        var t = f.feed.tracker;
+        var t = f.feed.tracker, ft = f.feet();
         title(d, f.feed.route.name.toUpper(), Flow.WHITE);
         var line = m.line;
-        if (line == null) {
+        if (line == null || line.ft != ft) {
             var climbed = Climb.FERRATA ? t.state().climbed() : 0;
-            line = summaryLine(d, [climbed.format("%d"), Flow.hours(t.activeS / 60),
-                Flow.signed(Math.round(t.drift()).toNumber())] as Array<String>);
+            line = summaryLine(d, Flow.summary(climbed, t.activeS, t.drift(), ft));
+            line.ft = ft;
             m.line = line;
         }
         var syms = [:ascent, :watch, :drift] as Array<Symbol>;
@@ -219,8 +240,8 @@ module FlowDraw {
             Symbols.row(d, syms[i], x + sym / 2, LINE_Y, sym);
             var vx = x + sym + sg;
             d.textBase(vx, base, font(d, false, line.vk), line.values[i], Flow.WHITE, LEFT);
-            if (UNITS[i].length() > 0) {
-                d.textBase(vx + line.vw[i] + ug, base, font(d, false, line.uk), UNITS[i], Flow.GREY, LEFT);
+            if (line.units[i].length() > 0) {
+                d.textBase(vx + line.vw[i] + ug, base, font(d, false, line.uk), line.units[i], Flow.GREY, LEFT);
             }
             x += line.w[i] + ig;
         }
@@ -236,17 +257,18 @@ module FlowDraw {
     const SG = 0.013 / 0.085;
     const IG = 0.045 / 0.085;
     const UG = 0.007 / 0.085;
-    const UNITS = ["m", "", "m"] as Array<String>;
     // The room a line may take: this share of the round screen's width at its glyphs' top and bottom,
     // enough to keep them off the edge (Codex on #124: a long climb's figures ran off the screen; the
     // owner approved the mock's size for a typical climb, which 0.95 keeps).
     const LINE_MARGIN = 0.95;
 
     // The line laid out: the largest SemiBold from the mock's size down whose whole block (symbols,
-    // values, units and gaps, all at that size) fits its room, or the smallest. Measured as it goes, so
-    // done once, when the summary opens.
-    function summaryLine(d as Draw, values as Array<String>) as SummaryLine {
-        var line = new SummaryLine(values);
+    // values, units and gaps, all at that size) fits its room, or the smallest; shown is the figures
+    // and their units (Flow.summary), in the unit the watch shows. In that unit alone, not the wider
+    // of the two (#144): feet would take the owner's metric line below the mock's size.
+    // Measured as it goes, so done once, when the summary opens.
+    function summaryLine(d as Draw, shown as Array<Array<String> >) as SummaryLine {
+        var line = new SummaryLine(shown[0], shown[1]);
         for (var k = size(false, LINE); k >= 0; k--) {
             layLine(d, line, k);
             if (line.total <= lineRoom(d, line)) { break; }
@@ -263,7 +285,7 @@ module FlowDraw {
         for (var i = 0; i < 3; i++) {
             line.vw[i] = d.width(font(d, false, k), line.values[i]);
             line.w[i] = fs * 0.87 + fs * SG + line.vw[i]
-                + (UNITS[i].length() > 0 ? fs * UG + d.width(font(d, false, uk), UNITS[i]) : 0.0);
+                + (line.units[i].length() > 0 ? fs * UG + d.width(font(d, false, uk), line.units[i]) : 0.0);
             line.total += line.w[i];
         }
     }
@@ -279,9 +301,10 @@ module FlowDraw {
 
     // F11: "CALIBRATED at", the altitude calibrated to large in the middle, and under it the point's
     // name in its colour when the calibration was at one. No mark by Back: it plainly goes back.
-    function calibrated(d as Draw, f as FlowMenus, alt as Number) as Void {
+    function calibrated(d as Draw, f as FlowMenus, alt as Float) as Void {
         titleParts(d, [["CALIBRATED", Flow.WHITE, true], [" at", Flow.GREY, false]]);
-        bigAltitude(d, alt, 0.47);
+        var ft = f.feet();
+        bigAltitude(d, f, Flow.inUnit(alt, ft), Flow.unit(ft), 0.47);
         var p = f.calibratedPoint;
         if (p < 0) { return; }
         var pt = f.feed.route.points[p], name = f.calibratedName;
@@ -342,13 +365,7 @@ module FlowDraw {
 
     function symbolRows(d as Draw, list as Array<SymRow>, y0 as Float) as Void {
         var sym = ROW * 0.87, gap = 0.023 * GROW, pitch = ROW * 1.4, ugap = 0.008 * GROW;
-        var vk = size(false, ROW), uk = size(false, 0.0769), widest = 0.0;
-        for (var i = 0; i < list.size(); i++) {
-            var r = list[i];
-            var w = sym + gap + width(d, r.bold, size(r.bold, r.share), r.value)
-                + (r.unit.length() > 0 ? ugap + width(d, false, uk, r.unit) : 0.0);
-            if (w > widest) { widest = w; }
-        }
+        var vk = size(false, ROW), uk = size(false, 0.0769), widest = rowsWidth(d, list);
         // The last row's offset from the first; the block scaled about its middle.
         var last = 0.0;
         for (var i = 1; i < list.size(); i++) { last += list[i].sym == null ? pitch * 0.75 : pitch; }
@@ -368,16 +385,74 @@ module FlowDraw {
         }
     }
 
+    // The rows' block width: its widest row, each row as wide as in either unit (#144), so the block
+    // stands where it would in the other.
+    function rowsWidth(d as Draw, list as Array<SymRow>) as Float {
+        var sym = ROW * 0.87, gap = 0.023 * GROW, ugap = 0.008 * GROW;
+        var uk = size(false, 0.0769), widest = 0.0;
+        for (var i = 0; i < list.size(); i++) {
+            var r = list[i], k = size(r.bold, r.share), shown = [r.value, r.unit];
+            var other = r.other;
+            var forms = other != null ? [shown, other] : [shown];
+            for (var j = 0; j < forms.size(); j++) {
+                var v = forms[j][0] as String, u = forms[j][1] as String;
+                var w = sym + gap + width(d, r.bold, k, v) + (u.length() > 0 ? ugap + width(d, false, uk, u) : 0.0);
+                if (w > widest) { widest = w; }
+            }
+        }
+        return widest;
+    }
+
     // An altitude large (F3, F10, F11): the number 0.2 of the width, bold, white (the table's largest
-    // bold, 0.1683), the number centred across and its digits on cy; the unit right after it, grey,
-    // 0.07, on its baseline.
-    function bigAltitude(d as Draw, v as Number, cy as Float) as Void {
-        var vk = size(true, 0.2), uk = size(false, 0.07), str = v.format("%d");
+    // bold, 0.1683), or smaller where the route's widest would not fit (bigSize), the number centred
+    // across and its digits on cy; the unit, m or ft, right after it, grey, 0.07, on its baseline.
+    function bigAltitude(d as Draw, f as FlowMenus, v as Number, unit as String, cy as Float) as Void {
+        if (f.bigK < 0) { f.bigK = bigSize(d, f.range); }
+        var vk = f.bigK, uk = size(false, BIG_UNIT), str = v.format("%d");
         // The number centred, its unit after it (owner, 2026-11-26), not the two together.
         var vw = width(d, true, vk, str);
         var vx = 0.5 - vw / 2, base = cy + d.capHeight(font(d, true, vk)) / 2;
         d.textBase(vx, base, font(d, true, vk), str, Flow.WHITE, LEFT);
-        d.textBase(vx + vw + 0.01, base, font(d, false, uk), "m", Flow.GREY, LEFT);
+        d.textBase(vx + vw + BIG_GAP, base, font(d, false, uk), unit, Flow.GREY, LEFT);
+    }
+
+    // The large altitude's sizes and gaps: the number's, its unit's, the gap between them; the steps'
+    // size, at their left edge 0.06 of the width, and the least room between a step and the number.
+    const BIG = 0.2;
+    const BIG_UNIT = 0.07;
+    const BIG_GAP = 0.01;
+    const STEP_SIZE = 0.08;
+    const STEP_X = 0.06;
+    const STEP_ROOM = 0.02;
+
+    // The large altitude's size (#144): the mock's, or the largest smaller one at which every altitude
+    // the entry can show fits, in either unit: the route's range widened by Flow.OPEN_MARGIN (where the
+    // entry may open), its ends in metres and in feet, clear of the widest step on their left (a first
+    // press bringing such an altitude in, "+328" in feet) and with the unit inside the screen on their
+    // right. Measured once (FlowMenus.bigK).
+    function bigSize(d as Draw, range as [Number, Number]) as Number {
+        for (var k = size(true, BIG); k > 0; k--) {
+            if (bigFits(d, k, range)) { return k; }
+        }
+        return 0;
+    }
+
+    function bigFits(d as Draw, k as Number, range as [Number, Number]) as Boolean {
+        var ends = [range[0] - Flow.OPEN_MARGIN, range[1] + Flow.OPEN_MARGIN] as Array<Number>;
+        for (var i = 0; i < 4; i++) {
+            var ft = i >= 2, far = Flow.inUnit(Flow.OPEN_MARGIN.toFloat(), ft).format("%d");
+            var v = Flow.inUnit(ends[i % 2].toFloat(), ft).format("%d");
+            if (!entryClear(d, k, v, Flow.unit(ft), "–" + far)) { return false; }
+        }
+        return true;
+    }
+
+    // Whether the entry's large altitude v, at size k with its unit, clears Up's step on its left and
+    // keeps inside the screen on its right.
+    function entryClear(d as Draw, k as Number, v as String, unit as String, step as String) as Boolean {
+        var sk = size(true, STEP_SIZE), uk = size(false, BIG_UNIT), vw = width(d, true, k, v);
+        var left = STEP_X + width(d, true, sk, step) + STEP_ROOM, right = 0.5 + chord(0.5) / 2 - 0.03;
+        return 0.5 - vw / 2 >= left && 0.5 + vw / 2 + BIG_GAP + width(d, false, uk, unit) <= right;
     }
 
     // A name cut to max (a share of the width), with an ellipsis where it does not fit (F18's): measured
@@ -463,11 +538,14 @@ module FlowDraw {
     }
 }
 
-// The summary's line of figures as laid out once (FlowDraw.summaryLine): the values, the SemiBold of
-// the values and of the units, the values' size as a share, each value's and item's width, the total.
+// The summary's line of figures as laid out once (FlowDraw.summaryLine): the values and their units,
+// whether in feet (#144), the SemiBold of the values and of the units, the values' size as a share,
+// each value's and item's width, the total.
 class SummaryLine {
 
     var values as Array<String>;
+    var units as Array<String>;
+    var ft as Boolean = false;
     var vk as Number = 0;
     var uk as Number = 0;
     var fs as Float = 0.0;
@@ -475,13 +553,14 @@ class SummaryLine {
     var w as Array<Float> = [0.0, 0.0, 0.0] as Array<Float>;
     var total as Float = 0.0;
 
-    function initialize(v as Array<String>) {
+    function initialize(v as Array<String>, u as Array<String>) {
         values = v;
+        units = u;
     }
 }
 
 // One of symbolRows' rows: its symbol (null for a word row), value and unit; the value's colour, weight
-// and size; a word row's word.
+// and size; a word row's word; the value and unit in the other unit, measured, not drawn (#144).
 class SymRow {
 
     var sym as Symbol?;
@@ -491,10 +570,17 @@ class SymRow {
     var bold as Boolean = false;
     var word as String? = null;
     var share as Float = FlowDraw.ROW;
+    var other as [String, String]? = null;
 
     function initialize(s as Symbol?, v as String, u as String) {
         sym = s;
         value = v;
         unit = u;
+    }
+
+    // The row as it would read in the other unit, for its room.
+    function inOther(v as String, u as String) as SymRow {
+        other = [v, u];
+        return self;
     }
 }
