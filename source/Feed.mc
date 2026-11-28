@@ -70,6 +70,20 @@ class Feed {
     // The clock the input reads: the demo's own, or the system's.
     function now() as Number { return demo ? demoMs : System.getTimer(); }
 
+    // Another route, picked on the route list (#141): a new climb on it, not started. Only the demo's
+    // input follows the route, so only it starts again; the sensors keep their GPS fix, and a replay
+    // its recording, rewound.
+    function use(r as Route) as Void {
+        route = r;
+        Climb.use(r, :ferrata);
+        if (demo) {
+            begin();
+        } else {
+            input.rewind();
+            ready();
+        }
+    }
+
     // A new climb on the app's input, the old input let go.
     function begin() as Void {
         input.stop();

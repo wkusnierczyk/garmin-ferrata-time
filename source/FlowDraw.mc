@@ -3,8 +3,8 @@ using Toybox.Math;
 
 import Toybox.Lang;
 
-// The climb flow's screens as the revised flow mock draws them (#121; F1 to F26), in shares of the
-// screen's width: the ready screen, the approach, the menus (the selected row in a large outlined
+// The climb flow's screens as the revised flow mock draws them (#121; F0 to F26), in shares of the
+// screen's width: the route list (#141), the ready screen, the approach, the menus (the selected row in a large outlined
 // pill), the altitude entry, a point's details, the summary, the CALIBRATED confirmation and the
 // toasts; the pause symbol at the top of every paused screen. Sizes are the mock's, each at the size
 // table's nearest (FontSizes); text that does not fit its room is drawn in a smaller size, as the mock
@@ -120,6 +120,8 @@ module FlowDraw {
             titleParts(d, [["DISCARD", Flow.WHITE, true], ["?", Flow.GREY, true]]);
         } else if (id == :landmarks) {
             titleParts(d, [["at ", Flow.GREY, false], ["LANDMARK", Flow.WHITE, true]]);
+        } else if (id == :routes) {
+            title(d, "ROUTES", Flow.WHITE);
         } else {
             titleParts(d, [[id == :start ? "START" : (id == :end ? "END" : "CALIBRATE"), Flow.WHITE, true],
                 [" at", Flow.GREY, false]]);
