@@ -550,7 +550,7 @@ module RouteTest {
         // 0 m along it, to the head, 2400 m, the approach's length.
         var track = r.approachTrack();
         var n = track.size();
-        Test.assertEqualMessage(n, 55, "approach track");
+        Test.assertEqualMessage(n, 54, "approach track");
         Test.assertMessage(near(track[0][2], 0.0) && near(track[n - 1][2], 2400.0), "along " + track);
         Test.assertMessage(near(track[0][0], 46.39775) && near(track[0][1], 7.61545), "starts at the Gemmi");
         Test.assertMessage(near(track[n - 1][0], 46.39042) && near(track[n - 1][1], 7.61123), "ends at the head");

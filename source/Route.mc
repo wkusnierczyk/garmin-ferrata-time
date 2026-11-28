@@ -151,9 +151,9 @@ class Route {
     // The approach's track for GPS (#113), each vertex [lat, lon, metres along the approach from its
     // start], in the order they come. The file's track when it has one (#143), the path from the
     // approach's start to the head as route.py thinned it from the GPX track, its metres along the
-    // map stretched to the approach's length, which counts the slope. Else the known points with lat
-    // and lon (the approach's start, the head, and any landmark, danger or exit before the head): a
-    // straight line between them.
+    // map stretched to the approach's guidebook length, so places on it are in the route's metres.
+    // Else the known points with lat and lon (the approach's start, the head, and any landmark,
+    // danger or exit before the head): a straight line between them.
     function approachTrack() as Array<[Float, Float, Float]> {
         var out = [] as Array<[Float, Float, Float]>;
         var shift = lengthOf(approach);

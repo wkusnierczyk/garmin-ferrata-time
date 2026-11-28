@@ -34,10 +34,13 @@ EARTH_RADIUS = 6371000.0
 UNITS = {"m": 1.0, "ft": 0.3048}
 # The approach's track (#143), thinned from the GPX: a vertex kept only once it is TRACK_SPACING
 # metres from the last one kept, which drops the cloud of fixes where a recording stood still, then
-# Douglas-Peucker to TRACK_THIN metres. Its ends lie within TRACK_END metres of the approach's start
-# and of the head.
+# Douglas-Peucker to TRACK_THIN metres; before and after it, a vertex where the track turns back by
+# more than TRACK_REVERSAL degrees is dropped, the fixes of a standstill scattered wider than the
+# spacing (a switchback 10 m wide is kept). Its ends lie within TRACK_END metres of the approach's
+# start and of the head.
 TRACK_SPACING = 15.0
 TRACK_THIN = 5.0
+TRACK_REVERSAL = 150.0
 TRACK_END = 25.0
 # What a name may hold after folding: the text fonts' charset, which carries only the characters the
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
@@ -370,10 +373,11 @@ def in_metres(r):
         return int(math.floor(v * factor + 0.5))
 
     d = -sum(s["len"] for s in r.get("approach", []))
+    h = 0  # height from the approach's start, rounded at each end too, so the sum stays true
     for s in r.get("approach", []) + r["sections"]:
-        end = d + s["len"]
-        s["len"], s["up"] = m(end) - m(d), m(s["up"])
-        d = end
+        end, top = d + s["len"], h + s["up"]
+        s["len"], s["up"] = m(end) - m(d), m(top) - m(h)
+        d, h = end, top
     for p in r["points"]:
         if p["kind"] in KINDS:
             p["at"] = m(p["at"])
@@ -383,10 +387,24 @@ def in_metres(r):
     return r
 
 
+def feet_problems(r):
+    """A section of a route in feet that is under a metre once converted, which a route file cannot
+    hold. Assumes check_shape has passed."""
+    if r["units"] == "m":
+        return []
+    m = in_metres(r)
+    out = []
+    for part, key in (("approach", "approach"), ("section", "sections")):
+        for i, (s, t) in enumerate(zip(r.get(key, []), m.get(key, [])), 1):
+            if s["len"] > 0 and t["len"] <= 0:
+                out.append(f"{section_label(part, i, s)}: len is under a metre ({s['len']} ft)")
+    return out
+
+
 def check(r, stem=None):
     """Every problem with route r, as messages; empty when it is valid. stem: the source's file
     name without .src.json, which the id must equal."""
-    out = check_shape(r) or check_rules(in_metres(r))
+    out = check_shape(r) or feet_problems(r) + check_rules(in_metres(r))
     if stem is not None and isinstance(r, dict) and isinstance(r.get("id"), str) and r["id"] != stem:
         out.append(f"id is {stem!r}, the source's file name (<id>.src.json)")
     return out
@@ -527,29 +545,75 @@ def douglas_peucker(pts, tol):
     return [pts[i] for i in sorted(keep)]
 
 
+def turn(a, b, c, my, mx):
+    """Degrees the track turns at b, from a to c: 0 straight on, 180 straight back."""
+    u = ((b[1] - a[1]) * mx, (b[0] - a[0]) * my)
+    v = ((c[1] - b[1]) * mx, (c[0] - b[0]) * my)
+    lu, lv = math.hypot(*u), math.hypot(*v)
+    if lu == 0 or lv == 0:
+        return 180.0
+    return math.degrees(math.acos(max(-1.0, min(1.0, (u[0] * v[0] + u[1] * v[1]) / (lu * lv)))))
+
+
+def drop_reversals(pts):
+    """pts without the vertices where the track turns back by more than TRACK_REVERSAL degrees, each
+    vertex looked at again once a neighbour goes; the ends kept."""
+    if len(pts) < 3:
+        return list(pts)
+    my, mx = flat(pts[0][0])
+    out, i = list(pts), 1
+    while i < len(out) - 1:
+        if turn(out[i - 1], out[i], out[i + 1], my, mx) > TRACK_REVERSAL:
+            del out[i]
+            i = max(1, i - 1)
+        else:
+            i += 1
+    return out
+
+
 def thin(pts):
     """pts, a list of (lat, lon), thinned: a vertex at least TRACK_SPACING metres from the last one
-    kept (and the last), then Douglas-Peucker to TRACK_THIN metres."""
+    kept (and the last), then Douglas-Peucker to TRACK_THIN metres, reversals dropped before and
+    after it."""
     spaced = [pts[0]]
     for p in pts[1:-1]:
         if haversine(spaced[-1][0], spaced[-1][1], p[0], p[1]) >= TRACK_SPACING:
             spaced.append(p)
     if len(pts) > 1:
         spaced.append(pts[-1])
-    return douglas_peucker(spaced, TRACK_THIN)
+    return drop_reversals(douglas_peucker(drop_reversals(spaced), TRACK_THIN))
 
 
-def approach_track(track, points):
+def approach_track(track, points, warnings):
     """The approach's track (#143) from the GPX track and the route's points, their lat and lon filled:
-    from the track's point nearest the approach's start to its point nearest the head, thinned, its
-    ends the two points' own coordinates; [[lat, lon], ...] to 5 decimals (about a metre)."""
-    def nearest(p, upto):
-        return min(range(upto), key=lambda i: haversine(track[i][0], track[i][1], p["lat"], p["lon"]))
+    from the track's point nearest the approach's start to its point nearest the head where it first
+    comes within TRACK_END of it (a recording may pass the head again on its way back), thinned, its
+    ends the two points' own coordinates; [[lat, lon], ...] to 5 decimals (about a metre). None, with
+    a warning, when the track comes no nearer than TRACK_END to either, as a recording that starts at
+    the head: the route file is then the one built without it."""
+    def off(i, p):
+        return haversine(track[i][0], track[i][1], p["lat"], p["lon"])
+
+    def missed(p, i):
+        warnings.append(f"no approach track: the track comes no nearer than {off(i, p):.0f} m to "
+                        f"{point_label(p)} (more than {TRACK_END:g} m)")
 
     head = next(p for p in points if p["kind"] == "head")
     start = next((p for p in points if p["kind"] == "approach"), None)
-    hi = nearest(head, len(track))
-    si = nearest(start, hi + 1) if start is not None and "lat" in start else 0
+    first = next((i for i in range(len(track)) if off(i, head) <= TRACK_END), None)
+    if first is None:
+        missed(head, min(range(len(track)), key=lambda i: off(i, head)))
+        return None
+    last = first
+    while last + 1 < len(track) and off(last + 1, head) <= TRACK_END:
+        last += 1
+    hi = min(range(first, last + 1), key=lambda i: off(i, head))
+    si = 0
+    if start is not None and "lat" in start:
+        si = min(range(hi + 1), key=lambda i: off(i, start))
+        if off(si, start) > TRACK_END:
+            missed(start, si)
+            return None
     pts = [t[:2] for t in track[si:hi + 1]]
     if start is not None and "lat" in start:
         pts = [(start["lat"], start["lon"])] + pts[1:]
@@ -614,7 +678,9 @@ def build(r, track=None, stem=None, warnings=None):
     if "track" in r:
         out["track"] = [[float(v) for v in ll] for ll in r["track"]]
     elif track is not None and "approach" in r:
-        out["track"] = approach_track(track, out["points"])
+        t = approach_track(track, out["points"], warnings)
+        if t is not None:
+            out["track"] = t
     return ordered(out, TOP_KEYS)
 
 

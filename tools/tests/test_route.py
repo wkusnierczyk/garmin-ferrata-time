@@ -883,3 +883,105 @@ def test_track_starts_at_the_start(tmp_path, capsys):
         point(r, "approach").update(lat=46.0, lon=8.0)
         r["track"] = [[46.0005, 8.0], [46.001, 8.0]]
     rejects(tmp_path, capsys, fixture(change), "the track starts 56 m from approach 'Car park' (more than 25 m)")
+
+
+# From PR #166's review.
+
+def test_track_cut_at_the_heads_first_pass(tmp_path):
+    # Finding 1: a recording that goes on past the head to the top and comes back the same way passes
+    # the head twice, the second time nearer it. The track stops at the first pass.
+    def change(r):
+        point(r, "approach").update(lat=46.0, lon=8.0)
+        point(r, "head").update(lat=46.00018, lon=8.0)
+    my, mx = route.flat(46.0)
+    out_ = [(46.0 + i * 5 / my, 8.0 + 3 / mx) for i in range(21)]  # 100 m north, 3 m east of the head
+    back = [(46.0 + (100 - i * 5) / my, 8.0) for i in range(21)]  # and back, right over it
+    code, out = build(tmp_path, fixture(change), gpx=gpx(out_ + back))
+    assert code == 0
+    length = sum(route.haversine(*a, *b) for a, b in zip(out["track"], out["track"][1:]))
+    assert 18 < length < 22
+
+
+def test_no_track_when_the_recording_misses_the_start(tmp_path, capsys):
+    # Finding 2: a recording that starts at the head has no approach in it. No track is written, as
+    # without the recording, and a warning says why.
+    def change(r):
+        point(r, "approach").update(lat=45.99, lon=8.0)
+        point(r, "head").update(lat=46.0, lon=8.0)
+    code, out = build(tmp_path, fixture(change), gpx=gpx(north(10, 0.0001)))
+    assert code == 0
+    assert "track" not in out
+    assert ("t.gpx: warning: no approach track: the track comes no nearer than 1112 m to approach "
+            "'Car park' (more than 25 m)") in capsys.readouterr().err
+
+
+def test_no_track_when_the_recording_misses_the_head(tmp_path, capsys):
+    def change(r):
+        point(r, "approach").update(lat=46.0, lon=8.0)
+        point(r, "head").update(lat=46.0, lon=8.01)
+    code, out = build(tmp_path, fixture(change), gpx=gpx(north(10, 0.0001)))
+    assert code == 0
+    assert "track" not in out
+    assert "no approach track: the track comes no nearer than 772 m to head 'Head'" in capsys.readouterr().err
+
+
+def turns(track):
+    """The turn at each inner vertex, in degrees: 0 straight on, 180 straight back."""
+    my, mx = route.flat(track[0][0])
+    out = []
+    for a, b, c in zip(track, track[1:], track[2:]):
+        u = ((b[1] - a[1]) * mx, (b[0] - a[0]) * my)
+        v = ((c[1] - b[1]) * mx, (c[0] - b[0]) * my)
+        cos = (u[0] * v[0] + u[1] * v[1]) / (math.hypot(*u) * math.hypot(*v))
+        out.append(math.degrees(math.acos(max(-1.0, min(1.0, cos)))))
+    return out
+
+
+def test_thin_drops_a_jittery_standstill():
+    # Finding 6: 300 m north with a standstill halfway whose fixes wander out and back up to 22 m to
+    # the side, beyond TRACK_SPACING, as the Daubenhorn's recording does. No vertex sends the track
+    # back the way it came, and its length stays close.
+    my, mx = route.flat(46.0)
+    leg1 = [(46.0 + i * 5 / my, 8.0) for i in range(31)]
+    mid = leg1[-1]
+    cloud = [(mid[0] + dy / my, mid[1] + dx / mx) for dx, dy in
+             [(20, 1), (0, -1), (22, 2), (-1, 0), (18, -2), (1, 1), (21, 0), (0, 2)] * 4]
+    leg2 = [(mid[0] + i * 5 / my, 8.0) for i in range(1, 31)]
+    t = route.thin(leg1 + cloud + leg2)
+    assert max(turns(t), default=0) <= route.TRACK_REVERSAL
+    assert 295 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 330
+
+
+def test_thin_keeps_a_hairpin():
+    # A switchback 10 m wide, 100 m up and 100 m back: its turn is kept, its length too.
+    my, mx = route.flat(46.0)
+    pts = ([(46.0 + i / my, 8.0) for i in range(101)] + [(46.0 + 100 / my, 8.0 + j / mx) for j in range(1, 10)]
+           + [(46.0 + (100 - i) / my, 8.0 + 10 / mx) for i in range(101)])
+    t = route.thin(pts)
+    assert 190 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 215
+
+
+def test_feet_heights_rounded_cumulatively(tmp_path):
+    # Finding 8: 30 sections of 5 ft up each are 150 ft, 46 m; rounded one by one they would be
+    # 30 × 2 m, 60 m.
+    def change(r):
+        r["units"] = "ft"
+        del r["approach"]
+        r["sections"] = [{"len": 10, "up": 5, "grade": 3, "min": 1, "name": f"S{i}", "side": 0.0}
+                         for i in range(30)]
+        r["points"] = [{"kind": "head", "at": 0, "alt": 3280, "name": "Head"},
+                       {"kind": "top", "at": 300, "alt": 3430, "name": "Top"}]
+    code, out = build(tmp_path, fixture(change))
+    assert code == 0
+    assert sum(s["up"] for s in out["sections"]) == 46
+    assert sum(s["len"] for s in out["sections"]) == 91
+
+
+def test_feet_too_short_for_a_metre(tmp_path, capsys):
+    # A 1 ft section is under a metre: rejected, not written as 0 m.
+    def change(r):
+        r["units"] = "ft"
+        r["sections"][0]["len"], r["sections"][1]["len"] = 49, 1  # 14.94 m and 15.24 m: both 15
+        for p in r["points"]:
+            p["at"] = {"approach": -20, "head": 0, "exit": 49, "landmark": 49, "danger": 25, "top": 50}[p["kind"]]
+    rejects(tmp_path, capsys, fixture(change), "section 2 'Ridge': len is under a metre (1 ft)")
