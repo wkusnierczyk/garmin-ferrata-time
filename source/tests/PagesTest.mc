@@ -392,19 +392,39 @@ module PagesTest {
     }
 
     // What comes next: the next section of a different difficulty and its distance to 5 m, or the
-    // top; pages 3 and 4 place their group by the widest such line on the route.
+    // top.
     (:test)
-    function nextAndTheLongestNext(logger as Logger) as Boolean {
+    function nextInMetres(logger as Logger) as Boolean {
         Climb.use(route([[100, 100, 1], [50, 0, 1], [100, 100, 3]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
-        var n = Widgets.nextSection(at(12.0));
+        var n = Widgets.nextSection(at(12.0), false);
         Test.assertEqualMessage(n[0], 2, "B after the two A sections");
         Test.assertEqualMessage(n[1], 140, "138 m, to 5 m");
-        n = Widgets.nextSection(at(200.0));
+        n = Widgets.nextSection(at(200.0), false);
         Test.assertEqualMessage(n[0], -1, "the top");
         Test.assertEqualMessage(n[1], 50, "50 m to the top");
-        var d = draw(), font = d.bold(0.0577);
-        var a = d.width(font, "B 150 m"), b = d.width(font, "Top 100 m");
-        Test.assertEqualMessage(Widgets.longestNext(d, font), a > b ? a : b, "the longer of the two runs' lines");
+        return true;
+    }
+
+    // The next line in feet (#148): the distance converted, to 10 ft, never relabelled; the group is
+    // placed by the widest line in either unit, so switching units moves nothing.
+    (:test)
+    function nextInFeet(logger as Logger) as Boolean {
+        Climb.use(route([[100, 100, 1], [50, 0, 1], [100, 100, 3]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
+        var n = Widgets.nextSection(at(12.0), true);
+        Test.assertEqualMessage(n[0], 2, "B after the two A sections");
+        Test.assertEqualMessage(n[1], 450, "138 m is 453 ft, to 10 ft");
+        n = Widgets.nextSection(at(200.0), true);
+        Test.assertEqualMessage(n[0], -1, "the top");
+        Test.assertEqualMessage(n[1], 160, "50 m is 164 ft, to 10 ft");
+        Test.assertEqualMessage(Widgets.nextText(n[1], true), " 160 ft", "in feet, never relabelled metres");
+        Test.assertEqualMessage(Widgets.nextText(50, false), " 50 m", "in metres");
+        var d = draw(), font = d.bold(0.0577), widest = 0.0;
+        var lines = ["B 150 m", "Top 100 m", "B 490 ft", "Top 330 ft"] as Array<String>;
+        for (var i = 0; i < lines.size(); i++) {
+            var w = d.width(font, lines[i]);
+            if (w > widest) { widest = w; }
+        }
+        Test.assertEqualMessage(Widgets.longestNext(d, font), widest, "the longest of the runs' lines in either unit");
         return true;
     }
 

@@ -1292,28 +1292,37 @@ module Widgets {
     }
 
     // What comes next: the next section of a different difficulty and the distance to its start along
-    // the route, rounded to 5 m ("C/D 125 m", the grade in its colour), or the top; centred on x, its
-    // baseline at base, Bold at size (a share of the screen's width).
+    // the route, rounded to 5 m or 10 ft ("C/D 125 m", the grade in its colour), or the top; centred on
+    // x, its baseline at base, Bold at size (a share of the screen's width).
     function nextUp(d as Draw, st as Climb.State, x as Float, base as Float, size as Float) as Void {
-        var next = nextSection(st), i = next[0];
+        var ft = feet(), next = nextSection(st, ft), i = next[0];
         var what = i >= 0 ? BOX_NAME[section(i, false)] : "Top";
         var c = i >= 0 ? d.grade(section(i, false), false) : WHITE;
-        var rest = " " + next[1].format("%d") + " m";
+        var rest = nextText(next[1], ft);
         var font = d.bold(size);
         var w1 = d.width(font, what), w = w1 + d.width(font, rest);
         d.textBase(x - d.half(w), base, font, what, c, Graphics.TEXT_JUSTIFY_LEFT);
         d.textBase(x - d.half(w) + w1, base, font, rest, WHITE, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    // The next section of a different difficulty (-1 for the top) and the metres to its start along
-    // the route, rounded to 5 m.
-    function nextSection(st as Climb.State) as [Number, Number] {
+    // The next section of a different difficulty (-1 for the top) and the distance to its start along
+    // the route, in the unit shown.
+    function nextSection(st as Climb.State, ft as Boolean) as [Number, Number] {
         var here = section(st.cur, false), i = st.cur + 1;
         while (i < Climb.count() && section(i, false) == here) { i++; }
         var dist = (i < Climb.count() ? Climb.dAt(i) : Climb.totalD()) - st.d;
-        var m = (Math.round(dist / 5) * 5).toNumber();
-        return [i < Climb.count() ? i : -1, m < 0 ? 0 : m];
+        return [i < Climb.count() ? i : -1, nextDistance(dist.toFloat(), ft)];
     }
+
+    // A distance along the route as the next line shows it: metres rounded to 5 m, or converted to
+    // feet and rounded to 10 ft (#148); never below 0.
+    function nextDistance(m as Float, ft as Boolean) as Number {
+        var v = (ft ? Math.round(m * 3.28084 / 10) * 10 : Math.round(m / 5) * 5).toNumber();
+        return v < 0 ? 0 : v;
+    }
+
+    // The next line's distance and its unit, after the grade (" 125 m", " 410 ft").
+    function nextText(v as Number, ft as Boolean) as String { return " " + v.format("%d") + (ft ? " ft" : " m"); }
 
     // The ascent along the gauge's gap at the bottom (pages 12, 13 and 15): the start and top dots on
     // the gauge's two ends, the ascent's two numbers beside them, facing inwards, and between the
@@ -1785,16 +1794,20 @@ module Widgets {
     }
 
     // The widest next line on the part: for each run of sections of one difficulty, the next difficulty
-    // and its distance from the run's start, rounded as nextUp rounds it.
+    // and its distance from the run's start, rounded as nextUp rounds it, in either unit, so a change of
+    // units moves nothing (#148).
     function longestNext(d as Draw, font as Graphics.FontType) as Float {
         var n = Climb.count(), widest = 0.0;
         for (var i = 0; i < n; i++) {
             if (i > 0 && section(i, false) == section(i - 1, false)) { continue; }
             var j = i + 1;
             while (j < n && section(j, false) == section(i, false)) { j++; }
-            var m = (Math.round(((j < n ? Climb.dAt(j) : Climb.totalD()) - Climb.dAt(i)) / 5.0) * 5).toNumber();
-            var w = d.width(font, (j < n ? BOX_NAME[section(j, false)] : "Top") + " " + m.format("%d") + " m");
-            if (w > widest) { widest = w; }
+            var dist = ((j < n ? Climb.dAt(j) : Climb.totalD()) - Climb.dAt(i)).toFloat();
+            var what = j < n ? BOX_NAME[section(j, false)] : "Top";
+            for (var u = 0; u < 2; u++) {
+                var w = d.width(font, what + nextText(nextDistance(dist, u == 1), u == 1));
+                if (w > widest) { widest = w; }
+            }
         }
         return widest;
     }
