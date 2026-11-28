@@ -21,7 +21,7 @@ module RouteTest {
                 "name" => "S" + i, "side" => 0.0});
             len += steps[i][0];
         }
-        return Route.fromJson({"format" => 1, "id" => "t", "name" => "Test", "short" => "Test",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "t", "name" => "Test", "short" => "Test",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
                 {"kind" => "top", "at" => len, "name" => "Top"}]}) as Route;
@@ -37,6 +37,48 @@ module RouteTest {
         var data = WatchUi.loadResource(Rez.JsonData.route) as Dictionary;
         data["format"] = 2;
         return Route.fromJson(data) == null;
+    }
+
+    // A route declares its units, never assumed, and the app reads metres: the route tool converts a
+    // source in feet (owner, #143).
+    (:test)
+    function fromJsonRejectsUnitsOtherThanMetres(logger as Logger) as Boolean {
+        var data = source();
+        data["units"] = "ft";
+        Test.assertMessage(Route.fromJson(data) == null, "feet");
+        data.remove("units");
+        Test.assertMessage(Route.fromJson(data) == null, "no units");
+        return true;
+    }
+
+    // The file's track (#143): at least two [lat, lon], each a number.
+    (:test)
+    function fromJsonRejectsMalformedTrack(logger as Logger) as Boolean {
+        var data = source();
+        data["track"] = [[46.0, 7.0], [46.001, 7]];
+        Test.assertMessage(Route.fromJson(data) != null, "a track of two");
+        var bad = [1, [[46.0, 7.0]], [[46.0, 7.0], [46.001]], [[46.0, 7.0], [46.001, "7"]], [[46.0, 7.0], 3]] as Array;
+        for (var i = 0; i < bad.size(); i++) {
+            data = source();
+            data["track"] = bad[i];
+            Test.assertMessage(Route.fromJson(data) == null, "track " + i);
+        }
+        return true;
+    }
+
+    // The file's track takes the points' place (#143): its vertices in order, the metres along the
+    // map stretched to the approach's 150 m. 0.001 degrees of latitude north, then as far again.
+    (:test)
+    function approachTrackFromTheFile(logger as Logger) as Boolean {
+        var data = source();
+        point(data, "approach")["lat"] = 46.0; point(data, "approach")["lon"] = 7.0;
+        point(data, "head")["lat"] = 46.002; point(data, "head")["lon"] = 7.0;
+        data["track"] = [[46.0, 7.0], [46.001, 7.0], [46.002, 7.0]];
+        var track = (Route.fromJson(data) as Route).approachTrack();
+        Test.assertEqualMessage(track.size(), 3, "the file's three vertices");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 75.0) && near(track[2][2], 150.0), "along " + track);
+        Test.assertMessage(near(track[1][0], 46.001) && near(track[1][1], 7.0), "the middle vertex");
+        return true;
     }
 
     (:test)
@@ -318,7 +360,7 @@ module RouteTest {
 
     // A fresh, valid route source with an approach, for the shape and fallback tests to change.
     function source() as Dictionary {
-        return {"format" => 1, "id" => "t", "name" => "Test", "short" => "Test",
+        return {"format" => 1, "units" => "m", "id" => "t", "name" => "Test", "short" => "Test",
             "approach" => [
                 {"len" => 100, "up" => 10, "grade" => 0, "min" => 10, "name" => "A1", "side" => 0.0},
                 {"len" => 50, "up" => 10, "grade" => 0, "name" => "A2", "side" => 0.0}],
@@ -504,10 +546,17 @@ module RouteTest {
         // (owner, 2026-11-28); the bench has.
         Test.assertMessage((r.points[4]["lat"] as Object?) == null && (r.points[6]["lat"] as Object?) == null, "bridge and board unplaced");
         Test.assertMessage((r.points[2]["lat"] as Object?) != null, "the bench placed");
-        // The approach's start and the head, 0 and 2400 m along it.
+        // The approach's track from the owner's recording (#143), thinned: from the Gemmi top station,
+        // 0 m along it, to the head, 2400 m, the approach's length.
         var track = r.approachTrack();
-        Test.assertEqualMessage(track.size(), 2, "approach track");
-        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2400.0), "along " + track);
+        var n = track.size();
+        Test.assertEqualMessage(n, 50, "approach track");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[n - 1][2], 2400.0), "along " + track);
+        Test.assertMessage(near(track[0][0], 46.39775) && near(track[0][1], 7.61545), "starts at the Gemmi");
+        Test.assertMessage(near(track[n - 1][0], 46.39042) && near(track[n - 1][1], 7.61123), "ends at the head");
+        for (var i = 1; i < n; i++) {
+            Test.assertMessage(track[i][2] > track[i - 1][2], "along grows at " + i);
+        }
         Climb.use(r, :ferrata);
         Test.assertEqualMessage(Climb.count(), 14, "sections");
         Test.assertEqualMessage(Climb.totalU(), 841, "gained");
@@ -540,7 +589,8 @@ module RouteTest {
         Test.assertEqualMessage(r.guideMinutes(), 150, "guidebook minutes");
         Test.assertEqualMessage(r.approachType(), "Car park", "the approach's start");
         Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "bridge"].toString(), "landmark types");
-        // The car park P6 and the head, 0 and 2778 m along it.
+        // No track in the file (its source has none, #143): the car park P6 and the head, 0 and 2778 m
+        // along it.
         var track = r.approachTrack();
         Test.assertEqualMessage(track.size(), 2, "approach track");
         Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2778.0), "along " + track);

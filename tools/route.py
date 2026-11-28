@@ -3,7 +3,7 @@ source, checks it, and fills the points' coordinates from a GPX track.
 
 python3 tools/route.py build routes/<id>.src.json -o resources/routes/<id>.json [--gpx track.gpx]
 
-The source has the output's shape. The output lists its keys in a fixed order, one section or point
+The source has the output's shape, in the units it declares (m or ft); the output is in metres. The output lists its keys in a fixed order, one section or point
 per line, so a rebuild of an unchanged source changes nothing. On any error it prints every problem
 found, one per line, writes nothing and exits 1; it warns, without failing, when the track's
 length is far from the route's and for each point past the track's end. Names are folded to the
@@ -19,7 +19,8 @@ import unicodedata
 import xml.etree.ElementTree as ET
 
 FORMAT = 1
-TOP_KEYS = ["format", "id", "name", "short", "place", "source", "approach", "sections", "points"]
+TOP_KEYS = ["format", "units", "id", "name", "short", "place", "source", "approach", "track", "sections",
+            "points"]
 SECTION_KEYS = ["len", "up", "grade", "min", "name", "side"]
 POINT_KEYS = ["kind", "at", "alt", "type", "lat", "lon", "name"]
 LANDMARK_TYPES = ("rest", "bridge", "sign")  # what a landmark is; its details show it (#121)
@@ -28,6 +29,24 @@ KINDS = {"approach", "head", "landmark", "danger", "exit", "top"}
 SHORT_MAX = 15  # the SDK's suggested maximum for a session name
 ALT_TOLERANCE = 15  # metres between the sections' height and the known altitudes
 EARTH_RADIUS = 6371000.0
+# A route's lengths and heights are in the units it declares, never assumed (owner, #143): a source in
+# feet is converted when it is read in, and a route file is always in metres.
+UNITS = {"m": 1.0, "ft": 0.3048}
+# The approach's track (#143), thinned from the GPX: a vertex kept only once it is TRACK_SPACING
+# metres from the last one kept, which drops the cloud of fixes where a recording stood still, then
+# Douglas-Peucker to TRACK_THIN metres; then a vertex where the track turns back by more than
+# TRACK_REVERSAL degrees, or comes within TRACK_THIN of a neighbour, is dropped when the excursion is
+# small, every line at it and every vertex it drops within TRACK_SPUR: the out-and-back fixes of a
+# standstill scattered wider than the spacing go, a hairpin's legs stay (drop_reversals). Its ends
+# lie within TRACK_END metres of the approach's start and of the head.
+TRACK_SPACING = 15.0
+TRACK_THIN = 5.0
+TRACK_REVERSAL = 150.0
+TRACK_SPUR = 3 * TRACK_SPACING
+TRACK_END = 25.0
+# The pass by the head whose distance along the GPX track from the start is within this factor of
+# the approach's length, either way, and nearest it (Codex on PR #166).
+TRACK_LEN_RATIO = 2.0
 # What a name may hold after folding: the text fonts' charset, which carries only the characters the
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
 # until then a test compares the two whenever the file is there. The en dash and the question mark
@@ -79,10 +98,21 @@ def check_shape(r):
         if k not in TOP_KEYS:
             out.append(f"unknown key {k}")
     for k in TOP_KEYS:
-        if k not in r and k != "approach":
+        if k not in r and k not in ("approach", "track"):
             out.append(f"{k} is missing")
     if "format" in r and not (is_int(r["format"]) and r["format"] == FORMAT):
         out.append(f"format is {FORMAT}")
+    if "units" in r and r["units"] not in UNITS:
+        out.append(f"units is {' or '.join(UNITS)}, not {r['units']!r}")
+    if "track" in r:
+        t = r["track"]
+        if not isinstance(t, list) or len(t) < 2:
+            out.append("track lists at least two [lat, lon]")
+        else:
+            for i, v in enumerate(t, 1):
+                if not (isinstance(v, list) and len(v) == 2 and is_num(v[0]) and is_num(v[1])
+                        and -90 <= v[0] <= 90 and -180 <= v[1] <= 180):
+                    out.append(f"track {i}: [lat, lon], lat from -90 to 90, lon from -180 to 180")
     for k in ("id", "name", "short", "place"):
         if k in r and not isinstance(r[k], str):
             out.append(f"{k} is a string")
@@ -264,6 +294,23 @@ def check_rules(r):
     for p in pts:
         if ("lat" in p) != ("lon" in p):
             out.append(f"{point_label(p)}: lat and lon come together")
+
+    # The approach's track runs from the approach's start to the head (#143).
+    if "track" in r:
+        heads = [p for p in pts if p["kind"] == "head"]
+        if "approach" not in r:
+            out.append("a track needs an approach list")
+        elif heads and "lat" not in heads[0]:
+            out.append("a track needs the head's lat and lon")
+        elif heads and "lon" in heads[0]:
+            ends = [(r["track"][-1], heads[0], "ends")]
+            if approach_pts and "lat" in approach_pts[0] and "lon" in approach_pts[0]:
+                ends.append((r["track"][0], approach_pts[0], "starts"))
+            for v, p, verb in ends:
+                d = haversine(v[0], v[1], p["lat"], p["lon"])
+                if d > TRACK_END:
+                    out.append(f"the track {verb} {d:.0f} m from {point_label(p)} "
+                               f"(more than {TRACK_END:g} m)")
     return out
 
 
@@ -317,10 +364,52 @@ def fold_names(r):
     return r, out
 
 
+def in_metres(r):
+    """Route r with its lengths and heights in metres, as it declares them (a copy when in feet): each
+    position from the head converted and rounded, a section's len the difference of its ends', so a
+    point on a section boundary stays on it; up and alt each rounded; units then m. Assumes check_shape
+    has passed."""
+    factor = UNITS[r["units"]]
+    if factor == 1.0:
+        return r
+    r = copy.deepcopy(r)
+
+    def m(v):
+        return int(math.floor(v * factor + 0.5))
+
+    d = -sum(s["len"] for s in r.get("approach", []))
+    h = 0  # height from the approach's start, rounded at each end too, so the sum stays true
+    for s in r.get("approach", []) + r["sections"]:
+        end, top = d + s["len"], h + s["up"]
+        s["len"], s["up"] = m(end) - m(d), m(top) - m(h)
+        d, h = end, top
+    for p in r["points"]:
+        if p["kind"] in KINDS:
+            p["at"] = m(p["at"])
+            if "alt" in p:
+                p["alt"] = m(p["alt"])
+    r["units"] = "m"
+    return r
+
+
+def feet_problems(r):
+    """A section of a route in feet that is under a metre once converted, which a route file cannot
+    hold. Assumes check_shape has passed."""
+    if r["units"] == "m":
+        return []
+    m = in_metres(r)
+    out = []
+    for part, key in (("approach", "approach"), ("section", "sections")):
+        for i, (s, t) in enumerate(zip(r.get(key, []), m.get(key, [])), 1):
+            if s["len"] > 0 and t["len"] <= 0:
+                out.append(f"{section_label(part, i, s)}: len is under a metre ({s['len']} ft)")
+    return out
+
+
 def check(r, stem=None):
     """Every problem with route r, as messages; empty when it is valid. stem: the source's file
     name without .src.json, which the id must equal."""
-    out = check_shape(r) or check_rules(r)
+    out = check_shape(r) or feet_problems(r) + check_rules(in_metres(r))
     if stem is not None and isinstance(r, dict) and isinstance(r.get("id"), str) and r["id"] != stem:
         out.append(f"id is {stem!r}, the source's file name (<id>.src.json)")
     return out
@@ -427,6 +516,172 @@ def position(track, dist):
     return track[-1][:2]
 
 
+def flat(lat0):
+    """Metres a degree of latitude and of longitude, on a flat map around latitude lat0."""
+    my = math.radians(1.0) * EARTH_RADIUS
+    return my, my * math.cos(math.radians(lat0))
+
+
+def douglas_peucker(pts, tol):
+    """pts, a list of (lat, lon), with only the vertices needed to keep every one within tol metres of
+    the lines between them; the ends always kept."""
+    if len(pts) < 3:
+        return list(pts)
+    my, mx = flat(pts[0][0])
+    xy = [(p[1] * mx, p[0] * my) for p in pts]
+    keep = {0, len(pts) - 1}
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        (ax, ay), (bx, by) = xy[a], xy[b]
+        dx, dy = bx - ax, by - ay
+        len2 = dx * dx + dy * dy
+        far, at = -1.0, None
+        for i in range(a + 1, b):
+            px, py = xy[i]
+            f = ((px - ax) * dx + (py - ay) * dy) / len2 if len2 > 0 else 0.0
+            f = min(1.0, max(0.0, f))
+            e = math.hypot(px - ax - f * dx, py - ay - f * dy)
+            if e > far:
+                far, at = e, i
+        if at is not None and far > tol:
+            keep.add(at)
+            stack += [(a, at), (at, b)]
+    return [pts[i] for i in sorted(keep)]
+
+
+def turn(a, b, c, my, mx):
+    """Degrees the track turns at b, from a to c: 0 straight on, 180 straight back."""
+    u = ((b[1] - a[1]) * mx, (b[0] - a[0]) * my)
+    v = ((c[1] - b[1]) * mx, (c[0] - b[0]) * my)
+    lu, lv = math.hypot(*u), math.hypot(*v)
+    if lu == 0 or lv == 0:
+        return 180.0
+    return math.degrees(math.acos(max(-1.0, min(1.0, (u[0] * v[0] + u[1] * v[1]) / (lu * lv)))))
+
+
+def seg_off(p, a, b, my, mx):
+    """Metres from p to the line from a to b, on a flat map."""
+    ax, ay = (a[1] - p[1]) * mx, (a[0] - p[0]) * my
+    bx, by = (b[1] - p[1]) * mx, (b[0] - p[0]) * my
+    dx, dy = bx - ax, by - ay
+    len2 = dx * dx + dy * dy
+    f = min(1.0, max(0.0, -(ax * dx + ay * dy) / len2)) if len2 > 0 else 0.0
+    return math.hypot(ax + f * dx, ay + f * dy)
+
+
+def drop_reversals(pts):
+    """pts without the vertices where the track turns back by more than TRACK_REVERSAL degrees, or
+    comes within TRACK_THIN of a neighbour, on a small excursion: both lines at the vertex shorter than TRACK_SPUR, and every vertex dropped so far
+    between its neighbours within TRACK_SPUR of the line that replaces them. Each vertex is looked at
+    again once a neighbour goes, so a standstill's out-and-back goes, but the bound stops the cascade:
+    a hairpin's legs, sustained travel, are never dropped. The ends kept."""
+    if len(pts) < 3:
+        return list(pts)
+    my, mx = flat(pts[0][0])
+    keep, i = list(range(len(pts))), 1
+    while i < len(keep) - 1:
+        a, b, c = (pts[k] for k in keep[i - 1:i + 2])
+        ab, bc = haversine(a[0], a[1], b[0], b[1]), haversine(b[0], b[1], c[0], c[1])
+        small = (ab < TRACK_SPUR and bc < TRACK_SPUR
+                 and all(seg_off(pts[k], a, c, my, mx) < TRACK_SPUR
+                         for k in range(keep[i - 1] + 1, keep[i + 1])))
+        # A vertex within TRACK_THIN of a neighbour adds nothing the thinning keeps, and its turn
+        # means little: in a standstill it is one of two fixes side by side.
+        if small and (turn(a, b, c, my, mx) > TRACK_REVERSAL or min(ab, bc) < TRACK_THIN):
+            del keep[i]
+            i = max(1, i - 1)
+        else:
+            i += 1
+    return [pts[k] for k in keep]
+
+
+def thin(pts):
+    """pts, a list of (lat, lon), thinned: a vertex at least TRACK_SPACING metres from the last one
+    kept (and the last), then Douglas-Peucker to TRACK_THIN metres, then the small reversals dropped
+    (drop_reversals)."""
+    spaced = [pts[0]]
+    for p in pts[1:-1]:
+        if haversine(spaced[-1][0], spaced[-1][1], p[0], p[1]) >= TRACK_SPACING:
+            spaced.append(p)
+    if len(pts) > 1:
+        spaced.append(pts[-1])
+    return drop_reversals(douglas_peucker(spaced, TRACK_THIN))
+
+
+def approach_track(track, points, approach_len, warnings):
+    """The approach's track (#143) from the GPX track and the route's points, their lat and lon filled:
+    from the track's nearest place to the approach's start to its nearest place to the head on one of
+    its passes by the head (each a run of its lines within TRACK_END of it), thinned, its ends the two
+    points' own coordinates; [[lat, lon], ...] to 5 decimals (about a metre). The pass is the one whose
+    distance along the track from the start comes nearest the approach's length: a path may pass close
+    to the head before it reaches it, and a recording may pass it again on its way back. None, with a
+    warning, when the track comes no nearer than TRACK_END to the head or the start (a recording that
+    starts at the head), or no pass lies within TRACK_LEN_RATIO of the approach's length: the route
+    file is then the one built without it."""
+    my, mx = flat(track[0][0])
+    steps = [step_length(a, b) for a, b in zip(track, track[1:])]
+    along = [0.0]
+    for st in steps:
+        along.append(along[-1] + st)
+
+    def project(p, k):
+        """(metres from p to line k, from track[k] to track[k + 1], and the share along it)."""
+        a, b = track[k], track[k + 1]
+        ax, ay = (a[1] - p["lon"]) * mx, (a[0] - p["lat"]) * my
+        dx, dy = (b[1] - a[1]) * mx, (b[0] - a[0]) * my
+        len2 = dx * dx + dy * dy
+        f = min(1.0, max(0.0, -(ax * dx + ay * dy) / len2)) if len2 > 0 else 0.0
+        return math.hypot(ax + f * dx, ay + f * dy), f
+
+    def nearest(p, ks):
+        """(metres off, line, share, metres along the track) of the place on lines ks nearest p."""
+        best = min(ks, key=lambda k: project(p, k)[0])
+        off, f = project(p, best)
+        return off, best, f, along[best] + f * steps[best]
+
+    head = next(p for p in points if p["kind"] == "head")
+    start = next((p for p in points if p["kind"] == "approach"), None)
+    known = start is not None and "lat" in start
+    lines = range(len(track) - 1)
+    passes, k = [], 0
+    while k < len(track) - 1:
+        if project(head, k)[0] <= TRACK_END:
+            j = k
+            while j + 1 < len(track) - 1 and project(head, j + 1)[0] <= TRACK_END:
+                j += 1
+            passes.append(nearest(head, range(k, j + 1)))
+            k = j + 1
+        else:
+            k += 1
+    if not passes:
+        warnings.append(f"no approach track: the track comes no nearer than {nearest(head, lines)[0]:.0f} m "
+                        f"to {point_label(head)} (more than {TRACK_END:g} m)")
+        return None
+
+    def from_start(h):
+        s = nearest(start, range(h[1] + 1)) if known else (0.0, 0, 0.0, 0.0)
+        if s[3] > h[3]:  # the start's place on the head's line lies past the head
+            s = (s[0], s[1], s[2], h[3])
+        return s, h[3] - s[3]
+
+    h = min(passes, key=lambda h: abs(from_start(h)[1] - approach_len))
+    s, length = from_start(h)
+    if s[0] > TRACK_END:
+        warnings.append(f"no approach track: the track comes no nearer than {s[0]:.0f} m to "
+                        f"{point_label(start)} (more than {TRACK_END:g} m)")
+        return None
+    if not approach_len / TRACK_LEN_RATIO <= length <= approach_len * TRACK_LEN_RATIO:
+        alongs = " and ".join(f"{from_start(p)[1]:.0f}" for p in passes)
+        warnings.append(f"no approach track: the track reaches {point_label(head)} {alongs} m along "
+                        f"it, the approach is {approach_len} m (more than {TRACK_LEN_RATIO:g} times "
+                        "apart)")
+        return None
+    first = (start["lat"], start["lon"]) if known else track[0][:2]
+    pts = [first] + [t[:2] for t in track[s[1] + 1:h[1] + 1]] + [(head["lat"], head["lon"])]
+    return [[round(lat, 5), round(lon, 5)] for lat, lon in thin(pts)]
+
+
 def ordered(obj, keys):
     return {k: obj[k] for k in keys if k in obj}
 
@@ -435,12 +690,14 @@ TRACK_TOLERANCE = 0.20  # the share by which the track's length may differ from 
 
 
 def build(r, track=None, stem=None, warnings=None):
-    """Route r folded, checked and in canonical form; lat and lon filled from track where missing.
+    """Route r folded, checked, in metres and in canonical form; lat and lon filled from track where
+    missing, and the approach's track from it when the route has an approach and no track of its own.
     Warnings about the track go into the list `warnings`, when given."""
     r, problems = fold_names(r)
     problems = check(r, stem) + problems
     if problems:
         raise RouteError(problems)
+    r = in_metres(r)
     warnings = [] if warnings is None else warnings
     approach_len = sum(s["len"] for s in r.get("approach", []))
     route_len = approach_len + sum(s["len"] for s in r["sections"])
@@ -479,7 +736,13 @@ def build(r, track=None, stem=None, warnings=None):
         out["approach"] = [section(s) for s in r["approach"]]
     out["sections"] = [section(s) for s in r["sections"]]
     out["points"] = [point(p) for p in r["points"]]
-    return out
+    if "track" in r:
+        out["track"] = [[float(v) for v in ll] for ll in r["track"]]
+    elif track is not None and "approach" in r:
+        t = approach_track(track, out["points"], approach_len, warnings)
+        if t is not None:
+            out["track"] = t
+    return ordered(out, TOP_KEYS)
 
 
 def render(r):

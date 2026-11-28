@@ -22,7 +22,7 @@ module DescentTest {
             sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => steps[i][2], "min" => 10,
                 "name" => "S" + i, "side" => i % 2 == 0 ? 0.5 : -0.5});
         }
-        return Route.fromJson({"format" => 1, "id" => "dip", "name" => "Dip", "short" => "Dip",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "dip", "name" => "Dip", "short" => "Dip",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 2070, "name" => "Head"},
                 {"kind" => "exit", "at" => 190, "name" => "Exit"},

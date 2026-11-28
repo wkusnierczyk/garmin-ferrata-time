@@ -83,7 +83,13 @@ class Tracker {
     var beyond as Float = 0.0;
     // Whether the part has had a fix on the approach's track yet.
     var fixed as Boolean = false;
+    // Whether the last reading's fix was more than OFF_TRACK from the file's track (#143): headLeft is
+    // then the straight line to the head, and toHead shows the larger of it and the path left.
+    var offTrack as Boolean = false;
     var track as Array<[Float, Float, Float]>;
+    // Whether track is the file's (#143), a path, which a fix can be off; a track of the points is a
+    // straight line between them, so the cutoff is not applied to it.
+    var fileTrack as Boolean = false;
     var headAt as [Float, Float]?;
 
     // Guidebook minutes done before the pace is trusted; until then it is basePace (my call, the plan).
@@ -94,6 +100,8 @@ class Tracker {
     const BAND_STEP = 5;
     const BAND_EVERY = 30;
     const BAND_MAX = 50;
+    // Metres from the approach's track beyond which a fix is off it, not snapped (owner, #143).
+    const OFF_TRACK = 200.0;
 
     function initialize(r as Route) {
         route = r;
@@ -104,6 +112,7 @@ class Tracker {
         // head (at 0, the last point) and the approach's start (at 0 along, the first) have coordinates.
         var tr = r.approachTrack();
         track = headAt != null && tr.size() >= 2 && tr[0][2] <= 0.0 ? tr : [] as Array<[Float, Float, Float]>;
+        fileTrack = track.size() > 0 && r.track != null;
     }
 
     // Start the climb where the climber says: :head (the ferrata, synced to the head),
@@ -278,19 +287,29 @@ class Tracker {
     // where GPS says, back as well as on: walking the wrong way shows as a longer way to the head. The
     // part's first such fix moves m0 by what time had not explained, so a stretch skipped by a start
     // in the wrong place (an ALTITUDE start on a flat) never counts as walked, as startAt does; later
-    // fixes set the pace. With only the head's position, the straight line is the distance shown, not
-    // a place on the route; only when it is longer than the whole approach is the place its start,
-    // with the rest carried (beyond). True when GPS set the place; else time and
-    // height move it, as on the ferrata, from where it is. A paused reading leaves the distance as it
-    // was.
+    // fixes set the pace. A fix more than OFF_TRACK from the file's track is not snapped, as with only
+    // the head's position, and toHead shows the larger of the line and the path left. With only the
+    // head's position, the straight line is the distance shown, not a place on the route; only when it is
+    // longer than the whole approach is the place its start, with the rest carried (beyond). True
+    // when GPS set the place; else time and height move it, as on the ferrata, from where it is. A
+    // paused reading leaves the distance as it was.
     function approachByGps(rd as Reading, elapsed as Float) as Boolean {
         if (phase != APPROACH) { return false; }
         headLeft = null;
+        offTrack = false;
         var lat = rd.lat, lon = rd.lon;
         if (lat == null || lon == null) { return false; }
         beyond = 0.0;
-        var along = Geo.snap(lat, lon, track);
-        if (along == null) {
+        var snapped = Geo.snap(lat, lon, track);
+        // Off the file's track (owner, #143): not snapped, so a wild fix cannot jump the place. As with
+        // no track, the straight line to the head, and time and height move the place; toHead shows the
+        // larger of the line and the path left from the place, so the figure does not jump at the
+        // cutoff and a wrong turn grows it (owner, on PR #166).
+        if (snapped != null && fileTrack && snapped[1] > OFF_TRACK) {
+            offTrack = true;
+            snapped = null;
+        }
+        if (snapped == null) {
             var h = headAt;
             if (h == null) { return false; }
             var left = Geo.distance(lat, lon, h[0], h[1]), total = Climb.totalD().toFloat();
@@ -303,6 +322,7 @@ class Tracker {
             }
             return false;
         }
+        var along = snapped[0];
         if (!fixed) {
             var explained = Climb.minuteAtDistance(d) + (rd.t - moveT) / 60.0 / pace;
             if (explained > Climb.totalM()) { explained = Climb.totalM().toFloat(); }
@@ -336,12 +356,14 @@ class Tracker {
     }
 
     // On the approach, the metres and the minutes to the head (#113): the distance from the last
-    // reading's GPS fix (along the track, or straight to the head), or else from the place and what is
-    // carried beyond the approach's start; the minutes are the guidebook's from there at the climber's
-    // pace, the carried metres at the approach's average. On the ferrata, to the top.
+    // reading's GPS fix (along the track, or straight to the head; off the file's track, the larger of
+    // the line and the path left from the place), or else from the place and what is carried beyond
+    // the approach's start; the minutes are the guidebook's from there at the climber's pace, the
+    // carried metres at the approach's average. On the ferrata, to the top.
     function toHead() as [Float, Float] {
         var g = headLeft, total = Climb.totalD().toFloat();
-        var left = g != null ? g : total - d + beyond;
+        var path = total - d + beyond;
+        var left = g == null ? path : (offTrack && path > g ? path : g);
         var m = Climb.totalM() - Climb.minuteAtDistance(d) + (total > 0 ? beyond * Climb.totalM() / total : 0.0);
         return [left > 0 ? left : 0.0, m * pace];
     }
@@ -416,6 +438,7 @@ class Tracker {
         moveT = rd.t;
         pending = null;
         headLeft = null;
+        offTrack = false;
         beyond = 0.0;
         fixed = false;
         alt = rd.alt;

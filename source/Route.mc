@@ -18,6 +18,9 @@ class Route {
     // The ferrata, from the head to the top.
     var sections as Array<Dictionary>;
     var points as Array<Dictionary>;
+    // The approach's track from the file (#143), [lat, lon] from the approach's start to the head; null
+    // when the file has none.
+    var track as Array<Array<Numeric> >?;
 
     function initialize(data as Dictionary) {
         id = data["id"] as String;
@@ -29,15 +32,20 @@ class Route {
         approach = a instanceof Array ? a as Array<Dictionary> : [] as Array<Dictionary>;
         sections = data["sections"] as Array<Dictionary>;
         points = data["points"] as Array<Dictionary>;
+        track = data["track"] as Array<Array<Numeric> >?;
     }
 
     // The route in data, or null when the app cannot read it: another format (this app reads format
-    // 1), a head, a top or sections missing, or any section or known point of the wrong shape. The
+    // 1), units other than metres (a route declares them, never assumed: the route tool converts, #143),
+    // a head, a top or sections missing, any section or known point of the wrong shape, or a track
+    // that is not a list of at least two [lat, lon]. The
     // checks go down to every field the app reads, so a route from elsewhere than the build (storage,
     // later) cannot crash it.
     static function fromJson(data as Dictionary) as Route? {
         var f = data["format"];
         if (!(f instanceof Number) || f != 1) { return null; }
+        if (!"m".equals(data["units"] as Object?)) { return null; }
+        if (data["track"] != null && !trackValid(data["track"] as Object?)) { return null; }
         if (!(data["id"] instanceof String) || !(data["name"] instanceof String)
             || !(data["short"] instanceof String)) { return null; }
         var s = data["sections"], p = data["points"], a = data["approach"];
@@ -92,6 +100,18 @@ class Route {
         return true;
     }
 
+    // A list of at least two [lat, lon], each a number.
+    static function trackValid(t as Object?) as Boolean {
+        if (!(t instanceof Array) || (t as Array).size() < 2) { return false; }
+        var list = t as Array;
+        for (var i = 0; i < list.size(); i++) {
+            var v = list[i];
+            if (!(v instanceof Array) || (v as Array).size() != 2) { return false; }
+            if (!isNumeric((v as Array)[0] as Object?) || !isNumeric((v as Array)[1] as Object?)) { return false; }
+        }
+        return true;
+    }
+
     static function isNumeric(v as Object?) as Boolean {
         return v instanceof Number || v instanceof Float || v instanceof Double || v instanceof Long;
     }
@@ -128,13 +148,30 @@ class Route {
         return (points[i]["alt"] as Object?) != null;
     }
 
-    // The approach's track for GPS (#113): its known points with lat and lon (the approach's start, the
-    // head, and any landmark, danger or exit before the head), each [lat, lon, metres along the
-    // approach from its start], in the order they come. route.py fills their coordinates from the
-    // route's GPX track, so it follows the path as closely as the points do.
+    // The approach's track for GPS (#113), each vertex [lat, lon, metres along the approach from its
+    // start], in the order they come. The file's track when it has one (#143), the path from the
+    // approach's start to the head as route.py thinned it from the GPX track, its metres along the
+    // map stretched to the approach's guidebook length, so places on it are in the route's metres.
+    // Else the known points with lat and lon (the approach's start, the head, and any landmark,
+    // danger or exit before the head): a straight line between them.
     function approachTrack() as Array<[Float, Float, Float]> {
         var out = [] as Array<[Float, Float, Float]>;
         var shift = lengthOf(approach);
+        var t = track;
+        if (t != null) {
+            var along = [0.0] as Array<Float>;
+            for (var i = 1; i < t.size(); i++) {
+                along.add(along[i - 1] + Geo.distance(t[i - 1][0].toFloat(), t[i - 1][1].toFloat(),
+                    t[i][0].toFloat(), t[i][1].toFloat()));
+            }
+            var total = along[t.size() - 1];
+            if (total <= 0) { return out; }
+            for (var i = 0; i < t.size(); i++) {
+                out.add([t[i][0].toFloat(), t[i][1].toFloat(), along[i] / total * shift]
+                    as [Float, Float, Float]);
+            }
+            return out;
+        }
         for (var i = 0; i < points.size(); i++) {
             var p = points[i];
             if (!isKnownKind(p["kind"] as String) || p["lat"] == null || p["lon"] == null) { continue; }
