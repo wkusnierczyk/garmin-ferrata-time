@@ -34,13 +34,15 @@ EARTH_RADIUS = 6371000.0
 UNITS = {"m": 1.0, "ft": 0.3048}
 # The approach's track (#143), thinned from the GPX: a vertex kept only once it is TRACK_SPACING
 # metres from the last one kept, which drops the cloud of fixes where a recording stood still, then
-# Douglas-Peucker to TRACK_THIN metres; before and after it, a vertex where the track turns back by
-# more than TRACK_REVERSAL degrees is dropped, the fixes of a standstill scattered wider than the
-# spacing (a switchback 10 m wide is kept). Its ends lie within TRACK_END metres of the approach's
-# start and of the head.
+# Douglas-Peucker to TRACK_THIN metres; then a vertex where the track turns back by more than
+# TRACK_REVERSAL degrees, or comes within TRACK_THIN of a neighbour, is dropped when the excursion is
+# small, every line at it and every vertex it drops within TRACK_SPUR: the out-and-back fixes of a
+# standstill scattered wider than the spacing go, a hairpin's legs stay (drop_reversals). Its ends
+# lie within TRACK_END metres of the approach's start and of the head.
 TRACK_SPACING = 15.0
 TRACK_THIN = 5.0
 TRACK_REVERSAL = 150.0
+TRACK_SPUR = 3 * TRACK_SPACING
 TRACK_END = 25.0
 # What a name may hold after folding: the text fonts' charset, which carries only the characters the
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
@@ -555,33 +557,53 @@ def turn(a, b, c, my, mx):
     return math.degrees(math.acos(max(-1.0, min(1.0, (u[0] * v[0] + u[1] * v[1]) / (lu * lv)))))
 
 
+def seg_off(p, a, b, my, mx):
+    """Metres from p to the line from a to b, on a flat map."""
+    ax, ay = (a[1] - p[1]) * mx, (a[0] - p[0]) * my
+    bx, by = (b[1] - p[1]) * mx, (b[0] - p[0]) * my
+    dx, dy = bx - ax, by - ay
+    len2 = dx * dx + dy * dy
+    f = min(1.0, max(0.0, -(ax * dx + ay * dy) / len2)) if len2 > 0 else 0.0
+    return math.hypot(ax + f * dx, ay + f * dy)
+
+
 def drop_reversals(pts):
-    """pts without the vertices where the track turns back by more than TRACK_REVERSAL degrees, each
-    vertex looked at again once a neighbour goes; the ends kept."""
+    """pts without the vertices where the track turns back by more than TRACK_REVERSAL degrees, or
+    comes within TRACK_THIN of a neighbour, on a small excursion: both lines at the vertex shorter than TRACK_SPUR, and every vertex dropped so far
+    between its neighbours within TRACK_SPUR of the line that replaces them. Each vertex is looked at
+    again once a neighbour goes, so a standstill's out-and-back goes, but the bound stops the cascade:
+    a hairpin's legs, sustained travel, are never dropped. The ends kept."""
     if len(pts) < 3:
         return list(pts)
     my, mx = flat(pts[0][0])
-    out, i = list(pts), 1
-    while i < len(out) - 1:
-        if turn(out[i - 1], out[i], out[i + 1], my, mx) > TRACK_REVERSAL:
-            del out[i]
+    keep, i = list(range(len(pts))), 1
+    while i < len(keep) - 1:
+        a, b, c = (pts[k] for k in keep[i - 1:i + 2])
+        ab, bc = haversine(a[0], a[1], b[0], b[1]), haversine(b[0], b[1], c[0], c[1])
+        small = (ab < TRACK_SPUR and bc < TRACK_SPUR
+                 and all(seg_off(pts[k], a, c, my, mx) < TRACK_SPUR
+                         for k in range(keep[i - 1] + 1, keep[i + 1])))
+        # A vertex within TRACK_THIN of a neighbour adds nothing the thinning keeps, and its turn
+        # means little: in a standstill it is one of two fixes side by side.
+        if small and (turn(a, b, c, my, mx) > TRACK_REVERSAL or min(ab, bc) < TRACK_THIN):
+            del keep[i]
             i = max(1, i - 1)
         else:
             i += 1
-    return out
+    return [pts[k] for k in keep]
 
 
 def thin(pts):
     """pts, a list of (lat, lon), thinned: a vertex at least TRACK_SPACING metres from the last one
-    kept (and the last), then Douglas-Peucker to TRACK_THIN metres, reversals dropped before and
-    after it."""
+    kept (and the last), then Douglas-Peucker to TRACK_THIN metres, then the small reversals dropped
+    (drop_reversals)."""
     spaced = [pts[0]]
     for p in pts[1:-1]:
         if haversine(spaced[-1][0], spaced[-1][1], p[0], p[1]) >= TRACK_SPACING:
             spaced.append(p)
     if len(pts) > 1:
         spaced.append(pts[-1])
-    return drop_reversals(douglas_peucker(drop_reversals(spaced), TRACK_THIN))
+    return drop_reversals(douglas_peucker(spaced, TRACK_THIN))
 
 
 def approach_track(track, points, warnings):

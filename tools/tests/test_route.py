@@ -985,3 +985,15 @@ def test_feet_too_short_for_a_metre(tmp_path, capsys):
         for p in r["points"]:
             p["at"] = {"approach": -20, "head": 0, "exit": 49, "landmark": 49, "danger": 25, "top": 50}[p["kind"]]
     rejects(tmp_path, capsys, fixture(change), "section 2 'Ridge': len is under a metre (1 ft)")
+
+
+def test_thin_keeps_a_narrow_hairpin():
+    # Codex on PR #166: fixes a metre apart, 100 m out, 5 m across, 100 m back. Both legs are kept
+    # (sustained travel is never a reversal to drop), the length within a few per cent of 205 m.
+    my, mx = route.flat(46.0)
+    pts = ([(46.0 + i / my, 8.0) for i in range(101)] + [(46.0 + 100 / my, 8.0 + j / mx) for j in range(1, 5)]
+           + [(46.0 + (100 - i) / my, 8.0 + 5 / mx) for i in range(101)])
+    t = route.thin(pts)
+    # The spacing cuts the turn's corner by up to TRACK_SPACING: 192 m, 6 % short, and no more.
+    assert 190 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 215
+    assert max(p[0] for p in t) > 46.0 + 90 / my  # the far end is still there
