@@ -1,5 +1,6 @@
 {
   "format": 1,
+  "units": "m",
   "id": "demo",
   "name": "Demo",
   "short": "Demo",

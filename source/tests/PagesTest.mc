@@ -170,7 +170,7 @@ module PagesTest {
         for (var i = 0; i < 2; i++) {
             sections.add({"len" => 100, "up" => 100, "grade" => 3, "min" => 10, "name" => "S" + i, "side" => 0.0});
         }
-        Climb.use(Route.fromJson({"format" => 1, "id" => "low", "name" => "Low", "short" => "Low",
+        Climb.use(Route.fromJson({"format" => 1, "units" => "m", "id" => "low", "name" => "Low", "short" => "Low",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 500, "name" => "Head"},
                 {"kind" => "danger", "at" => 100, "name" => "Danger"},
@@ -391,7 +391,7 @@ module PagesTest {
         var all = [{"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
             {"kind" => "top", "at" => len, "name" => "Top"}] as Array<Dictionary>;
         all.addAll(points);
-        return Route.fromJson({"format" => 1, "id" => "p", "name" => "P", "short" => "P",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "p", "name" => "P", "short" => "P",
             "sections" => sections, "points" => all}) as Route;
     }
 
@@ -632,7 +632,7 @@ module PagesTest {
                 "side" => i % 2 == 0 ? -0.6 : 0.4});
             len += steps[i][0];
         }
-        Climb.use(Route.fromJson({"format" => 1, "id" => "long", "name" => "Long", "short" => "Long",
+        Climb.use(Route.fromJson({"format" => 1, "units" => "m", "id" => "long", "name" => "Long", "short" => "Long",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 2100, "name" => "Head"},
                 {"kind" => "top", "at" => len, "name" => "Top"}]}) as Route, :ferrata);

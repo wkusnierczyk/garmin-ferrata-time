@@ -23,12 +23,20 @@ module GeoTest {
             ford["lat"] = 46.009; ford["lon"] = 7.0;
         }
         if (head) { h["lat"] = 46.009; h["lon"] = 7.0129; }
-        return Route.fromJson({"format" => 1, "id" => "g", "name" => "Geo", "short" => "Geo",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "g", "name" => "Geo", "short" => "Geo",
             "approach" => [
                 {"len" => 1000, "up" => 0, "grade" => 0, "min" => 20, "name" => "Valley", "side" => 0.0},
                 {"len" => 1000, "up" => 100, "grade" => 0, "min" => 30, "name" => "Slope", "side" => 0.0}],
             "sections" => [{"len" => 100, "up" => 50, "grade" => 1, "min" => 10, "name" => "Wall", "side" => 0.0}],
             "points" => [start, ford, h, {"kind" => "top", "at" => 100, "alt" => 1150, "name" => "Top"}]}) as Route;
+    }
+
+    // The same route with the approach's track in the file (#143): the car park, the ford and the head,
+    // as the route tool writes it, with the head's coordinates and none on the points between.
+    function routeWithTrack() as Route {
+        var r = route(false, true);
+        r.track = [[46.0, 7.0], [46.0045, 7.0], [46.009, 7.0], [46.009, 7.00645], [46.009, 7.0129]];
+        return r;
     }
 
     // On the approach from its start, the watch reading true (offset 0).
@@ -277,6 +285,101 @@ module GeoTest {
         Climb.use(r, :ferrata);
         p = input.positionAt(0.0);
         Test.assertMessage(p != null && near(p[0], 46.009, 1e-5) && near(p[1], 7.0129, 1e-5), "head: " + p);
+        return true;
+    }
+
+    // The file's track (#143) is snapped to as the points' was: beside leg 1 halfway, 500 m along it.
+    (:test)
+    function snapsToTheFilesTrack(logger as Logger) as Boolean {
+        var t = walking(routeWithTrack());
+        t.update(fix(LEG1, 600));
+        // The map's 2000 m and the approach's are about the same: 1500 m of it left.
+        Test.assertMessage(near(t.toHead()[0], 1500.0, 15.0), "along the track: " + t.toHead()[0]);
+        Test.assertMessage(near(t.d, 500.0, 15.0), "the place follows: " + t.d);
+        return true;
+    }
+
+    // More than 200 m off the track (owner, #143): not snapped, and time moves the place, so a wild fix
+    // cannot jump it. 0.0045 degrees east of leg 1 halfway is about 350 m off it and 819 m from the
+    // head; the distance is the larger of that and the path left from the place, 1500 m.
+    (:test)
+    function offTrackIsNotSnapped(logger as Logger) as Boolean {
+        var t = walking(routeWithTrack());
+        var off = [46.0045, 7.0045] as [Float, Float];
+        t.update(fix(off, 600));
+        var straight = Geo.distance(off[0], off[1], 46.009, 7.0129);
+        Test.assertMessage(straight < 1000.0 && near(t.toHead()[0], 1500.0, 0.5), "the path left: " + t.toHead()[0] + ", " + straight);
+        // Ten minutes of leg 1's 50 m a minute.
+        Test.assertMessage(near(t.d, 500.0, 0.5), "the place by time: " + t.d);
+        Test.assertMessage(!t.fixed, "no fix on the track yet");
+        // Back within 200 m (about 150 m east of leg 1), snapped again: the place where GPS says.
+        t.update(fix([46.0072, 7.0019] as [Float, Float], 660));
+        Test.assertMessage(near(t.d, 800.0, 15.0), "snapped again: " + t.d);
+        Test.assertMessage(t.fixed, "on the track");
+        return true;
+    }
+
+    // The cutoff is the file's track's only (the review of #166): a track of the points is a straight
+    // line between them, no path to be off. 270 m east of leg 1, 334 m along it (and 667 m from leg
+    // 2), snapped there; time would say 500 m.
+    (:test)
+    function trackOfThePointsHasNoCutoff(logger as Logger) as Boolean {
+        var t = walking(route(true, true));
+        t.update(fix([46.003, 7.0035] as [Float, Float], 600));
+        Test.assertMessage(near(t.d, 334.0, 15.0), "snapped: " + t.d);
+        Test.assertMessage(t.fixed, "on the track");
+        return true;
+    }
+
+    // The cutoff at 200 m (the review of #166): 190 m east of leg 1, 800 m along it, is snapped; 210 m
+    // is not, and time moves the place, 500 m in ten minutes. 0.001 degrees of longitude there is
+    // 77.23 m.
+    (:test)
+    function cutoffAt200Metres(logger as Logger) as Boolean {
+        var t = walking(routeWithTrack());
+        t.update(fix([46.0072, 7.00246] as [Float, Float], 600));
+        Test.assertMessage(near(t.d, 800.0, 15.0), "190 m off, snapped: " + t.d);
+        t = walking(routeWithTrack());
+        t.update(fix([46.0072, 7.00272] as [Float, Float], 600));
+        Test.assertMessage(near(t.d, 500.0, 0.5), "210 m off, by time: " + t.d);
+        Test.assertMessage(!t.fixed, "not on the track");
+        return true;
+    }
+
+    // Off the track and farther from the head than the whole approach (the review of #166: the cable car
+    // up to the Gemmi): as with no track, the place is the approach's start and the rest is carried,
+    // so the next fix on the track is not undone by time. 3 km south of the car park.
+    (:test)
+    function offTrackBeyondTheApproachIsCarried(logger as Logger) as Boolean {
+        var t = walking(routeWithTrack());
+        var far = [45.973, 7.0] as [Float, Float];
+        t.update(fix(far, 600));
+        var left = Geo.distance(far[0], far[1], 46.009, 7.0129);
+        Test.assertMessage(near(t.toHead()[0], left, 1.0), "straight to the head: " + t.toHead()[0]);
+        Test.assertMessage(near(t.d, 0.0, 0.01), "at the approach's start: " + t.d);
+        Test.assertMessage(near(t.beyond, left - 2000.0, 1.0), "carried: " + t.beyond);
+        return true;
+    }
+
+    // Off the file's track the distance is the larger of the straight line to the head and the path
+    // left from the place (owner, on PR #166): just inside 200 m and then just outside, no jump; walking
+    // farther off, it grows. Beside leg 1 at 800 m, the path left is about 1200 m and the line 811 m.
+    (:test)
+    function offTrackDistanceDoesNotJumpAndGrows(logger as Logger) as Boolean {
+        var t = walking(routeWithTrack());
+        t.update(fix([46.0072, 7.00246] as [Float, Float], 600));
+        var inside = t.toHead()[0];
+        Test.assertMessage(near(inside, 1200.0, 15.0), "190 m off, along the track: " + inside);
+        t.update(fix([46.0072, 7.00272] as [Float, Float], 610));
+        var outside = t.toHead()[0];
+        Test.assertMessage(t.offTrack, "210 m off");
+        Test.assertMessage(near(outside, inside, 15.0), "no jump: " + inside + " then " + outside);
+        t.update(fix([46.0072, 6.99] as [Float, Float], 620));
+        var farther = t.toHead()[0];
+        t.update(fix([46.0072, 6.98] as [Float, Float], 630));
+        var farthest = t.toHead()[0];
+        Test.assertMessage(farther > outside + 100 && farthest > farther + 100,
+            "grows: " + outside + ", " + farther + ", " + farthest);
         return true;
     }
 }

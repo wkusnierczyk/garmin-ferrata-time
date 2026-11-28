@@ -11,7 +11,7 @@ module NumbersTest {
 
     // A route with an approach of len metres, up gained, and a short ferrata.
     function withApproach(len as Number, up as Number) as Route {
-        return Route.fromJson({"format" => 1, "id" => "a", "name" => "A", "short" => "A",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "a", "name" => "A", "short" => "A",
             "approach" => [{"len" => len, "up" => up, "grade" => 0, "min" => 180, "name" => "Walk", "side" => 0.0}],
             "sections" => [{"len" => 100, "up" => 100, "grade" => 3, "min" => 10, "name" => "Wall", "side" => 0.0}],
             "points" => [{"kind" => "approach", "at" => -len, "type" => "Car park", "name" => "Car park"},
