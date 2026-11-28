@@ -19,15 +19,15 @@ module ColumnTest {
                 {"kind" => "top", "at" => 300, "name" => "Top"}]}) as Route;
     }
 
-    // How far the group's corner reaches from the centre at the fit, worked out from its parts: half its
-    // width across (the larger box, the space, the widest altitude, the gap and the unit, measured
-    // again here), and up half the column, half a gap and half the top altitude's capitals.
+    // How far the group's top right corner reaches from the centre, where columnFilled places it: the
+    // unit's end after the widest altitude, the top altitude's capitals. The widths in the fit are
+    // checked against the route's every altitude (page 5) or every difference (page 6), measured here.
     function corner(d as Draw, fit as Array<Float>, ft as Boolean, relative as Boolean) as Float {
-        var k = fit[0], font = d.semi(fit[1]);
+        var font = d.semi(fit[1]);
         var altW = relative ? Widgets.relativeWidestIn(d, ft, font) : WidthTest.widestByHand(d, ft, font);
-        var unitW = d.width(d.semi(fit[2]), ft ? "ft" : "m");
-        var x = ((Widgets.COL_W * Widgets.COL_BIG + Widgets.COL_SPACE + 0.007212) * k + altW + unitW) / 2;
-        var y = (Widgets.columnReach() + Widgets.COL_GAP / 2) * k + d.capHeight(font) / 2;
+        Test.assertEqualMessage(fit[3], altW, "the altitudes' box");
+        Test.assertEqualMessage(fit[4], d.width(d.semi(fit[2]), ft ? "ft" : "m"), "the unit");
+        var c = Widgets.columnFilledCorner(d, fit), x = c[0] - 0.5, y = c[1] - 0.5;
         return Math.sqrt(x * x + y * y).toFloat();
     }
 

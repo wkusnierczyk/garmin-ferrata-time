@@ -33,6 +33,13 @@ module Fonts {
         return f;
     }
 
+    // SemiBold t[i], the one loaded if it is, else loaded for the caller only, not kept: pages 5 and 6
+    // measure fonts they may not draw in (Widgets.columnFit, #160).
+    function semiOnce(i as Number) as Graphics.FontType {
+        var f = semiLoaded[i];
+        return f != null ? f : WatchUi.loadResource(FontSizes.semiId(i)) as Graphics.FontType;
+    }
+
     // Bold, the letters in the difficulty boxes and the words beside them, at the size nearest share.
     function bold(share as Numeric) as Graphics.FontType {
         var i = nearest(share, FontSizes.BOLD), f = boldLoaded[i];

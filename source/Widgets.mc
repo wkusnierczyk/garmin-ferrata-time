@@ -779,13 +779,14 @@ module Widgets {
             var big = k == 0, f = big ? COL_BIG : 1.0;
             var w = d.whole(COL_W * f * sc), h = d.whole(COL_H * f * sc);
             var y = slotY(k, cc, sc), top = d.whole(y - h / 2);
-            var colour = d.grade(g, false), pen = OUTLINE * sc;
+            // At sc 1 as ever (page 7); larger, a whole-pixel pen, so opposite outlines match.
+            var colour = d.grade(g, false), pen = sc == 1.0 ? OUTLINE : d.whole(OUTLINE * sc);
             if (k < 0) { colour = d.darken(colour, COL_DIM); }
             if (Climb.descends(i)) {
                 trapeziumPen(d, cx, top, w, h, 0.019231 * f * sc, colour, big, pen);
             } else {
                 d.roundRect(cx - w / 2, top, w, h, 0.019231 * f * sc, colour);
-                if (!big) { d.roundRect(cx - w / 2 + pen, top + pen, w - 0.014423 * sc, h - 0.014423 * sc, 0.014423 * f * sc, BLACK); }
+                if (!big) { d.roundRect(cx - w / 2 + pen, top + pen, w - (sc == 1.0 ? 0.014423 : 2 * pen), h - (sc == 1.0 ? 0.014423 : 2 * pen), 0.014423 * f * sc, BLACK); }
             }
             d.textCapCentre(cx, top + h / 2, d.bold(COL_FS * f * sc), BOX_NAME[g], big ? BLACK : colour);
         }
@@ -825,6 +826,16 @@ module Widgets {
 
     // That width in a font, measured, not kept.
     function relativeWidestIn(d as Draw, ft as Boolean, font as Graphics.FontType) as Float {
+        var texts = relativeExtremes(ft), w = 0.0;
+        for (var i = 0; i < texts.size(); i++) {
+            var e = d.width(font, texts[i]);
+            if (e > w) { w = e; }
+        }
+        return w;
+    }
+
+    // The relative altitudes that can be widest: 0, the largest rise and the deepest fall.
+    function relativeExtremes(ft as Boolean) as Array<String> {
         var hi = 0, lo = 0, n = Climb.count();
         for (var c = 0; c < n; c++) {
             for (var b = c; b <= n && b <= c + COL_ABOVE + 1; b++) {
@@ -833,11 +844,7 @@ module Widgets {
                 if (v < lo) { lo = v; }
             }
         }
-        var w = d.width(font, "0");
-        var wh = d.width(font, relativeText(hi)), wl = d.width(font, relativeText(lo));
-        if (wh > w) { w = wh; }
-        if (wl > w) { w = wl; }
-        return w;
+        return ["0", relativeText(hi), relativeText(lo)] as Array<String>;
     }
 
     // The difficulty column group's width: the larger box, the space, the altitudes (relative on page
@@ -876,15 +883,13 @@ module Widgets {
         var ft = feet(), unit = ft ? "ft" : "m";
         var bw = COL_W * COL_BIG * sc;
         var cx = left + bw / 2, cc = columnCurrentY(cy, sc);
-        var ax = cx + bw / 2 + COL_SPACE * sc + altW;
+        var ax = columnAltitudeRight(left, sc, altW);
         column(d, st, cx, cc, sc);
         // Border b lies between sections b - 1 and b, at its real altitude.
         for (var b = st.cur; b <= st.cur + COL_ABOVE + 1; b++) {
             var above = inColumn(b, st.cur), below = inColumn(b - 1, st.cur);
             if (b != st.cur && !(above && below) && !(outer && (above || below))) { continue; }
-            var y = above
-                ? slotY(b - st.cur, cc, sc) + slotHalf(b - st.cur, sc) + COL_GAP / 2.0 * sc
-                : slotY(b - 1 - st.cur, cc, sc) - slotHalf(b - 1 - st.cur, sc) - COL_GAP / 2.0 * sc;
+            var y = columnBorderY(b - st.cur, above, cc, sc);
             var text = relative ? relativeText(relativeValue(b, st.cur, ft)) : borderAltitude(b, ft).format("%d");
             d.textCapMiddle(ax, y, font, text, WHITE, Graphics.TEXT_JUSTIFY_RIGHT);
             // The unit on the number's baseline.
@@ -893,12 +898,27 @@ module Widgets {
         }
     }
 
+    // Where the group places its altitudes: their right edge, the group's left at left; and the middle
+    // of border k (counted from the current section's bottom, 0), from the slot above it when it has a
+    // box (above), else from the slot below.
+    function columnAltitudeRight(left as Float, sc as Float, altW as Float) as Float {
+        var bw = COL_W * COL_BIG * sc;
+        return left + bw / 2 + bw / 2 + COL_SPACE * sc + altW;
+    }
+
+    function columnBorderY(k as Number, above as Boolean, cc as Float, sc as Float) as Float {
+        return above
+            ? slotY(k, cc, sc) + slotHalf(k, sc) + COL_GAP / 2.0 * sc
+            : slotY(k - 1, cc, sc) - slotHalf(k - 1, sc) - COL_GAP / 2.0 * sc;
+    }
+
     // ---------------------------------------------------------------- pages 5 and 6 on the ferrata
 
     // Pages 5 and 6 have nothing beside the column, so on the ferrata the whole group, boxes, gaps and
     // altitudes, is drawn as large as fits the round screen: its farthest corner COL_FILL_R of the
-    // width from the centre, 4 % of the width from the bezel (owner, 2026-11-28, #160). On the approach
-    // it keeps its size (Pages.columnPage): the HEAD line needs the room. The corners are those of the
+    // width less a pixel from the centre, 4 % of the width and a pixel from the bezel (owner,
+    // 2026-11-28, #160). On the approach it keeps its size (Pages.columnPage): the HEAD line needs the
+    // room. The corners are those of the
     // group's widest extent, the route's widest altitude and its unit beside the larger box, the top
     // altitude's capitals above the column (the column is centred, so the bottom is nearer), so the size
     // holds still along the climb. Fonts do not scale: the altitudes and their unit take the nearest
@@ -929,12 +949,16 @@ module Widgets {
     // their own smallest factor; then the factor is where the smaller ones stop being nearest.
     function columnFitFound(d as Draw, ft as Boolean, relative as Boolean) as Array<Float> {
         var t = FontSizes.SEMI, top = Fonts.nearest(COL_FILL_TOP, t);
-        var k = columnFitWith(d, ft, relative, Fonts.nearest(COL_ALT, t), Fonts.nearest(COL_UNIT, t))[0];
+        // The texts that can be widest, found once (the digits are tabular): the route's two ends, or
+        // page 6's largest rise, deepest fall and 0.
+        var texts = relative ? relativeExtremes(ft) : [altitudeValue(Climb.netLow().toFloat(), ft).format("%d"),
+            altitudeValue(Climb.netHigh().toFloat(), ft).format("%d")] as Array<String>;
+        var k = columnFitWith(d, ft, texts, Fonts.nearest(COL_ALT, t), Fonts.nearest(COL_UNIT, t))[0];
         var a = Fonts.nearest(COL_ALT * k, t), u = Fonts.nearest(COL_UNIT * k, t);
         if (a > top) { a = top; }
         var dir = 0, below = null as Array<Float>?;
         for (var step = 0; step < 2 * t.size(); step++) {
-            var r = columnFitWith(d, ft, relative, a, u);
+            var r = columnFitWith(d, ft, texts, a, u);
             var aLo = a == 0 ? 0.0 : (t[a - 1] + t[a]) / 2 / COL_ALT, uLo = u == 0 ? 0.0 : (t[u - 1] + t[u]) / 2 / COL_UNIT;
             var aHi = a >= top ? 1.0e9 : (t[a] + t[a + 1]) / 2 / COL_ALT;
             var uHi = u >= t.size() - 1 ? 1.0e9 : (t[u] + t[u + 1]) / 2 / COL_UNIT;
@@ -954,7 +978,7 @@ module Widgets {
                 return r;
             }
         }
-        return below != null ? below : columnFitWith(d, ft, relative, a, u);
+        return below != null ? below : columnFitWith(d, ft, texts, a, u);
     }
 
     // The largest factor at which the group, its altitudes in SemiBold t[a] and their unit in t[u],
@@ -962,10 +986,14 @@ module Widgets {
     // Centred, the group's corners are half its width across and, up, half the column and half a gap
     // to the top altitude's middle, and half its capitals: each a part that grows with the factor and
     // a part, the text, that does not.
-    function columnFitWith(d as Draw, ft as Boolean, relative as Boolean, a as Number, u as Number) as Array<Float> {
-        var t = FontSizes.SEMI, font = d.semi(t[a]);
-        var altW = relative ? relativeWidestIn(d, ft, font) : widestIn(d, ft, font);
-        var unitW = d.width(d.semi(t[u]), ft ? "ft" : "m");
+    // The fonts tried are not kept: one the search turns down would stay loaded for the app's life.
+    function columnFitWith(d as Draw, ft as Boolean, texts as Array<String>, a as Number, u as Number) as Array<Float> {
+        var t = FontSizes.SEMI, font = Fonts.semiOnce(a), altW = 0.0;
+        for (var i = 0; i < texts.size(); i++) {
+            var w = d.width(font, texts[i]);
+            if (w > altW) { altW = w; }
+        }
+        var unitW = d.width(Fonts.semiOnce(u), ft ? "ft" : "m");
         var p = (COL_W * COL_BIG + COL_SPACE + 0.007212) / 2, q = (altW + unitW) / 2;
         var v = columnReach() + COL_GAP / 2, e = d.capHeight(font) / 2, r = COL_FILL_R - 1 / d.w;
         // (p k + q)^2 + (v k + e)^2 = r^2, for k.
@@ -976,9 +1004,21 @@ module Widgets {
 
     // Pages 5 and 6 on the ferrata: the group at its factor, centred on the screen.
     function columnFilled(d as Draw, st as Climb.State, relative as Boolean) as Void {
-        var fit = columnFit(d, relative), sc = fit[0];
-        var w = (COL_W * COL_BIG + COL_SPACE + 0.007212) * sc + fit[3] + fit[4];
-        columnGroupDrawn(d, st, 0.5 - w / 2, 0.5, true, relative, sc, d.semi(fit[1]), d.semi(fit[2]), fit[3]);
+        var fit = columnFit(d, relative);
+        columnGroupDrawn(d, st, columnFilledLeft(fit), 0.5, true, relative, fit[0], d.semi(fit[1]), d.semi(fit[2]), fit[3]);
+    }
+
+    function columnFilledLeft(fit as Array<Float>) as Float {
+        return 0.5 - ((COL_W * COL_BIG + COL_SPACE + 0.007212) * fit[0] + fit[3] + fit[4]) / 2;
+    }
+
+    // The group's top right corner as columnFilled places it, for fit: across, the unit's end after the
+    // widest altitude; up, the top altitude's capitals, at the column's top edge.
+    function columnFilledCorner(d as Draw, fit as Array<Float>) as [Float, Float] {
+        var sc = fit[0], font = Fonts.semi(fit[1]);
+        var x = columnAltitudeRight(columnFilledLeft(fit), sc, fit[3]) + 0.007212 * sc + fit[4];
+        var y = columnBorderY(COL_ABOVE + 1, false, columnCurrentY(0.5, sc), sc) - d.capHeight(font) / 2;
+        return [x, y];
     }
 
     // ---------------------------------------------------------------- difficulty stack

@@ -132,8 +132,8 @@ module Pages {
 
     // design/page-5.md: the difficulty column group, centred, with an altitude at the column's top edge
     // too; page 6 (relative) the altitudes relative to the current section's bottom. On the ferrata as
-    // large as fits, 4 % of the width from the bezel (Widgets.columnFilled, #160); on the approach at
-    // page 7's size, as the HEAD line needs the room.
+    // large as fits, 4 % of the width and a pixel from the bezel (Widgets.columnFilled, #160); on the
+    // approach at page 7's size, as the HEAD line needs the room.
     function columnPage(d as Draw, st as Climb.State, relative as Boolean) as Void {
         if (Climb.FERRATA) {
             Widgets.columnFilled(d, st, relative);
