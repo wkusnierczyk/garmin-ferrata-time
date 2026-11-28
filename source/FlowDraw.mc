@@ -151,14 +151,17 @@ module FlowDraw {
             if (i < 0 || i >= m.items.size()) { continue; }
             var it = m.items[i], y = yc + r * 0.18;
             if (r == 0) {
-                var h = 0.2;
+                // The pill centred on the capitals as they land in pixels (#155): rounding y - h / 2 apart
+                // from the text put it 1 px high at 0.53 on 416.
+                var k = label(d, it, r, 0.085, 0.72), f = font(d, true, k), h = 0.2;
+                var a = Graphics.getFontAscent(f), mid = d.s(y + d.capHeight(f) / 2 - d.ascent(f)) + a - d.capHeight(f) * d.w / 2;
+                var top = (Math.round(mid - d.s(h) / 2.0) / d.w).toFloat();
                 if (it.fill) {
-                    d.roundRect(0.08, y - h / 2, 0.84, h, h / 2, it.colour);
+                    d.roundRect(0.08, top, 0.84, h, h / 2, it.colour);
                 } else {
-                    outline(d, 0.08, y - h / 2, 0.84, h, h / 2, it.colour, 0.009);
+                    outline(d, 0.08, top, 0.84, h, h / 2, it.colour, 0.009);
                 }
-                var k = label(d, it, r, 0.085, 0.72);
-                d.textCapCentre(0.5, y, font(d, true, k), it.shown[2] as String, it.fill ? Graphics.COLOR_BLACK : Flow.WHITE);
+                d.textCapCentre(0.5, y, f, it.shown[2] as String, it.fill ? Graphics.COLOR_BLACK : Flow.WHITE);
             } else {
                 var near = r == -1 || r == 1, ty = y + (r > 0 ? 0.02 : -0.02);
                 var k = label(d, it, r, near ? 0.055 : 0.044, chord(ty) * 0.8);
