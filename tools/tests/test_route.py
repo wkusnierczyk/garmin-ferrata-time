@@ -16,6 +16,7 @@ DEMO = REPO / "routes" / "demo.src.json"
 # A minimal valid route: a 20 m approach, two ferrata sections, and every point kind.
 MINIMAL = {
     "format": 1,
+    "units": "m",
     "id": "t",
     "name": "Test",
     "short": "Test",
@@ -77,7 +78,7 @@ def test_demo_builds(tmp_path):
     out = tmp_path / "demo.json"
     assert route.main(["build", str(DEMO), "-o", str(out)]) == 0
     r = json.loads(out.read_text())
-    assert list(r) == ["format", "id", "name", "short", "place", "source", "approach", "sections", "points"]
+    assert list(r) == ["format", "units", "id", "name", "short", "place", "source", "approach", "sections", "points"]
     assert r["format"] == 1
     for s in r["approach"] + r["sections"]:
         assert list(s) == ["len", "up", "grade", "min", "name", "side"]
@@ -716,3 +717,169 @@ def test_gpx_bad_elevation(tmp_path, capsys, ele):
     code, out = build(tmp_path, fixture(), gpx=bad)
     assert code == 1 and out is None
     assert "t.gpx: track point 2: ele is a number" in capsys.readouterr().err
+
+
+# Units (owner, #143): declared in the source, never assumed; a route file is in metres.
+
+def test_units_missing(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: r.pop("units")), "units is missing")
+
+
+def test_units_unknown(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(units="yd")), "units is m or ft, not 'yd'")
+
+
+def test_feet_converted_to_metres(tmp_path):
+    # The approach 100 ft (30.48 m), then 150 ft and 100 ft of ferrata: each boundary converted and
+    # rounded, so the exit at 150 ft (45.72 m) stays on the first section's end, 46 m.
+    def change(r):
+        r["units"] = "ft"
+        r["approach"][0].update(len=100, up=30)
+        r["sections"][0].update(len=150, up=130)
+        r["sections"][1].update(len=100, up=70)
+        alts = {"approach": 3250, "head": 3280, "landmark": 3410, "top": 3480}
+        for p in r["points"]:
+            p["at"] = {"approach": -100, "head": 0, "exit": 150, "landmark": 150, "danger": 200, "top": 250}[p["kind"]]
+            if p["kind"] in alts:
+                p["alt"] = alts[p["kind"]]
+    code, out = build(tmp_path, fixture(change))
+    assert code == 0
+    assert out["units"] == "m"
+    assert [s["len"] for s in out["approach"] + out["sections"]] == [30, 46, 30]
+    assert [s["up"] for s in out["approach"] + out["sections"]] == [9, 40, 21]
+    assert [p["at"] for p in out["points"]] == [-30, 0, 46, 46, 61, 76]
+    assert point(out, "head")["alt"] == 1000 and point(out, "top")["alt"] == 1061
+    assert out["sections"][0]["min"] == 10  # minutes are not lengths
+
+
+def test_feet_checked_in_metres(tmp_path, capsys):
+    # 15 m is 49 ft: altitudes 60 ft off the sections' height are more than 15 m apart.
+    def change(r):
+        r["units"] = "ft"
+        point(r, "top")["alt"] += 60
+    rejects(tmp_path, capsys, fixture(change), "(more than 15 m apart)")
+
+
+# The approach's track (#143): from the GPX, thinned, from the approach's start to the head; or the
+# source's own.
+
+def north(n, step):
+    """n points due north from (46.0, 8.0), step degrees of latitude apart."""
+    return [(round(46.0 + i * step, 7), 8.0) for i in range(n)]
+
+
+def test_gpx_writes_the_approach_track(tmp_path):
+    # The fixture's 20 m approach and 80 m ferrata along a straight track due north, a point every
+    # metre or so: the approach's track runs from the start to the head, about 20 m, thinned to its
+    # ends, which are the points' own coordinates.
+    code, out = build(tmp_path, fixture(), gpx=gpx(north(91, 0.00001)))
+    assert code == 0
+    assert list(out) == route.TOP_KEYS
+    head, start = point(out, "head"), point(out, "approach")
+    assert out["track"] == [[round(start["lat"], 5), round(start["lon"], 5)],
+                            [round(head["lat"], 5), round(head["lon"], 5)]]
+    assert 19 < route.haversine(*out["track"][0], *out["track"][1]) < 21
+
+
+def test_track_cut_at_the_points_nearest_the_start_and_the_head(tmp_path):
+    # A track from 100 m before the approach's start to 100 m past the top; the start and the head
+    # have their own coordinates, so the track is cut at its points nearest them.
+    def change(r):
+        point(r, "approach").update(lat=46.001, lon=8.0)
+        point(r, "head").update(lat=46.0012, lon=8.0)
+    code, out = build(tmp_path, fixture(change), gpx=gpx(north(30, 0.0001)))
+    assert code == 0
+    assert out["track"] == [[46.001, 8.0], [46.0012, 8.0]]
+
+
+def test_track_follows_a_bend_and_drops_a_standstill(tmp_path):
+    # 300 m north, a cloud of fixes standing still at the corner, 300 m east: the approach. The track
+    # keeps the corner and drops the cloud.
+    my, mx = route.flat(46.0)
+    leg1 = [(46.0 + i * 10 / my, 8.0) for i in range(31)]
+    corner = leg1[-1]
+    cloud = [(corner[0] + dy / my, corner[1] + dx / mx) for dx, dy in
+             [(3, 4), (-5, 2), (6, -3), (-2, -6), (4, 5), (-6, -1)] * 5]
+    leg2 = [(corner[0], corner[1] + i * 10 / mx) for i in range(1, 31)]
+    head = leg2[-1]
+
+    def change(r):
+        r["approach"][0].update(len=600, up=0, min=10)
+        r["sections"] = [{"len": 80, "up": 60, "grade": 3, "min": 10, "name": "Wall", "side": 0.0}]
+        r["points"] = [
+            {"kind": "approach", "at": -600, "alt": 1000, "type": "Car park", "lat": 46.0, "lon": 8.0, "name": "Car park"},
+            {"kind": "head", "at": 0, "alt": 1000, "lat": round(head[0], 6), "lon": round(head[1], 6), "name": "Head"},
+            {"kind": "top", "at": 80, "alt": 1060, "name": "Top"},
+        ]
+    code, out = build(tmp_path, fixture(change), gpx=gpx(leg1 + cloud + leg2))
+    assert code == 0
+    t = out["track"]
+    assert len(t) == 3
+    assert route.haversine(*t[1], *corner) < 2
+    assert 595 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 605
+
+
+def test_thin_keeps_within_tolerance():
+    # A zigzag 3 m to either side of a line is within TRACK_THIN: only the ends are kept; at 8 m, every
+    # vertex is.
+    my, mx = route.flat(46.0)
+    for side, kept in ((3, 2), (8, 11)):
+        pts = [(46.0 + i * 20 / my, 8.0 + (side if i % 2 else 0) / mx) for i in range(11)]
+        assert len(route.thin(pts)) == kept
+
+
+def test_no_track_without_an_approach(tmp_path):
+    code, out = build(tmp_path, fixture(lambda r: (r.pop("approach"), r["points"].pop(0))),
+                      gpx=gpx(north(10, 0.0001)))
+    assert code == 0
+    assert "track" not in out
+
+
+def test_source_track_is_kept(tmp_path):
+    def change(r):
+        point(r, "head").update(lat=46.0002, lon=8.0)
+        r["track"] = [[46.0, 8.0], [46.0001, 8], [46.0002, 8.0]]
+    code, out = build(tmp_path, fixture(change), gpx=gpx(north(10, 0.0001)))
+    assert code == 0
+    assert out["track"] == [[46.0, 8.0], [46.0001, 8.0], [46.0002, 8.0]]
+
+
+@pytest.mark.parametrize("track,message", [
+    ([[46.0, 8.0]], "track lists at least two [lat, lon]"),
+    ("x", "track lists at least two [lat, lon]"),
+    ([[46.0, 8.0], [46.0]], "track 2: [lat, lon], lat from -90 to 90, lon from -180 to 180"),
+    ([[46.0, 8.0], [91.0, 8.0]], "track 2: [lat, lon]"),
+    ([[46.0, 8.0], [46.0, "8"]], "track 2: [lat, lon]"),
+])
+def test_track_shape(tmp_path, capsys, track, message):
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(track=track)), message)
+
+
+def test_track_needs_an_approach(tmp_path, capsys):
+    def change(r):
+        r.pop("approach")
+        r["points"].pop(0)
+        point(r, "head").update(lat=46.0002, lon=8.0)
+        r["track"] = [[46.0, 8.0], [46.0002, 8.0]]
+    rejects(tmp_path, capsys, fixture(change), "a track needs an approach list")
+
+
+def test_track_needs_the_heads_coordinates(tmp_path, capsys):
+    rejects(tmp_path, capsys, fixture(lambda r: r.update(track=[[46.0, 8.0], [46.0002, 8.0]])),
+            "a track needs the head's lat and lon")
+
+
+def test_track_ends_at_the_head(tmp_path, capsys):
+    def change(r):
+        point(r, "head").update(lat=46.001, lon=8.0)
+        point(r, "approach").update(lat=46.0, lon=8.0)
+        r["track"] = [[46.0005, 8.0], [46.0007, 8.0]]
+    rejects(tmp_path, capsys, fixture(change), "the track ends 33 m from head 'Head' (more than 25 m)")
+
+
+def test_track_starts_at_the_start(tmp_path, capsys):
+    def change(r):
+        point(r, "head").update(lat=46.001, lon=8.0)
+        point(r, "approach").update(lat=46.0, lon=8.0)
+        r["track"] = [[46.0005, 8.0], [46.001, 8.0]]
+    rejects(tmp_path, capsys, fixture(change), "the track starts 56 m from approach 'Car park' (more than 25 m)")
