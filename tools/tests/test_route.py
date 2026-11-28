@@ -997,3 +997,37 @@ def test_thin_keeps_a_narrow_hairpin():
     # The spacing cuts the turn's corner by up to TRACK_SPACING: 192 m, 6 % short, and no more.
     assert 190 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 215
     assert max(p[0] for p in t) > 46.0 + 90 / my  # the far end is still there
+
+
+def hairpin_to_head(tmp_path, approach_len):
+    """Codex on PR #166: an approach 100 m out, 5 m across and 100 m back, fixes a metre apart, to a
+    head 5 m from its start; built with the approach approach_len long."""
+    my, mx = route.flat(46.0)
+    pts = ([(46.0 + i / my, 8.0) for i in range(101)] + [(46.0 + 100 / my, 8.0 + j / mx) for j in range(1, 5)]
+           + [(46.0 + (100 - i) / my, 8.0 + 5 / mx) for i in range(101)])
+    head = pts[-1]
+
+    def change(r):
+        r["approach"][0]["len"] = approach_len
+        point(r, "approach").update(at=-approach_len, lat=46.0, lon=8.0)
+        point(r, "head").update(lat=round(head[0], 7), lon=round(head[1], 7))
+    return build(tmp_path, fixture(change), gpx=gpx(pts))
+
+
+def test_track_takes_the_heads_pass_by_progress(tmp_path):
+    # The recording passes within 25 m of the head at its start, then reaches it 205 m on. The pass
+    # whose distance along the recording is nearest the approach's 205 m is the head's.
+    code, out = hairpin_to_head(tmp_path, 205)
+    assert code == 0
+    t = out["track"]
+    assert 190 < sum(route.haversine(*a, *b) for a, b in zip(t, t[1:])) < 215
+
+
+def test_no_track_when_no_pass_matches_the_length(tmp_path, capsys):
+    # The approach said to be 2000 m: neither pass, about 0 m and 205 m along, is within half to
+    # twice that, so no track, with a warning.
+    code, out = hairpin_to_head(tmp_path, 2000)
+    assert code == 0
+    assert "track" not in out
+    err = capsys.readouterr().err
+    assert "no approach track: the track reaches head 'Head' 0 and 205 m along it, the approach is 2000 m" in err

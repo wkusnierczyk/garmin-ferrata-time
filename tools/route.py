@@ -44,6 +44,9 @@ TRACK_THIN = 5.0
 TRACK_REVERSAL = 150.0
 TRACK_SPUR = 3 * TRACK_SPACING
 TRACK_END = 25.0
+# The pass by the head whose distance along the GPX track from the start is within this factor of
+# the approach's length, either way, and nearest it (Codex on PR #166).
+TRACK_LEN_RATIO = 2.0
 # What a name may hold after folding: the text fonts' charset, which carries only the characters the
 # app draws. A copy of resources/fonts/charsets.json's (#62, PR #77), to be read from it once it lands;
 # until then a test compares the two whenever the file is there. The en dash and the question mark
@@ -606,40 +609,76 @@ def thin(pts):
     return drop_reversals(douglas_peucker(spaced, TRACK_THIN))
 
 
-def approach_track(track, points, warnings):
+def approach_track(track, points, approach_len, warnings):
     """The approach's track (#143) from the GPX track and the route's points, their lat and lon filled:
-    from the track's point nearest the approach's start to its point nearest the head where it first
-    comes within TRACK_END of it (a recording may pass the head again on its way back), thinned, its
-    ends the two points' own coordinates; [[lat, lon], ...] to 5 decimals (about a metre). None, with
-    a warning, when the track comes no nearer than TRACK_END to either, as a recording that starts at
-    the head: the route file is then the one built without it."""
-    def off(i, p):
-        return haversine(track[i][0], track[i][1], p["lat"], p["lon"])
+    from the track's nearest place to the approach's start to its nearest place to the head on one of
+    its passes by the head (each a run of its lines within TRACK_END of it), thinned, its ends the two
+    points' own coordinates; [[lat, lon], ...] to 5 decimals (about a metre). The pass is the one whose
+    distance along the track from the start comes nearest the approach's length: a path may pass close
+    to the head before it reaches it, and a recording may pass it again on its way back. None, with a
+    warning, when the track comes no nearer than TRACK_END to the head or the start (a recording that
+    starts at the head), or no pass lies within TRACK_LEN_RATIO of the approach's length: the route
+    file is then the one built without it."""
+    my, mx = flat(track[0][0])
+    steps = [step_length(a, b) for a, b in zip(track, track[1:])]
+    along = [0.0]
+    for st in steps:
+        along.append(along[-1] + st)
 
-    def missed(p, i):
-        warnings.append(f"no approach track: the track comes no nearer than {off(i, p):.0f} m to "
-                        f"{point_label(p)} (more than {TRACK_END:g} m)")
+    def project(p, k):
+        """(metres from p to line k, from track[k] to track[k + 1], and the share along it)."""
+        a, b = track[k], track[k + 1]
+        ax, ay = (a[1] - p["lon"]) * mx, (a[0] - p["lat"]) * my
+        dx, dy = (b[1] - a[1]) * mx, (b[0] - a[0]) * my
+        len2 = dx * dx + dy * dy
+        f = min(1.0, max(0.0, -(ax * dx + ay * dy) / len2)) if len2 > 0 else 0.0
+        return math.hypot(ax + f * dx, ay + f * dy), f
+
+    def nearest(p, ks):
+        """(metres off, line, share, metres along the track) of the place on lines ks nearest p."""
+        best = min(ks, key=lambda k: project(p, k)[0])
+        off, f = project(p, best)
+        return off, best, f, along[best] + f * steps[best]
 
     head = next(p for p in points if p["kind"] == "head")
     start = next((p for p in points if p["kind"] == "approach"), None)
-    first = next((i for i in range(len(track)) if off(i, head) <= TRACK_END), None)
-    if first is None:
-        missed(head, min(range(len(track)), key=lambda i: off(i, head)))
+    known = start is not None and "lat" in start
+    lines = range(len(track) - 1)
+    passes, k = [], 0
+    while k < len(track) - 1:
+        if project(head, k)[0] <= TRACK_END:
+            j = k
+            while j + 1 < len(track) - 1 and project(head, j + 1)[0] <= TRACK_END:
+                j += 1
+            passes.append(nearest(head, range(k, j + 1)))
+            k = j + 1
+        else:
+            k += 1
+    if not passes:
+        warnings.append(f"no approach track: the track comes no nearer than {nearest(head, lines)[0]:.0f} m "
+                        f"to {point_label(head)} (more than {TRACK_END:g} m)")
         return None
-    last = first
-    while last + 1 < len(track) and off(last + 1, head) <= TRACK_END:
-        last += 1
-    hi = min(range(first, last + 1), key=lambda i: off(i, head))
-    si = 0
-    if start is not None and "lat" in start:
-        si = min(range(hi + 1), key=lambda i: off(i, start))
-        if off(si, start) > TRACK_END:
-            missed(start, si)
-            return None
-    pts = [t[:2] for t in track[si:hi + 1]]
-    if start is not None and "lat" in start:
-        pts = [(start["lat"], start["lon"])] + pts[1:]
-    pts = (pts[:-1] if len(pts) > 1 else pts) + [(head["lat"], head["lon"])]
+
+    def from_start(h):
+        s = nearest(start, range(h[1] + 1)) if known else (0.0, 0, 0.0, 0.0)
+        if s[3] > h[3]:  # the start's place on the head's line lies past the head
+            s = (s[0], s[1], s[2], h[3])
+        return s, h[3] - s[3]
+
+    h = min(passes, key=lambda h: abs(from_start(h)[1] - approach_len))
+    s, length = from_start(h)
+    if s[0] > TRACK_END:
+        warnings.append(f"no approach track: the track comes no nearer than {s[0]:.0f} m to "
+                        f"{point_label(start)} (more than {TRACK_END:g} m)")
+        return None
+    if not approach_len / TRACK_LEN_RATIO <= length <= approach_len * TRACK_LEN_RATIO:
+        alongs = " and ".join(f"{from_start(p)[1]:.0f}" for p in passes)
+        warnings.append(f"no approach track: the track reaches {point_label(head)} {alongs} m along "
+                        f"it, the approach is {approach_len} m (more than {TRACK_LEN_RATIO:g} times "
+                        "apart)")
+        return None
+    first = (start["lat"], start["lon"]) if known else track[0][:2]
+    pts = [first] + [t[:2] for t in track[s[1] + 1:h[1] + 1]] + [(head["lat"], head["lon"])]
     return [[round(lat, 5), round(lon, 5)] for lat, lon in thin(pts)]
 
 
@@ -700,7 +739,7 @@ def build(r, track=None, stem=None, warnings=None):
     if "track" in r:
         out["track"] = [[float(v) for v in ll] for ll in r["track"]]
     elif track is not None and "approach" in r:
-        t = approach_track(track, out["points"], warnings)
+        t = approach_track(track, out["points"], approach_len, warnings)
         if t is not None:
             out["track"] = t
     return ordered(out, TOP_KEYS)
