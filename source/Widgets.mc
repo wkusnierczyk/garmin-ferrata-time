@@ -1936,9 +1936,29 @@ module Widgets {
     }
 
     // The space above and below the large difficulty boxes (pages 3, 4 and 12 to 15), the same on
-    // every page (owner, 2026-11-23): the altitude's baseline this far above the box, the capitals of
-    // the line below it this far below.
+    // every page (owner, 2026-11-23): the upper line's baseline this far above the box, the capitals of
+    // the line below it this far below (groupLines).
     const GROUP_GAP = 0.028846;
+
+    // Whether pages 12 to 14 put what comes next above the box and the altitude below it (#157; owner,
+    // 2026-11-28): on the ferrata, but not on a section that descends, where what comes next is below;
+    // on the approach the pages stay as they were.
+    function nextAbove(st as Climb.State) as Boolean { return Climb.FERRATA && !Climb.descends(st.cur); }
+
+    // The baselines of the lines around a difficulty box centred at height by, bh high: [the altitude,
+    // the next line, the poi word]. The upper line's baseline GROUP_GAP above the box, the lower line's
+    // capitals' top GROUP_GAP below it (0.7 of its size, alt or next); the altitude above and the next
+    // line below, or flipped (nextAbove); the poi word's capitals 0.0288 under the lower line's baseline.
+    // The last lines placed (pages 12 to 14 and the group on 3 and 4), for the tests.
+    var linesDrawn as [Float, Float, Float]? = null;
+
+    function groupLines(by as Float, bh as Float, alt as Float, next as Float, flip as Boolean) as [Float, Float, Float] {
+        var above = by - bh / 2 - GROUP_GAP, below = by + bh / 2 + GROUP_GAP;
+        var a = flip ? below + 0.7 * alt : above, n = flip ? above : below + 0.7 * next;
+        var lines = [a, n, (flip ? a : n) + 0.028846 + 0.7 * 0.0673] as [Float, Float, Float];
+        linesDrawn = lines;
+        return lines;
+    }
 
     // The current difficulty group, all sizes times k: the current difficulty in a filled box centred
     // on (cx, by), 0.2115 by 0.1490 of the width; above it the altitude with its unit; below it what
@@ -1946,24 +1966,26 @@ module Widgets {
     // altitude's unit ended at the box's right edge). Pages 3 and 4: the altitude at SemiBold 40 and its
     // unit 24 (px at 416) whatever k, no point of interest. Page 14 (points): the altitude at 26 and the
     // unit 16 times k, and the point of interest the stretch covers (the ferrata's head and the route's
-    // top too) as a word under the next line, centred, the top of its capitals 0.0288 below that line's
-    // baseline.
-    function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean) as Void {
+    // top too) as a word under the lower line, centred, the top of its capitals 0.0288 below that line's
+    // baseline. With flips (page 14 alone), what comes next above the box and the altitude below it
+    // where nextAbove says so (#157); pages 3 and 4 keep the altitude above.
+    function group(d as Draw, st as Climb.State, cx as Float, by as Float, k as Float, points as Boolean,
+            flips as Boolean) as Void {
         var bw = 0.211538 * k, bh = 0.149038 * k;
         bigDifficultyOf(d, section(st.cur, false), cx, by, bw, bh, 0.1106 * k, Climb.descends(st.cur));
-        var base = by - bh / 2 - GROUP_GAP, alt = altitudeNow(st, feet());
+        // The altitude's size as drawn: 26 px at 416 times k on page 14, 40 whatever k on pages 3 and 4.
+        var altSize = points ? 0.0625 * k : 0.0962;
+        var lines = groupLines(by, bh, altSize, 0.0577 * k, flips && nextAbove(st)), alt = altitudeNow(st, feet());
         if (points) {
-            altitudeCentred(d, cx, base, alt, d.semi(0.0625 * k), d.semi(0.0385 * k), 0.007212 * k);
+            altitudeCentred(d, cx, lines[0], alt, d.semi(altSize), d.semi(0.0385 * k), 0.007212 * k);
         } else {
-            altitudeCentred(d, cx, base, alt, d.semi(0.0962), d.semi(0.0577), 0.007212);
+            altitudeCentred(d, cx, lines[0], alt, d.semi(altSize), d.semi(0.0577), 0.007212);
         }
-        var nextBase = by + bh / 2 + GROUP_GAP + 0.7 * 0.0577 * k;
-        nextUp(d, st, cx, nextBase, 0.0577 * k);
+        nextUp(d, st, cx, lines[1], 0.0577 * k);
         if (points) {
             var kind = poiNear(st, true);
             if (kind >= 0) {
-                d.spaced(cx, nextBase + 0.028846 + 0.7 * 0.0673, d.bold(0.0673), POI_WORD[kind], POI_COLOUR[kind],
-                    Graphics.TEXT_JUSTIFY_CENTER);
+                d.spaced(cx, lines[2], d.bold(0.0673), POI_WORD[kind], POI_COLOUR[kind], Graphics.TEXT_JUSTIFY_CENTER);
             }
         }
     }
@@ -1984,6 +2006,8 @@ module Widgets {
     // at its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
     // keeps clear of it. Worked out once per part and unit, for the unit shown (#148, as the owner decided
     // for the summary, #144: a change of units may move it); nothing in it changes as the climber moves.
+    // It lays out the unflipped group only, the altitude above the box: pages 3 and 4 never flip (#157,
+    // the flip is page 14's, whose group is centred on the screen).
     const GROUP_MARGIN = 0.019231;
     var groupPlaced as Array<Float>? = null;
     var groupFeet as Boolean = false;
