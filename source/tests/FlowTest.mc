@@ -354,12 +354,14 @@ module FlowTest {
     // ready screen; on the ferrata and on the approach.
     (:test)
     function discardFromPauseDrops(logger as Logger) as Boolean {
-        var fs = [ascentAt(300.0), flow()] as Array<FlowMenus>;
-        fs[1].feed.start(:approachPoint);
-        for (var i = 0; i < fs.size(); i++) {
-            var f = fs[i];
+        // Each flow started right before its pause: the part in use (Climb.FERRATA) is global.
+        for (var i = 0; i < 2; i++) {
+            var f = i == 0 ? ascentAt(300.0) : flow();
+            if (i == 1) { f.feed.start(:approachPoint); }
             var old = f.feed.tracker;
             f.press(:start);
+            Test.assertMessage(rows(f.menu, i == 0 ? [:continue, :calibrate, :end, :discard] : [:continue, :startAscent, :endHere, :discard]),
+                "the pause menu of the part: " + ids(f.menu));
             choose(f, :discard);
             choose(f, :yes);
             Test.assertEqualMessage(f.phase(), Tracker.IDLE, "a new climb, ready");
@@ -952,6 +954,9 @@ module FlowTest {
         Test.assertMessage(FlowDraw.draw(d, f) && f.onScreen(), "F4, the approach");
         f.press(:start);
         Test.assertMessage(FlowDraw.draw(d, f) && !FlowDraw.banded(f), "F5, the approach paused, the symbol its title");
+        pick(f, 3);
+        Test.assertMessage(FlowDraw.draw(d, f), "F5d, the approach's pause menu, Discard selected");
+        pick(f, 0);
         f.press(:back);
         Test.assertMessage(FlowDraw.draw(d, f) && FlowDraw.banded(f), "F20, the approach under the pause symbol");
         f.press(:start);
