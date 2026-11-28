@@ -563,6 +563,62 @@ module PagesTest {
         return true;
     }
 
+    // Pages 12 to 14 put what comes next above the box and the altitude below it (#157; owner,
+    // 2026-11-28), but not on a section that descends, where what comes next is below, nor on the
+    // approach, whose pages stay as they were.
+    (:test)
+    function nextAboveButOnADescentOrTheApproach(logger as Logger) as Boolean {
+        Climb.use(RouteTest.demo(), :ferrata);
+        var down = -1, up = -1;
+        for (var i = 0; i < Climb.count(); i++) {
+            if (Climb.descends(i)) { if (down < 0) { down = i; } } else if (up < 0) { up = i; }
+        }
+        Test.assertMessage(down >= 0 && up >= 0, "the demo has a descent and a climb");
+        var mid = (Climb.dAt(up) + Climb.dAt(up + 1)) / 2.0;
+        Test.assertMessage(Widgets.nextAbove(at(mid)), "next above on a climbing section");
+        mid = (Climb.dAt(down) + Climb.dAt(down + 1)) / 2.0;
+        Test.assertMessage(!Widgets.nextAbove(at(mid)), "next below on a descent");
+        Climb.use(RouteTest.demo(), :approach);
+        for (var i = 0; i < Climb.count(); i++) {
+            var st = at((Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0);
+            Test.assertMessage(!Widgets.nextAbove(st), "the approach unchanged, section " + i);
+        }
+        return true;
+    }
+
+    // The lines around the box, mirrored when flipped (#157): the upper line's baseline GROUP_GAP above
+    // the box, the lower line's capitals' top GROUP_GAP below it, the poi word's capitals 0.0288 under
+    // the lower line's baseline.
+    (:test)
+    function groupLinesMirror(logger as Logger) as Boolean {
+        var by = 0.5, bh = 0.149038, a = 0.0962, n = 0.0865, g = Widgets.GROUP_GAP;
+        var above = by - bh / 2 - g, below = by + bh / 2 + g, poi = 0.028846 + 0.7 * 0.0673;
+        var was = Widgets.groupLines(by, bh, a, n, false), now = Widgets.groupLines(by, bh, a, n, true);
+        Test.assertMessage(RouteTest.near(was[0], above), "the altitude above the box");
+        Test.assertMessage(RouteTest.near(was[1], below + 0.7 * n), "the next line below it");
+        Test.assertMessage(RouteTest.near(was[2], was[1] + poi), "the poi under the next line");
+        Test.assertMessage(RouteTest.near(now[1], above), "flipped: the next line above the box");
+        Test.assertMessage(RouteTest.near(now[0], below + 0.7 * a), "flipped: the altitude below it");
+        Test.assertMessage(RouteTest.near(now[2], now[0] + poi), "flipped: the poi under the altitude");
+        return true;
+    }
+
+    // Pages 12 to 14 draw on a climbing section, on a descent and on the approach.
+    (:test)
+    function flippedPagesDraw(logger as Logger) as Boolean {
+        var d = draw(), parts = [:ferrata, :approach];
+        for (var p = 0; p < parts.size(); p++) {
+            Climb.use(RouteTest.demo(), parts[p] as Symbol);
+            for (var i = 0; i < Climb.count(); i++) {
+                var st = at((Climb.dAt(i) + Climb.dAt(i + 1)) / 2.0);
+                Pages.drawPage(11, d, st);
+                Pages.drawPage(12, d, st);
+                Pages.drawPage(13, d, st);
+            }
+        }
+        return true;
+    }
+
     // A route of [length, height] sections, sideways alternately, grade C.
     function useLong(steps as Array<Array<Number> >) as Void {
         var sections = [] as Array<Dictionary>, len = 0;
