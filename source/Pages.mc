@@ -5,17 +5,17 @@ import Toybox.Lang;
 
 // The pages, as the mocks draw them (the Daubenhorn grid: pages 1 to 15, in the owner's order and
 // numbers, 2026-11-23, #112), laid out in shares of the screen's width. Pages 16 to 37 follow, one
-// issue each (#67 on).
+// issue each (#67 on), in Numbers: so far pages 16 to 19.
 module Pages {
 
     // The pages in the cycle: pages 8 to 11, the stacks, are parked (too noisy, #110) and left out of the
-    // app (owner, 2026-11-26, #128): the cycle goes from page 7 to page 12. Their code stays.
-    const COUNT = 11;
+    // app (owner, 2026-11-26, #128): the cycle goes from page 7 to page 12. Their code stays. Pages 16 to
+    // 19, the progress in numbers (Numbers, #67), follow page 15; the cycle's last is page 19.
+    const COUNT = 15;
     const PARKED_FROM = 7;
     const PARKED = 4;
-    // Page 15, the section preview (its place in the cycle, the last), and the section it shows (-1: the
-    // climber's).
-    const SECTION_PAGE = COUNT - 1;
+    // Page 15, the section preview (its place in the cycle), and the section it shows (-1: the climber's).
+    const SECTION_PAGE = 10;
     // Page 15's difficulty box: its centre's height and its size; the tap zone beside it uses them too.
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
@@ -71,7 +71,11 @@ module Pages {
             case 11: { gaugePage(d, st, false); break; }
             case 12: { gaugePage(d, st, true); break; }
             case 13: { centrePage(d, st); break; }
-            default: { sectionPage(d, st); break; }
+            case 14: { sectionPage(d, st); break; }
+            // Page 16: the distance, the ascent and the time, done of total (design/page-16.md); pages 17
+            // to 19: each alone, large.
+            case 15: { Numbers.progress(d, st); break; }
+            default: { Numbers.progressOne(d, st, page - 16); break; }
         }
     }
 

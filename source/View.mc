@@ -103,6 +103,7 @@ class View extends WatchUi.View {
         if (FlowDraw.draw(d, fl)) { return; }
         followPart();
         Pages.selected = sel;
+        Numbers.activeMin = f.tracker.activeS / 60.0;
         Pages.draw(page, d, f.tracker.state());
         if (dotsMs > 0) { pageDots(d); }
         if (f.paused()) { FlowDraw.band(d); }

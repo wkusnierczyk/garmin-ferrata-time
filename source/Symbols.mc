@@ -93,7 +93,13 @@ module Symbols {
         } else {
             var c = Widgets.GREEN;
             d.ring(u(cx, k, 0.5), u(cy, k, 0.58), 0.32 * k, c, STROKE * k);
-            d.roundRect(u(cx, k, 0.4), u(cy, k, 0.04), 0.2 * k, 0.1 * k, 0.03 * k, c);
+            // The crown's corners rounded only where their radius makes a pixel (the 280 px screens'
+            // smaller sizes do not), as the demo drew it (#67).
+            if (0.03 * k * d.w >= 1) {
+                d.roundRect(u(cx, k, 0.4), u(cy, k, 0.04), 0.2 * k, 0.1 * k, 0.03 * k, c);
+            } else {
+                d.rect(u(cx, k, 0.4), u(cy, k, 0.04), 0.2 * k, 0.1 * k, c);
+            }
             stroke(d, cx, cy, k, [0.5, 0.14, 0.5, 0.24] as Array<Float>, STROKE, c);
             stroke(d, cx, cy, k, [0.79, 0.27, 0.86, 0.2] as Array<Float>, STROKE, c);
             fill(d, cx, cy, k, watchPie as Array<Float>, c);
