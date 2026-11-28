@@ -443,7 +443,7 @@ module TrackerTest {
             sections.add({"len" => steps[i][0], "up" => steps[i][1], "grade" => 1, "min" => 10,
                 "name" => "S" + i, "side" => 0.0});
         }
-        return Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "t", "name" => "T", "short" => "T",
             "sections" => sections, "points" => [
                 {"kind" => "head", "at" => 0, "alt" => 1000, "name" => "Head"},
                 {"kind" => "landmark", "at" => 100, "alt" => 1100, "type" => "rest", "name" => "Ledge start"},

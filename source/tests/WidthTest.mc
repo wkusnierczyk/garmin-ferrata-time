@@ -11,7 +11,7 @@ module WidthTest {
 
     // Down 20 m, then up 100 m, from a head at 0 m: altitudes from -20 to 80 m, a minus sign at the low end.
     function belowZero() as Route {
-        return Route.fromJson({"format" => 1, "id" => "z", "name" => "Zero", "short" => "Zero",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "z", "name" => "Zero", "short" => "Zero",
             "sections" => [
                 {"len" => 50, "up" => -20, "grade" => 1, "min" => 10, "name" => "S0", "side" => 0.0},
                 {"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S1", "side" => 0.0}],

@@ -855,7 +855,7 @@ module FlowTest {
     // menu takes the buttons without failing.
     (:test)
     function noMarksNoLandmarkRow(logger as Logger) as Boolean {
-        var r = Route.fromJson({"format" => 1, "id" => "t", "name" => "T", "short" => "T",
+        var r = Route.fromJson({"format" => 1, "units" => "m", "id" => "t", "name" => "T", "short" => "T",
             "sections" => [{"len" => 100, "up" => 100, "grade" => 1, "min" => 10, "name" => "S", "side" => 0.0}],
             "points" => [{"kind" => "head", "at" => 0, "name" => "Head"},
                 {"kind" => "landmark", "at" => 50, "type" => "rest", "name" => "Bench"},

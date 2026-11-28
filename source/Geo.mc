@@ -19,9 +19,9 @@ module Geo {
     }
 
     // The fix snapped to the track: the nearest point on the lines between its vertices, each
-    // [lat, lon, along] in the order of along (metres along the route), and the along there,
-    // interpolated. Null for a track of fewer than two vertices.
-    function snap(lat as Float, lon as Float, track as Array<[Float, Float, Float]>) as Float? {
+    // [lat, lon, along] in the order of along (metres along the route), as [the along there,
+    // interpolated; the metres from the fix to it]. Null for a track of fewer than two vertices.
+    function snap(lat as Float, lon as Float, track as Array<[Float, Float, Float]>) as [Float, Float]? {
         if (track.size() < 2) { return null; }
         // A flat map in metres around the fix: x east, y north.
         var my = Math.toRadians(1.0) * R, mx = my * Math.cos(Math.toRadians(lat));
@@ -41,6 +41,6 @@ module Geo {
                 off = e;
             }
         }
-        return (best as Numeric).toFloat();
+        return [(best as Numeric).toFloat(), Math.sqrt(off).toFloat()] as [Float, Float];
     }
 }

@@ -94,6 +94,8 @@ class Tracker {
     const BAND_STEP = 5;
     const BAND_EVERY = 30;
     const BAND_MAX = 50;
+    // Metres from the approach's track beyond which a fix is off it, not snapped (owner, #143).
+    const OFF_TRACK = 200.0;
 
     function initialize(r as Route) {
         route = r;
@@ -278,19 +280,20 @@ class Tracker {
     // where GPS says, back as well as on: walking the wrong way shows as a longer way to the head. The
     // part's first such fix moves m0 by what time had not explained, so a stretch skipped by a start
     // in the wrong place (an ALTITUDE start on a flat) never counts as walked, as startAt does; later
-    // fixes set the pace. With only the head's position, the straight line is the distance shown, not
-    // a place on the route; only when it is longer than the whole approach is the place its start,
-    // with the rest carried (beyond). True when GPS set the place; else time and
-    // height move it, as on the ferrata, from where it is. A paused reading leaves the distance as it
-    // was.
+    // fixes set the pace. A fix more than OFF_TRACK from the track is not snapped: the straight line
+    // to the head is the distance shown, and time and height move the place. With only the head's
+    // position, the straight line is the distance shown, not a place on the route; only when it is
+    // longer than the whole approach is the place its start, with the rest carried (beyond). True
+    // when GPS set the place; else time and height move it, as on the ferrata, from where it is. A
+    // paused reading leaves the distance as it was.
     function approachByGps(rd as Reading, elapsed as Float) as Boolean {
         if (phase != APPROACH) { return false; }
         headLeft = null;
         var lat = rd.lat, lon = rd.lon;
         if (lat == null || lon == null) { return false; }
         beyond = 0.0;
-        var along = Geo.snap(lat, lon, track);
-        if (along == null) {
+        var snapped = Geo.snap(lat, lon, track);
+        if (snapped == null) {
             var h = headAt;
             if (h == null) { return false; }
             var left = Geo.distance(lat, lon, h[0], h[1]), total = Climb.totalD().toFloat();
@@ -303,6 +306,15 @@ class Tracker {
             }
             return false;
         }
+        // Off the track (owner, #143): not snapped. The distance is the straight line to the head, and
+        // time and height move the place, so a wrong turn shows as a growing distance and a wild fix
+        // cannot jump the place. A track always has the head's position (initialize).
+        if (snapped[1] > OFF_TRACK) {
+            var h = headAt as [Float, Float];
+            headLeft = Geo.distance(lat, lon, h[0], h[1]);
+            return false;
+        }
+        var along = snapped[0];
         if (!fixed) {
             var explained = Climb.minuteAtDistance(d) + (rd.t - moveT) / 60.0 / pace;
             if (explained > Climb.totalM()) { explained = Climb.totalM().toFloat(); }

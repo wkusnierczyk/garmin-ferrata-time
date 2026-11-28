@@ -9,7 +9,7 @@ module ColumnTest {
 
     // A route high enough for five-digit feet (10 170 ft at its head): the widest altitudes there are.
     function high() as Route {
-        return Route.fromJson({"format" => 1, "id" => "h", "name" => "High", "short" => "High",
+        return Route.fromJson({"format" => 1, "units" => "m", "id" => "h", "name" => "High", "short" => "High",
             "sections" => [
                 {"len" => 100, "up" => 100, "grade" => 5, "min" => 10, "name" => "S0", "side" => 0.0},
                 {"len" => 100, "up" => -40, "grade" => 7, "min" => 10, "name" => "S1", "side" => 0.0},
