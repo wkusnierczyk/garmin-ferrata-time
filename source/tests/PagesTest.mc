@@ -70,9 +70,11 @@ module PagesTest {
     (:test, :noreplay)
     function zoomLargestCentred(logger as Logger) as Boolean {
         var routes = [RouteTest.demo(), RouteTest.made([[60, 0], [1, 30], [1, -30], [60, 0]] as Array<Array<Number> >)] as Array<Route>;
-        var d = draw(), x0 = Pages.PROFILE_X0, w = Pages.PROFILE_W, y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
         for (var r = 0; r < routes.size(); r++) {
             Climb.use(routes[r], :ferrata);
+            // The rectangle right of the ascent's line, where the profile page puts it.
+            var x0 = Pages.profileLeft(d), w = Pages.PROFILE_X0 + Pages.PROFILE_W - x0;
             var total = Climb.totalD().toFloat();
             var places = [0.0, total / 4, total / 2, total * 3 / 4, total] as Array<Float>;
             for (var p = 0; p < places.size(); p++) {
@@ -83,17 +85,17 @@ module PagesTest {
                 Test.assertMessage(RouteTest.near(W, w) || RouteTest.near(H, h), where + "as large as fits, " + W + " by " + H);
                 Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), where + "centred across");
                 Test.assertMessage(RouteTest.near(y0 - f[1], f[1] - H - (y0 - h)), where + "centred up");
-                zoomInside(where);
+                zoomInside(x0, w, where);
             }
         }
         return true;
     }
 
     // The route page 2 draws, at the window's ends and every section end between them, inside the
-    // profile's rectangle.
-    function zoomInside(where as String) as Void {
+    // profile's rectangle, from x0, w wide.
+    function zoomInside(x0 as Float, w as Float, where as String) as Void {
         var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2], e = 0.0001;
-        var x0 = Pages.PROFILE_X0, w = Pages.PROFILE_W, y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
+        var y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H;
         var ds = [a[0], a[1]] as Array<Float>;
         for (var i = 0; i <= Climb.count(); i++) {
             var b = Climb.dAt(i).toFloat();
@@ -128,7 +130,7 @@ module PagesTest {
                 moves++;
             }
             before = fit;
-            zoomInside(where);
+            zoomInside(Pages.PROFILE_X0, Pages.PROFILE_W, where);
             // Within the half metre the window may move before it is worked out again.
             var x = fit[0] + (st.d - fit[3]) * fit[2], e = 0.5 * fit[2];
             Test.assertMessage(x >= Pages.PROFILE_X0 - e && x <= Pages.PROFILE_X0 + Pages.PROFILE_W + e, where + "the climber at " + x + ", off the profile");
@@ -216,12 +218,11 @@ module PagesTest {
 
     // How far, in pixels across, the ink of the ascent's numbers reaches past the round screen's edge at
     // most (below 0: how near it comes), with the line at x from y0 up to y0 - h and the climber at every
-    // net height of the route, either side of each metre and of each change of the numbers in feet, the
-    // line's ends included; each number's ink
-    // as the watch draws it (Widgets.inkPastEdge). A number whose box, as wide as its advances and from
+    // net height of the route, either side of each metre and (both) of each change of the numbers in
+    // feet, the line's ends included; each number's ink as the watch draws it (Widgets.inkPastEdge). A number whose box, as wide as its advances and from
     // the digits' highest ink to their lowest, is inside the screen has its ink inside too: only the
     // others are traced, or the brute force trips the watchdog.
-    function inkPastEdge(d as Draw, x as Float, y0 as Float, h as Float) as Float {
+    function inkPastEdge(d as Draw, x as Float, y0 as Float, h as Float, both as Boolean) as Float {
         var font = d.semi(Widgets.NUMBER_SIZE), nx = x - Widgets.RING_OUTER - Widgets.NUMBER_SPACE;
         var digit = d.dc.getTextWidthInPixels("0", font), minus = d.dc.getTextWidthInPixels("-", font);
         var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2, lo = Climb.netLow(), hi = Climb.netHigh();
@@ -248,7 +249,7 @@ module PagesTest {
                 if (n > lo && n < hi) { feet.add(n.toFloat()); }
             }
         }
-        for (var u = 0; u < 2; u++) {
+        for (var u = 0; u < (both ? 2 : 1); u++) {
             var ft = u == 1, heights = ft ? feet : metres;
             for (var j = 0; j < heights.size(); j++) {
                 var n = heights[j];
@@ -324,8 +325,9 @@ module PagesTest {
         return true;
     }
 
-    // Pages 1 and 2 place the ascent from its numbers' ink (#109, design/page-1.md): on the demo route
-    // and the mock's Daubenhorn stand-in where the mock has it, the ink on the screen; on the Daubenhorn,
+    // Pages 1 and 2 place the ascent from its numbers' ink (#109, design/page-1.md), in either unit
+    // (#148): on the demo route and the mock's Daubenhorn stand-in where the mock has it, the ink in
+    // metres on the screen; on the Daubenhorn,
     // in Barlow Semi Condensed, the ink crosses the edge there, and the line moves right by whole pixels
     // just until it does not, the profile's right end where it was. Those places are the mock's, at 416
     // px; at every other size (#116) the fonts' whole pixels move the ink, and only the rule is checked:
@@ -338,15 +340,18 @@ module PagesTest {
         for (var r = 0; r < routes.size(); r++) {
             Climb.use(routes[r], :ferrata);
             var x = Pages.profileLeft(d), moved = (x - Pages.PROFILE_X0) * d.w;
-            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h), atX = inkPastEdge(d, x, y0, h);
+            var at0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h, true), atX = inkPastEdge(d, x, y0, h, true);
             logger.debug(names[r] + "the ink " + at0 + " px past the edge where the mock has the line; moved " + moved + " px");
             Test.assertMessage(atX <= 0, names[r] + "moved " + moved + " px, the ink still past the edge by " + atX + " px");
             if (moved > 0) {
-                var less = inkPastEdge(d, x - px, y0, h);
+                var less = inkPastEdge(d, x - px, y0, h, true);
                 Test.assertMessage(less > 0, names[r] + "moved " + moved + " px, one fewer would do: the ink " + less + " px past the edge");
             }
             if (mock && r < 2) {
-                Test.assertEqualMessage(x, Pages.PROFILE_X0, names[r] + "the profile's left where the mock has it");
+                // The mock is in metres: there the ink fits where it has the line; the feet's longer
+                // numbers may move the line in either unit (#148).
+                var m0 = inkPastEdge(d, Pages.PROFILE_X0, y0, h, false);
+                Test.assertMessage(m0 <= 0, names[r] + "in metres the ink on the screen where the mock has the line, " + m0 + " px past the edge");
             } else if (mock) {
                 Test.assertMessage(at0 > 0, names[r] + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
             }
@@ -481,7 +486,7 @@ module PagesTest {
             }
             halves[u] = (w + 0.007212 + d.width(unit, ft ? "ft" : "m")) / 2;
         }
-        Test.assertEqualMessage(Widgets.altitudeValue(Climb.netHigh().toFloat(), true), 10170, "3100 m is 10171 ft, to 50 ft");
+        Test.assertEqualMessage(Widgets.altitudeValue(Climb.netHigh().toFloat(), true), 10150, "3100 m is 10171 ft, 10150 to 50 ft");
         Test.assertMessage(halves[1] > halves[0], "the feet the wider: " + halves[1] + " against " + halves[0]);
         Test.assertEqualMessage(Widgets.groupAltitudeHalf(d), halves[1], "the feet's half, whatever the unit");
         return true;
