@@ -91,6 +91,26 @@ module PagesTest {
         return true;
     }
 
+    // Page 2 drawn in metres and then in feet at the same place on the Daubenhorn (Codex on #150): the
+    // ascent's inset differs by unit, so the rectangle does, and the zoom fits the new one, not the
+    // placement worked out for the old.
+    (:test, :noreplay)
+    function zoomFollowsTheUnitsRectangle(logger as Logger) as Boolean {
+        Climb.use(daubenhorn(false), :ferrata);
+        var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, st = at(Climb.totalD() / 2.0);
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1, x0 = Pages.PROFILE_X0 + Widgets.ascentInsetIn(d, Pages.PROFILE_X0, y0, h, ft);
+            var w = Pages.PROFILE_X0 + Pages.PROFILE_W - x0, where = ft ? "in feet: " : "in metres: ";
+            Widgets.profileZoom(d, st, x0, w, y0, h);
+            var f = Widgets.zoomFit as Array<Float>, a = Widgets.zoomArgs, k = f[2];
+            var W = (a[1] - a[0]) * k, H = (a[3] - a[2]) * k;
+            Test.assertMessage(W <= w + 0.0001 && H <= h + 0.0001, where + "fits, " + W + " by " + H + " in " + w);
+            Test.assertMessage(RouteTest.near(f[0] - x0, x0 + w - (f[0] + W)), where + "centred across, from " + f[0] + " in " + x0 + " to " + (x0 + w));
+            zoomInside(x0, w, where);
+        }
+        return true;
+    }
+
     // The route page 2 draws, at the window's ends and every section end between them, inside the
     // profile's rectangle, from x0, w wide.
     function zoomInside(x0 as Float, w as Float, where as String) as Void {
