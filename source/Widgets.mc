@@ -135,13 +135,19 @@ module Widgets {
     // The placement drawn, [x, y, scale, distance, net height]: the screen point of that place on the
     // route, and the scale in shares of the width per metre.
     var zoomFit as Array<Float>? = null;
+    // The rectangle zoomFit was placed in, [x0, w, y0, h]: the ascent's inset differs by unit, so a
+    // change of units moves it while the window stays (Codex on #150).
+    var zoomBox as Array<Float> = [0.0, 0.0, 0.0, 0.0] as Array<Float>;
 
     function profileZoom(d as Draw, st as Climb.State, x0 as Float, w as Float, y0 as Float, h as Float) as Void {
         var win = zoomWindow(st);
         // Again when either end has moved half a metre: near the top the end moves faster than the start.
-        if (zoomKey < 0 || (win[0] - zoomKey).abs() > 0.5 || (win[1] - zoomArgs[1]).abs() > 0.5) {
+        // Again too in a new rectangle.
+        var b = zoomBox, moved = b[0] != x0 || b[1] != w || b[2] != y0 || b[3] != h;
+        if (zoomKey < 0 || moved || (win[0] - zoomKey).abs() > 0.5 || (win[1] - zoomArgs[1]).abs() > 0.5) {
             zoomStart(win[0], win[1], w, h);
             zoomFit = zoomCentred(x0, w, y0, h);
+            zoomBox = [x0, w, y0, h] as Array<Float>;
         }
         var f = zoomFit;
         if (f == null) { return; }
