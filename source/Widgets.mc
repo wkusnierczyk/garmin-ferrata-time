@@ -411,11 +411,24 @@ module Widgets {
                 }
             }
         }
+        // Each number's box first, as inkPastEdge has it, worked out here without the text; its ink,
+        // inside the box, reaches no further than the box does, so only a number whose box reaches
+        // further than the furthest ink so far is traced. Checking every number in full (two per height,
+        // two hundred heights or more on the real routes) tripped the watchdog on page 1's first frame
+        // on the watch (#153).
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2, right = d.s(nx);
+        var lift = Graphics.getFontAscent(font) - Graphics.getFontHeight(font) / 2;
+        var footY = INK_FOOT * em + r, topY = INK_TOP * em + r, left = INK_LEFT * em, rr = r * r;
         for (var q = 0; q < heights.size(); q++) {
             var n = heights[q];
             var nums = numbersAt(n, ft), ys = numberYs(y0 - shareAt(n) * h, y0, h);
             for (var e = 0; e < 2; e++) {
-                var over = inkPastEdge(d, font, nx, ys[e], nums[e].format("%d"), digit, minus, true);
+                var num = nums[e], wd = numberWidth(num, digit, minus), base = d.s(ys[e]) + lift;
+                // The corner further from the screen's middle: the edge cuts in furthest there.
+                var dy = (base - footY).abs() > (base - topY).abs() ? base - footY : base - topY, sq = rr - dy * dy;
+                var box = (r - Math.sqrt(sq > 0 ? sq : 0.0) - (right - wd + left)).toFloat();
+                if (box <= need) { continue; }
+                var over = inkTrace(num.format("%d").toCharArray(), em, r, right - wd, base, digit, minus, -d.w);
                 if (over > need) { need = over; }
             }
         }
@@ -449,6 +462,16 @@ module Widgets {
         }
         if (box < 0) { return box; }
         return inkTrace(cs, em, r, pen, base, digit, minus, -d.w);
+    }
+
+    // A whole number's width as drawn, in pixels: an advance per digit and one for a minus.
+    function numberWidth(n as Number, digit as Number, minus as Number) as Number {
+        var wd = n < 0 ? minus : 0, a = n.abs();
+        do {
+            wd += digit;
+            a /= 10;
+        } while (a > 0);
+        return wd;
     }
 
     // A box round every number glyph's ink, in font units: DigitInk's x from 19 and y from -11 to 712,
