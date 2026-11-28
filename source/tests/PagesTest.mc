@@ -1,6 +1,7 @@
 using Toybox.Math;
 using Toybox.Graphics;
 using Toybox.System;
+using Toybox.WatchUi;
 
 import Toybox.Lang;
 import Toybox.Test;
@@ -349,11 +350,13 @@ module PagesTest {
     // does not, the profile's right end where it was. Those places are the mock's, in metres at 416 px;
     // in feet, and at every other size (#116, the fonts' whole pixels move the ink), only the rule is
     // checked: on every route the ink on the screen, and a line moved right by no more than it needs.
+    // The real Sulzfluh too, the route whose first frame tripped the watchdog (#153): the rule alone.
     (:test, :noreplay)
     function ascentNumbersStayOnTheScreen(logger as Logger) as Boolean {
         var d = draw(), y0 = Pages.PROFILE_Y0, h = Pages.PROFILE_H, px = 1.0 / d.w, mock = d.w == 416;
-        var routes = [RouteTest.demo(), daubenhorn(true), daubenhorn(false)] as Array<Route>;
-        var names = ["the demo", "the mock's Daubenhorn", "the Daubenhorn"];
+        var sulzfluh = Route.fromJson(WatchUi.loadResource(Rez.JsonData.sulzfluh) as Dictionary) as Route;
+        var routes = [RouteTest.demo(), daubenhorn(true), daubenhorn(false), sulzfluh] as Array<Route>;
+        var names = ["the demo", "the mock's Daubenhorn", "the Daubenhorn", "the Sulzfluh"];
         for (var r = 0; r < routes.size(); r++) {
             Climb.use(routes[r], :ferrata);
             for (var u = 0; u < 2; u++) {
@@ -368,7 +371,7 @@ module PagesTest {
                 }
                 if (mock && !ft && r < 2) {
                     Test.assertEqualMessage(x, Pages.PROFILE_X0, name + "the profile's left where the mock has it");
-                } else if (mock && !ft) {
+                } else if (mock && !ft && r == 2) {
                     Test.assertMessage(at0 > 0, name + "the ink on the screen at the mock's place, " + at0 + " px past the edge");
                 }
             }

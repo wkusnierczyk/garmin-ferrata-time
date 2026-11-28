@@ -1,4 +1,5 @@
 using Toybox.Graphics;
+using Toybox.System;
 
 import Toybox.Lang;
 
@@ -99,6 +100,17 @@ module Pages {
     // profile's right end staying (design/page-1.md).
     function profileLeft(d as Draw) as Float {
         return PROFILE_X0 + Widgets.ascentInset(d, PROFILE_X0, PROFILE_Y0, PROFILE_H);
+    }
+
+    // Works out page 1's left for the part just put in use, on a bitmap a line high, so the pages' first
+    // frame does not: on the real routes that and the frame together tripped the watchdog (#153). A
+    // climb's start calls it, in a callback of its own; a change of units still has it worked out on
+    // the next frame of page 1.
+    function prepare() as Void {
+        if (!(Graphics has :createBufferedBitmap)) { return; }
+        var w = System.getDeviceSettings().screenWidth;
+        var bitmap = Graphics.createBufferedBitmap({:width => w, :height => 1}).get() as Graphics.BufferedBitmap;
+        profileLeft(new Draw(bitmap.getDc()));
     }
 
     function profilePage(d as Draw, st as Climb.State, zoom as Boolean) as Void {

@@ -393,7 +393,12 @@ module Widgets {
         // stands where the numbers in feet need it.
         var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh(), need = 0.0;
         var step = ft ? 5 : 1, k = ft ? 3.28084 : 1.0, topU = ascentHeight(top.toFloat(), ft);
-        var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>, pts = [0] as Array<Number>;
+        // Each number at the changes of its own text: the one below the climber where its height above
+        // the head changes, the one above where the height left to the top does. Checking both numbers at
+        // every height, two hundred heights or more on the real routes, tripped the watchdog on page 1's
+        // first frame on the watch (#153).
+        var heights = [[lo.toFloat(), hi.toFloat()], [lo.toFloat(), hi.toFloat()]] as Array<Array<Float>>;
+        var pts = [0] as Array<Number>;
         for (var t = 1; t <= 10000; t *= 10) {
             for (var g = 1; g <= 9; g++) {
                 // Each first digit's first number and the one before it, once: the step's own number
@@ -408,15 +413,23 @@ module Widgets {
                 var a = j == 0 ? pts[i] : topU + pts[i];
                 for (var side = -1; side <= 1; side += 2) {
                     var n = (a + side * 0.49 * step) / k;
-                    if (n > lo && n < hi) { heights.add(n.toFloat()); }
+                    if (n > lo && n < hi) { heights[j].add(n.toFloat()); }
                 }
             }
         }
-        for (var q = 0; q < heights.size(); q++) {
-            var n = heights[q];
-            var nums = numbersAt(n, ft), ys = numberYs(y0 - shareAt(n) * h, y0, h);
-            for (var e = 0; e < 2; e++) {
-                var over = inkPastEdge(d, font, nx, ys[e], nums[e].format("%d"), digit, minus, true);
+        // Each number's box first (inkBox), from its width, without the text: the ink is inside the box
+        // and reaches no further, so only a number whose box reaches further than the furthest ink so
+        // far is traced.
+        var em = Graphics.getFontAscent(font) / 1000.0, r = d.w / 2, right = d.s(nx);
+        var lift = Graphics.getFontAscent(font) - Graphics.getFontHeight(font) / 2;
+        for (var e = 0; e < 2; e++) {
+            var hs = heights[e];
+            for (var q = 0; q < hs.size(); q++) {
+                var n = hs[q];
+                var num = numbersAt(n, ft)[e], base = d.s(numberYs(y0 - shareAt(n) * h, y0, h)[e]) + lift;
+                var pen = right - numberWidth(num, digit, minus);
+                if (inkBox(r, em, pen, base) <= need) { continue; }
+                var over = inkTrace(num.format("%d").toCharArray(), em, r, pen, base, digit, minus, -d.w);
                 if (over > need) { need = over; }
             }
         }
@@ -442,14 +455,29 @@ module Widgets {
         // outlines (#119); the edge cuts in furthest at one of those corners, as it does more the
         // further a row is from the screen's middle.
         if (!boxFirst) { return inkTrace(cs, em, r, pen, base, digit, minus, -d.w); }
-        var box = -d.w;
-        for (var j = 0; j < 2; j++) {
-            var dy = base - (j == 0 ? INK_FOOT : INK_TOP) * em - r, q = r * r - dy * dy;
-            var over = (r - Math.sqrt(q > 0 ? q : 0.0) - (pen + INK_LEFT * em)).toFloat();
-            if (over > box) { box = over; }
-        }
+        var box = inkBox(r, em, pen, base);
         if (box < 0) { return box; }
         return inkTrace(cs, em, r, pen, base, digit, minus, -d.w);
+    }
+
+    // How far the box round a number's ink reaches past the edge of a screen of radius r, in pixels
+    // across (below 0: inside), the pen at its first glyph's left and the baseline at base, as
+    // inkPastEdge has them: the edge cuts in furthest at the box's corner further from the screen's
+    // middle.
+    function inkBox(r as Float, em as Float, pen as Numeric, base as Numeric) as Float {
+        var foot = base - INK_FOOT * em - r, top = base - INK_TOP * em - r;
+        var dy = foot.abs() > top.abs() ? foot : top, q = r * r - dy * dy;
+        return (r - Math.sqrt(q > 0 ? q : 0.0) - (pen + INK_LEFT * em)).toFloat();
+    }
+
+    // A whole number's width as drawn, in pixels: an advance per digit and one for a minus.
+    function numberWidth(n as Number, digit as Number, minus as Number) as Number {
+        var wd = n < 0 ? minus : 0, a = n.abs();
+        do {
+            wd += digit;
+            a /= 10;
+        } while (a > 0);
+        return wd;
     }
 
     // A box round every number glyph's ink, in font units: DigitInk's x from 19 and y from -11 to 712,
