@@ -84,6 +84,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends librsvg2-bin
+          # Printed because the pixels are compared byte for byte with what this rsvg-convert draws,
+          # and librsvg2-bin is ubuntu-latest's, not pinned: a red here with no change in the
+          # repository may be librsvg drift, not a wrong icon. Compare this version with a green run's.
           rsvg-convert --version
           python3 -m venv "$RUNNER_TEMP/tools"
           "$RUNNER_TEMP/tools/bin/pip" install --quiet --no-deps \
@@ -131,8 +134,9 @@ jobs:
       # expanding ~.
       #
       # Both apps, one product per device family (#11): resource qualifiers resolve per family, so
-      # that compiles every resolution either app ships; make export (#12, to come) builds every
-      # product. Ferrata Demo (#140) is the same source under its own manifest (demo.jungle,
+      # that compiles every resolution either app ships. The product is the family's lowest Connect IQ
+      # version, so an API too new for the oldest watch fails here; make export (#12, to come) builds
+      # every product. Ferrata Demo (#140) is the same source under its own manifest (demo.jungle,
       # manifest-demo.xml), with the same products (make check-manifests) and its own icons, published
       # on its own, so it is built for each family too.
       #
