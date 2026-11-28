@@ -208,8 +208,9 @@ module RoutesTest {
         var f = v.feed as Feed, b = f.route;
         Test.assertEqualMessage(b.id, "sulzfluh", "the Sulzfluh picked");
         Test.assertMessage(f.tracker.route == b && f.tracker.phase == Tracker.IDLE, "a new climb on it");
-        Test.assertEqualMessage(Climb.count(), 16, "its sections");
-        Test.assertEqualMessage(Climb.START_ALT, 2366, "its head");
+        // Its ferrata in use, or in Ferrata Demo its approach, where the demo's watch waits (Feed.demoPart).
+        Test.assertEqualMessage(Climb.count(), Climb.FERRATA ? 16 : 1, "its sections");
+        Test.assertEqualMessage(Climb.START_ALT, Climb.FERRATA ? 2366 : 1700, "its head, or the Car park");
         Test.assertEqualMessage(fl.range.toString(), b.altRange().toString(), "its range");
         Test.assertMessage(!fl.headOffered && fl.prompted.size() == 0, "no offer, no prompt");
         Test.assertEqualMessage(fl.bigK, -1, "the large altitude sized again");
@@ -217,6 +218,7 @@ module RoutesTest {
         FlowTest.pick(fl, (fl.menu as FlowMenu).indexOf(:atHead));
         v.press(:start);
         Test.assertEqualMessage(fl.phase(), Tracker.ASCENT, "the Sulzfluh from its head");
+        Test.assertMessage(Climb.count() == 16 && Climb.START_ALT == 2366, "its ferrata");
         Test.assertEqualMessage(v.page, 0, "the first page");
         Test.assertEqualMessage(v.dotsMs, v.DOTS_MS, "its dots showing");
         f.stop();
