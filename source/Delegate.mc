@@ -5,7 +5,7 @@ import Toybox.Lang;
 
 // The buttons go to the climb flow (#51) first: Start and Back open its menus (before the start Back
 // closes the app at once, #121), and Up and Down move in them while the flow has the
-// screen, else change page. Holding Up opens Ask.
+// screen, else change page. Holding Up opens page 20's menu there (#68), else Ask.
 // On page 15 a tap on a chevron steps the previewed section; other taps do nothing.
 // A button's behaviour (onSelect, onBack, onNextPage ...) comes first, and onKey only when it returns
 // false (BehaviorDelegate's documented order, #117).
@@ -91,7 +91,9 @@ class Delegate extends WatchUi.BehaviorDelegate {
         return view.press(:back);
     }
 
+    // Holding Up: on page 20 its menu (#68), elsewhere Ask.
     function onMenu() as Boolean {
+        if (view.openPageMenu()) { return true; }
         var menu = new WatchUi.Menu2({:title => "Ask"});
         menu.addItem(new WatchUi.MenuItem("Next", "what comes", :next, null));
         menu.addItem(new WatchUi.MenuItem("So far", "summary", :soFar, null));

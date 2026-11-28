@@ -5,13 +5,14 @@ import Toybox.Lang;
 
 // The pages, as the mocks draw them (the Daubenhorn grid: pages 1 to 15, in the owner's order and
 // numbers, 2026-11-23, #112), laid out in shares of the screen's width. Pages 16 to 37 follow, one
-// issue each (#67 on), in Numbers: so far pages 16 to 19.
+// issue each (#67 on), in Numbers: so far pages 16 to 20.
 module Pages {
 
     // The pages in the cycle: pages 8 to 11, the stacks, are parked (too noisy, #110) and left out of the
     // app (owner, 2026-11-26, #128): the cycle goes from page 7 to page 12. Their code stays. Pages 16 to
-    // 19, the progress in numbers (Numbers, #67), follow page 15; the cycle's last is page 19.
-    const COUNT = 15;
+    // 19, the progress in numbers (Numbers, #67), follow page 15, and page 20, the time per grade (#68),
+    // the cycle's last, follows them.
+    const COUNT = 16;
     const PARKED_FROM = 7;
     const PARKED = 4;
     // Page 15, the section preview (its place in the cycle), and the section it shows (-1: the climber's).
@@ -20,6 +21,8 @@ module Pages {
     const SECTION_BY = 0.5;
     const SECTION_BW = 0.317308;
     const SECTION_BH = 0.221154;
+    // Page 20's place in the cycle: holding Up there opens its menu (FlowMenus.openPageMenu).
+    const GRADES_PAGE = 15;
     var selected as Number = -1;
 
     // Page 15's words, letter-spaced, measured once: the points' words by their kind (Widgets.POI_WORD),
@@ -75,7 +78,11 @@ module Pages {
             // Page 16: the distance, the ascent and the time, done of total (design/page-16.md); pages 17
             // to 19: each alone, large.
             case 15: { Numbers.progress(d, st); break; }
-            default: { Numbers.progressOne(d, st, page - 16); break; }
+            case 16:
+            case 17:
+            case 18: { Numbers.progressOne(d, st, page - 16); break; }
+            // Page 20: the time per grade (design/page-20.md).
+            default: { Numbers.timePerGrade(d, st); break; }
         }
     }
 

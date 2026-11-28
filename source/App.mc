@@ -21,6 +21,7 @@ class App extends Application.AppBase {
     // The pages count from the ferrata head: the approach is a part of its own, shown only while on it
     // (its screen first, then the pages, #121).
     function onStart(state as Dictionary?) as Void {
+        Numbers.loadShowZero();
         routes = Routes.load();
         last = Routes.last(routes);
         var r = routes.size() > 0 ? Routes.open(routes[last]) : null;

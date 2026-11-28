@@ -15,6 +15,9 @@ class UnitsFlow extends FlowMenus {
     }
 
     function feet() as Boolean { return ft; }
+
+    // Page 20's choice, not kept in the watch's storage.
+    function keepShowZero(show as Boolean) as Void { Numbers.showZero = show; }
 }
 
 // The climb flow follows the watch's units (#144): in feet every value it shows is converted, never
