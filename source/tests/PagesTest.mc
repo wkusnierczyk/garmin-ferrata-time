@@ -216,7 +216,8 @@ module PagesTest {
 
     // How far, in pixels across, the ink of the ascent's numbers reaches past the round screen's edge at
     // most (below 0: how near it comes), with the line at x from y0 up to y0 - h and the climber at every
-    // net height of the route, either side of each metre, the line's ends included; each number's ink
+    // net height of the route, either side of each metre and of each change of the numbers in feet, the
+    // line's ends included; each number's ink
     // as the watch draws it (Widgets.inkPastEdge). A number whose box, as wide as its advances and from
     // the digits' highest ink to their lowest, is inside the screen has its ink inside too: only the
     // others are traced, or the brute force trips the watchdog.
@@ -232,12 +233,26 @@ module PagesTest {
                 if (v < inkFoot) { inkFoot = v; }
             }
         }
+        // In metres either side of each metre; in feet (#148) either side of each change of the 5 ft
+        // the numbers are rounded to, at 2.5 ft past each multiple of 5.
+        var metres = [] as Array<Float>, feet = [lo.toFloat(), hi.toFloat()] as Array<Float>;
         for (var i = lo; i <= hi; i++) {
             for (var side = -1; side <= 1; side += 2) {
                 var n = i + side * 0.49;
-                if (n < lo) { n = lo.toFloat(); }
-                if (n > hi) { n = hi.toFloat(); }
-                var nums = Widgets.numbersAt(n), ys = Widgets.numberYs(y0 - Widgets.shareAt(n) * h, y0, h);
+                metres.add(n < lo ? lo.toFloat() : (n > hi ? hi.toFloat() : n));
+            }
+        }
+        for (var v = Math.floor(lo * 3.28084 / 5).toNumber() * 5; v <= hi * 3.28084; v += 5) {
+            for (var side = -1; side <= 1; side += 2) {
+                var n = (v + 2.5) / 3.28084 + side * 0.01;
+                if (n > lo && n < hi) { feet.add(n.toFloat()); }
+            }
+        }
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1, heights = ft ? feet : metres;
+            for (var j = 0; j < heights.size(); j++) {
+                var n = heights[j];
+                var nums = Widgets.numbersAt(n, ft), ys = Widgets.numberYs(y0 - Widgets.shareAt(n) * h, y0, h);
                 for (var k = 0; k < 2; k++) {
                     var t = nums[k].format("%d"), w = (t.length() - (nums[k] < 0 ? 1 : 0)) * digit + (nums[k] < 0 ? minus : 0);
                     var base = d.s(ys[k]) - Graphics.getFontHeight(font) / 2 + Graphics.getFontAscent(font);
@@ -405,26 +420,70 @@ module PagesTest {
         return true;
     }
 
-    // The next line in feet (#148): the distance converted, to 10 ft, never relabelled; the group is
-    // placed by the widest line in either unit, so switching units moves nothing.
+    // The next line in feet (#148): the distance converted, to 20 ft (the round step at or above 5 m),
+    // never relabelled; the group is placed by the widest line in either unit, the metric one or the
+    // feet's, so switching units moves nothing.
     (:test)
     function nextInFeet(logger as Logger) as Boolean {
         Climb.use(route([[100, 100, 1], [50, 0, 1], [100, 100, 3]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
         var n = Widgets.nextSection(at(12.0), true);
         Test.assertEqualMessage(n[0], 2, "B after the two A sections");
-        Test.assertEqualMessage(n[1], 450, "138 m is 453 ft, to 10 ft");
+        Test.assertEqualMessage(n[1], 460, "138 m is 453 ft, to 20 ft");
         n = Widgets.nextSection(at(200.0), true);
         Test.assertEqualMessage(n[0], -1, "the top");
-        Test.assertEqualMessage(n[1], 160, "50 m is 164 ft, to 10 ft");
+        Test.assertEqualMessage(n[1], 160, "50 m is 164 ft, to 20 ft");
         Test.assertEqualMessage(Widgets.nextText(n[1], true), " 160 ft", "in feet, never relabelled metres");
         Test.assertEqualMessage(Widgets.nextText(50, false), " 50 m", "in metres");
-        var d = draw(), font = d.bold(0.0577), widest = 0.0;
-        var lines = ["B 150 m", "Top 100 m", "B 490 ft", "Top 330 ft"] as Array<String>;
+        var d = draw(), font = d.bold(0.0577);
+        Test.assertEqualMessage(Widgets.longestNext(d, font), widestOf(d, font, ["B 150 m", "Top 100 m", "B 500 ft", "Top 320 ft"]),
+            "the longest of the runs' lines in either unit");
+        // One run of 300 m: "Top 300 m" against "Top 980 ft", as many digits, and the m wider than the ft.
+        Climb.use(route([[300, 100, 1]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
+        var m = d.width(font, "Top 300 m"), f = d.width(font, "Top 980 ft");
+        Test.assertMessage(m > f, "the metric line the wider: " + m + " against " + f);
+        Test.assertEqualMessage(Widgets.longestNext(d, font), m, "the metric line, the wider");
+        return true;
+    }
+
+    function widestOf(d as Draw, font as Graphics.FontType, lines as Array<String>) as Float {
+        var widest = 0.0;
         for (var i = 0; i < lines.size(); i++) {
             var w = d.width(font, lines[i]);
             if (w > widest) { widest = w; }
         }
-        Test.assertEqualMessage(Widgets.longestNext(d, font), widest, "the longest of the runs' lines in either unit");
+        return widest;
+    }
+
+    // The ascent's numbers in feet (#148): converted, to 5 ft as the relative heights are, the top's
+    // less the climber's; on the Daubenhorn the 841 m to the top reads 2760 ft.
+    (:test)
+    function ascentInFeet(logger as Logger) as Boolean {
+        Climb.use(daubenhorn(false), :ferrata);
+        Test.assertEqualMessage(Widgets.ascentNumbers(at(0.0), true).toString(), [0, 2760].toString(), "at the head");
+        Test.assertEqualMessage(Widgets.ascentNumbers(at(Climb.totalD().toFloat()), true).toString(), [2760, 0].toString(), "at the top");
+        Test.assertEqualMessage(Widgets.ascentNumbers(at(660.0), true).toString(), [130, 2630].toString(), "40 m up: 131 ft, 130");
+        Test.assertEqualMessage(Widgets.ascentNumbers(at(660.0), false).toString(), [40, 801].toString(), "in metres");
+        return true;
+    }
+
+    // The group's altitude row on pages 3 and 4 is laid out from its widest in either unit (#148): above
+    // 3048 m the feet have five digits, and the group stands where they need it in metres too.
+    (:test)
+    function groupAltitudeInEitherUnit(logger as Logger) as Boolean {
+        Climb.use(route([[2200, 2100, 1]] as Array<Array<Number> >, [] as Array<Dictionary>), :ferrata);
+        var d = draw(), font = d.semi(0.0962), unit = d.semi(0.0577), halves = [0.0, 0.0] as Array<Float>;
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1, w = 0.0;
+            var vals = [Widgets.altitudeValue(Climb.netLow().toFloat(), ft), Widgets.altitudeValue(Climb.netHigh().toFloat(), ft)] as Array<Number>;
+            for (var i = 0; i < 2; i++) {
+                var e = d.width(font, vals[i].format("%d"));
+                if (e > w) { w = e; }
+            }
+            halves[u] = (w + 0.007212 + d.width(unit, ft ? "ft" : "m")) / 2;
+        }
+        Test.assertEqualMessage(Widgets.altitudeValue(Climb.netHigh().toFloat(), true), 10170, "3100 m is 10171 ft, to 50 ft");
+        Test.assertMessage(halves[1] > halves[0], "the feet the wider: " + halves[1] + " against " + halves[0]);
+        Test.assertEqualMessage(Widgets.groupAltitudeHalf(d), halves[1], "the feet's half, whatever the unit");
         return true;
     }
 

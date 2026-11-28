@@ -250,18 +250,25 @@ module Widgets {
         return f < 0 ? 0.0 : (f > 1 ? 1.0 : f);
     }
 
-    // Their numbers: the net height above the head now, to the metre, and the top's net height less it.
-    // Amounts climbed stay height gained (State.climbed): the stacks, the gauge by ascent, the totals.
-    // A part whose top is at or below its start shows none, 0 and 0, as its ring stays at the start.
-    function ascentNumbers(st as Climb.State) as [Number, Number] {
-        return numbersAt(st.net());
+    // Their numbers: the net height above the head now, to the metre or to 5 ft (#148, as the relative
+    // heights), and the top's net height less it. Amounts climbed stay height gained (State.climbed):
+    // the stacks, the gauge by ascent, the totals. A part whose top is at or below its start shows
+    // none, 0 and 0, as its ring stays at the start.
+    function ascentNumbers(st as Climb.State, ft as Boolean) as [Number, Number] {
+        return numbersAt(st.net(), ft);
     }
 
     // The numbers at a net height above the head.
-    function numbersAt(net as Float) as [Number, Number] {
-        if (Climb.netAt(Climb.count()) <= 0) { return [0, 0]; }
-        var up = Math.round(net).toNumber();
-        return [up, Climb.netAt(Climb.count()) - up];
+    function numbersAt(net as Float, ft as Boolean) as [Number, Number] {
+        var top = Climb.netAt(Climb.count());
+        if (top <= 0) { return [0, 0]; }
+        var up = ascentHeight(net, ft);
+        return [up, ascentHeight(top.toFloat(), ft) - up];
+    }
+
+    // A net height as the ascent's numbers show it: to the metre, or to 5 ft.
+    function ascentHeight(m as Float, ft as Boolean) as Number {
+        return (ft ? Math.round(m * 3.28084 / 5) * 5 : Math.round(m)).toNumber();
     }
 
     // Where the two numbers stand, their middles, with the ring at ty on the line from y0 up to y0 - h:
@@ -280,7 +287,7 @@ module Widgets {
 
     // The route's height as a line at x, from y0 (the start) up to y0 - h, with the climber on it.
     function ascent(d as Draw, st as Climb.State, x as Float, y0 as Float, h as Float, ends as Boolean) as Void {
-        var top = y0 - h, ty = y0 - ascentShare(st) * h, nums = ascentNumbers(st), ys = numberYs(ty, y0, h);
+        var top = y0 - h, ty = y0 - ascentShare(st) * h, nums = ascentNumbers(st, feet()), ys = numberYs(ty, y0, h);
         // Back to front: the line, the ring's black inside, the end dots, the ring's outline.
         d.line(x, y0, x, top, SCALE, 0.004808);
         d.dot(x, ty, RING_R, BLACK);
@@ -312,7 +319,7 @@ module Widgets {
         relativeWidest = null;
     }
 
-    // The widest number the ascent widget can show, measured once per part.
+    // The widest number the ascent widget can show in either unit (#148), measured once per part.
     var ascentWidest as Float? = null;
 
     function ascentNumbersWidth(d as Draw) as Float {
@@ -321,9 +328,14 @@ module Widgets {
             // The digits are tabular, so every number with as many digits is as wide: the widest is one of
             // the ends of the two numbers' ranges (ascentNumbers: the net height from the route's lowest to
             // its highest, and the top's less that), the one with more digits or a minus sign; those four
-            // are measured. Measuring each number instead stopped the app on the watchdog (#94).
-            var font = d.semi(NUMBER_SIZE), top = Climb.netAt(Climb.count());
-            var ends = [Climb.netLow(), Climb.netHigh(), top - Climb.netLow(), top - Climb.netHigh()] as Array<Number>;
+            // are measured, in metres and in feet. Measuring each number instead stopped the app on the
+            // watchdog (#94).
+            var font = d.semi(NUMBER_SIZE), top = Climb.netAt(Climb.count()), ends = [] as Array<Number>;
+            for (var u = 0; u < 2; u++) {
+                var lo = ascentHeight(Climb.netLow().toFloat(), u == 1), hi = ascentHeight(Climb.netHigh().toFloat(), u == 1);
+                var t = ascentHeight(top.toFloat(), u == 1);
+                ends.addAll([lo, hi, t - lo, t - hi]);
+            }
             w = 0.0;
             for (var i = 0; i < ends.size(); i++) {
                 var e = d.width(font, ends[i].format("%d"));
@@ -359,29 +371,34 @@ module Widgets {
         // (clamped to an end, they repeated it many times over, and the first frame tripped the watchdog
         // on the watch, #119). Next to an end needs no check of its own: lo + 0.49 and hi - 0.49 are
         // either the sides of a change (the head's 0, the top) or drawn as the end itself, the climber's
-        // share clamped and the number rounded.
-        var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh();
-        var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>;
-        for (var t = 1; t <= 10000; t *= 10) {
-            // At 1, 1 - 1 and 1 - 1 are both the head's 0: once.
-            var pts = (t == 1 ? [1, 0, -1] : [t, t - 1, -t, 1 - t]) as Array<Number>;
-            for (var i = 0; i < pts.size(); i++) {
-                for (var j = 0; j < 2; j++) {
-                    var a = j == 0 ? pts[i] : top + pts[i];
-                    for (var side = -1; side <= 1; side += 2) {
-                        var n = a + side * 0.49;
-                        if (n > lo && n < hi) { heights.add(n); }
+        // share clamped and the number rounded. In feet (#148) the same, the numbers in steps of 5 ft
+        // (0, 5, 10, 95, 100 ...), the sides of each 2.45 ft from it, in metres: the line stands where
+        // the numbers of either unit need it.
+        var top = Climb.netAt(Climb.count()), lo = Climb.netLow(), hi = Climb.netHigh(), need = 0.0;
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1, step = ft ? 5 : 1, k = ft ? 3.28084 : 1.0, topU = ascentHeight(top.toFloat(), ft);
+            var heights = [lo.toFloat(), hi.toFloat()] as Array<Float>;
+            var ts = [step, 10, 100, 1000, 10000] as Array<Number>;
+            for (var q = 0; q < ts.size(); q++) {
+                // At the first step, step - step and step - step are both the head's 0: once.
+                var t = ts[q], pts = (q == 0 ? [t, 0, -t] : [t, t - step, -t, step - t]) as Array<Number>;
+                for (var i = 0; i < pts.size(); i++) {
+                    for (var j = 0; j < 2; j++) {
+                        var a = j == 0 ? pts[i] : topU + pts[i];
+                        for (var side = -1; side <= 1; side += 2) {
+                            var n = (a + side * 0.49 * step) / k;
+                            if (n > lo && n < hi) { heights.add(n.toFloat()); }
+                        }
                     }
                 }
             }
-        }
-        var need = 0.0;
-        for (var i = 0; i < heights.size(); i++) {
-            var n = heights[i];
-            var nums = numbersAt(n), ys = numberYs(y0 - shareAt(n) * h, y0, h);
-            for (var k = 0; k < 2; k++) {
-                var over = inkPastEdge(d, font, nx, ys[k], nums[k].format("%d"), digit, minus, true);
-                if (over > need) { need = over; }
+            for (var i = 0; i < heights.size(); i++) {
+                var n = heights[i];
+                var nums = numbersAt(n, ft), ys = numberYs(y0 - shareAt(n) * h, y0, h);
+                for (var e = 0; e < 2; e++) {
+                    var over = inkPastEdge(d, font, nx, ys[e], nums[e].format("%d"), digit, minus, true);
+                    if (over > need) { need = over; }
+                }
             }
         }
         var inset = (Math.ceil(need - 0.0001) / d.w).toFloat();
@@ -1292,7 +1309,7 @@ module Widgets {
     }
 
     // What comes next: the next section of a different difficulty and the distance to its start along
-    // the route, rounded to 5 m or 10 ft ("C/D 125 m", the grade in its colour), or the top; centred on
+    // the route, rounded to 5 m or 20 ft ("C/D 125 m", the grade in its colour), or the top; centred on
     // x, its baseline at base, Bold at size (a share of the screen's width).
     function nextUp(d as Draw, st as Climb.State, x as Float, base as Float, size as Float) as Void {
         var ft = feet(), next = nextSection(st, ft), i = next[0];
@@ -1315,13 +1332,14 @@ module Widgets {
     }
 
     // A distance along the route as the next line shows it: metres rounded to 5 m, or converted to
-    // feet and rounded to 10 ft (#148); never below 0.
+    // feet and rounded to 20 ft, the round step at or above 5 m (16.4 ft) as the pages' other steps in
+    // feet are (10 m to 50 ft, 1 m to 5 ft; #148); never below 0.
     function nextDistance(m as Float, ft as Boolean) as Number {
-        var v = (ft ? Math.round(m * 3.28084 / 10) * 10 : Math.round(m / 5) * 5).toNumber();
+        var v = (ft ? Math.round(m * 3.28084 / 20) * 20 : Math.round(m / 5) * 5).toNumber();
         return v < 0 ? 0 : v;
     }
 
-    // The next line's distance and its unit, after the grade (" 125 m", " 410 ft").
+    // The next line's distance and its unit, after the grade (" 125 m", " 420 ft").
     function nextText(v as Number, ft as Boolean) as String { return " " + v.format("%d") + (ft ? " ft" : " m"); }
 
     // The ascent along the gauge's gap at the bottom (pages 12, 13 and 15): the start and top dots on
@@ -1330,7 +1348,7 @@ module Widgets {
     // number is short: the mocks give up the no-jitter rule here on purpose).
     function ascentGap(d as Draw, st as Climb.State) as Void {
         var p0 = d.onCircle(G_R, G_FROM), p1 = d.onCircle(G_R, G_FROM - G_SPAN), y = p0[1];
-        var gap = 0.014423, nums = ascentNumbers(st), font = d.semi(NUMBER_SIZE);
+        var gap = 0.014423, nums = ascentNumbers(st, feet()), font = d.semi(NUMBER_SIZE);
         var l = nums[0].format("%d"), r = nums[1].format("%d");
         var tl = p0[0] + ASC_DOT + gap + d.width(font, l) + gap + RING_R;
         var tr = p1[0] - ASC_DOT - gap - d.width(font, r) - gap - RING_R;
@@ -1356,7 +1374,7 @@ module Widgets {
     const AG_SPAN = 284;
 
     function ascentGauge(d as Draw, st as Climb.State, ends as Boolean) as Void {
-        var nums = ascentNumbers(st);
+        var nums = ascentNumbers(st, feet());
         d.dc.setColor(SCALE, Graphics.COLOR_TRANSPARENT);
         d.dc.setPenWidth(d.s(0.004808));
         d.dc.drawArc(d.s(0.5), d.s(0.5), d.s(AG_R), Graphics.ARC_CLOCKWISE, AG_FROM, (AG_FROM - AG_SPAN + 360) % 360);
@@ -1753,21 +1771,17 @@ module Widgets {
     // edge at its outer corner, and the row needing the most room sets the group's centre. The rows:
     // the altitude, at the route's widest; the box, the centres of its corners' rounding; the next line
     // at its longest on the route. Returns [the group's centre, its right edge]: the zoomed front view
-    // keeps clear of it. Worked out once per part and unit; nothing in it changes as the climber moves.
+    // keeps clear of it. Worked out once per part, for both units (#148); nothing in it changes as the climber moves.
     const GROUP_MARGIN = 0.019231;
     var groupPlaced as Array<Float>? = null;
-    var groupFeet as Boolean = false;
     var groupAt as Array<Float> = [0.0, 0.0] as Array<Float>;
 
     function groupPlace(d as Draw, by as Float, k as Float) as Array<Float> {
-        var ft = feet(), placed = groupPlaced;
-        if (placed != null && groupFeet == ft && groupAt[0] == by && groupAt[1] == k) { return placed; }
+        var placed = groupPlaced;
+        if (placed != null && groupAt[0] == by && groupAt[1] == k) { return placed; }
         var bw = 0.211538 * k, bh = 0.149038 * k, rx = 0.024038 * k, r = 0.5 - GROUP_MARGIN;
         // The altitude: the top of its digits, and half its width at the route's widest end.
-        var font = d.semi(0.0962), aTop = by - bh / 2 - GROUP_GAP - 0.7 * 0.0962;
-        var low = d.width(font, altitudeValue(Climb.netLow().toFloat(), ft).format("%d"));
-        var high = d.width(font, altitudeValue(Climb.netHigh().toFloat(), ft).format("%d"));
-        var altHalf = ((low > high ? low : high) + 0.007212 + d.width(d.semi(0.0577), ft ? "ft" : "m")) / 2;
+        var aTop = by - bh / 2 - GROUP_GAP - 0.7 * 0.0962, altHalf = groupAltitudeHalf(d);
         // The next line: its baseline, and half its longest width.
         var nextBase = by + bh / 2 + GROUP_GAP + 0.7 * 0.0577 * k;
         var nextHalf = longestNext(d, d.bold(0.0577 * k)) / 2;
@@ -1782,9 +1796,22 @@ module Widgets {
         if (nextHalf > half) { half = nextHalf; }
         placed = [cx.toFloat(), (cx + half).toFloat()] as Array<Float>;
         groupPlaced = placed;
-        groupFeet = ft;
         groupAt = [by, k] as Array<Float>;
         return placed;
+    }
+
+    // Half the group's altitude row, its number and its unit, at the route's widest end in either unit
+    // (#148), so a change of units moves nothing.
+    function groupAltitudeHalf(d as Draw) as Float {
+        var font = d.semi(0.0962), half = 0.0;
+        for (var u = 0; u < 2; u++) {
+            var ft = u == 1;
+            var low = d.width(font, altitudeValue(Climb.netLow().toFloat(), ft).format("%d"));
+            var high = d.width(font, altitudeValue(Climb.netHigh().toFloat(), ft).format("%d"));
+            var h = ((low > high ? low : high) + 0.007212 + d.width(d.semi(0.0577), ft ? "ft" : "m")) / 2;
+            if (h > half) { half = h; }
+        }
+        return half;
     }
 
     // The round edge's left side at height y, r from the centre.
