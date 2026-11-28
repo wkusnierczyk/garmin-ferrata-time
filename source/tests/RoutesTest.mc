@@ -262,9 +262,10 @@ module RoutesTest {
             Test.assertMessage(FlowTest.near(f.feed.tracker.altitude() as Float, (pts[i]["alt"] as Number).toFloat(), 0.5),
                 name + "the altitude at " + nm);
         }
-        // The exits: each offered by End where it is, then none past it.
+        // The exits, the watch reading each one's altitude: each offered by End where it is.
         for (var k = 0; k < exits.size(); k++) {
             f.feed.tracker.d = (pts[exits[k]]["at"] as Number).toFloat();
+            input.alt = (pts[exits[k]]["alt"] as Number).toFloat();
             f.press(:start);
             FlowTest.choose(f, :end);
             var m = f.menu as FlowMenu;
