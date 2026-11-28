@@ -1,4 +1,5 @@
 using Toybox.Graphics;
+using Toybox.Math;
 using Toybox.System;
 
 import Toybox.Lang;
@@ -48,16 +49,23 @@ module WidthTest {
     }
 
     // The ascent's numbers (#100: net height): the net height above the head now, from the route's
-    // lowest to its highest, and the top's net height less that, every one measured.
+    // lowest to its highest, and the top's net height less that, every one measured, in each unit.
     function ascentMatches(r as Route) as Boolean {
         Climb.use(r, :ferrata);
         var d = draw(), font = d.semi(Widgets.NUMBER_SIZE), w = 0.0, top = Climb.netAt(Climb.count());
+        // In feet (#148), each to 5 ft, the top's less the climber's, measured apart: each unit its own.
+        var topFt = (Math.round(top * 3.28084 / 5) * 5).toNumber(), wf = 0.0;
         for (var n = Climb.netLow(); n <= Climb.netHigh(); n++) {
-            var a = d.width(font, n.format("%d")), b = d.width(font, (top - n).format("%d"));
-            if (a > w) { w = a; }
-            if (b > w) { w = b; }
+            var nf = (Math.round(n * 3.28084 / 5) * 5).toNumber();
+            var texts = [n, top - n, nf, topFt - nf] as Array<Number>;
+            for (var i = 0; i < texts.size(); i++) {
+                var e = d.width(font, texts[i].format("%d"));
+                if (i < 2 && e > w) { w = e; }
+                if (i >= 2 && e > wf) { wf = e; }
+            }
         }
-        Test.assertEqual(Widgets.ascentNumbersWidth(d), w);
+        Test.assertEqualMessage(Widgets.ascentNumbersWidthIn(d, true), wf, "in feet");
+        Test.assertEqualMessage(Widgets.ascentNumbersWidthIn(d, false), w, "in metres");
         return true;
     }
 
