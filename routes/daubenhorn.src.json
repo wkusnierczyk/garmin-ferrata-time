@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "id": "daubenhorn",
+  "name": "Daubenhorn",
+  "short": "Daubenhorn",
+  "place": "Leukerbad",
+  "source": {"geometry": "the points' coordinates from the owner's recording (2025-08-07); sides made up for the front view", "elevation": "the owner's recording, the published altitudes where there are any", "text": "https://www.bergsteigen.com/touren/klettersteig/klettersteig-leukerbad-daubenhorn/"},
+  "approach": [
+    {"len": 2400, "up": -278, "grade": 0, "min": 40, "name": "Gemmi to the head", "side": -1.0}
+  ],
+  "sections": [
+    {"len": 600, "up": 0, "grade": 1, "min": 35, "name": "Nase traverse", "side": -1.0},
+    {"len": 60, "up": 40, "grade": 3, "min": 12, "name": "Grass ridge", "side": -0.4},
+    {"len": 40, "up": 97, "grade": 6, "min": 23, "name": "Steep step", "side": -0.2},
+    {"len": 60, "up": 10, "grade": -1, "min": 10, "name": "Meadow ledge, bench", "side": -0.8},
+    {"len": 30, "up": 85, "grade": 4, "min": 24, "name": "Ladders", "side": -0.2},
+    {"len": 25, "up": 67, "grade": 6, "min": 18, "name": "Steep steps", "side": -0.2},
+    {"len": 80, "up": 0, "grade": 4, "min": 12, "name": "2-rope bridge", "side": -0.6},
+    {"len": 60, "up": 140, "grade": 8, "min": 55, "name": "Grosser Spalt (var. E)", "side": 0.1},
+    {"len": 120, "up": 80, "grade": 7, "min": 36, "name": "Bands", "side": -0.5},
+    {"len": 40, "up": 105, "grade": 5, "min": 45, "name": "Hammer", "side": 0.2},
+    {"len": 100, "up": 30, "grade": 5, "min": 15, "name": "Via Konst", "side": 0.9},
+    {"len": 200, "up": 142, "grade": 5, "min": 25, "name": "Scree and ridge", "side": -0.6},
+    {"len": 120, "up": 15, "grade": 3, "min": 10, "name": "Traverse", "side": 0.8},
+    {"len": 10, "up": 30, "grade": 5, "min": 10, "name": "30 m ladder", "side": 0.1}
+  ],
+  "points": [
+    {"kind": "approach", "at": -2400, "alt": 2348, "type": "Top station", "lat": 46.39775, "lon": 7.61545, "name": "Gemmi top station"},
+    {"kind": "head", "at": 0, "alt": 2070, "lat": 46.39042, "lon": 7.61123, "name": "Untere Schmitte"},
+    {"kind": "landmark", "at": 700, "alt": 2207, "type": "rest", "lat": 46.38666, "lon": 7.61014, "name": "Meadow-ledge bench"},
+    {"kind": "exit", "at": 790, "alt": 2303, "lat": 46.38551, "lon": 7.60992, "name": "Obere Freiheit"},
+    {"kind": "landmark", "at": 815, "alt": 2369, "type": "bridge", "name": "2-rope bridge"},
+    {"kind": "danger", "at": 895, "name": "Grosser Spalt, E variant"},
+    {"kind": "landmark", "at": 1115, "alt": 2694, "type": "sign", "name": "Via Konst board"},
+    {"kind": "danger", "at": 1115, "name": "Via Konst, extremely exposed"},
+    {"kind": "top", "at": 1545, "alt": 2912, "lat": 46.38795, "lon": 7.60291, "name": "Route book"}
+  ]
+}

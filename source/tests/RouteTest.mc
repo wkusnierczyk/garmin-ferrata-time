@@ -475,4 +475,88 @@ module RouteTest {
         Test.assertEqualMessage(demo().approachType(), "Car park", "the demo's");
         return true;
     }
+
+    // The types of a route's landmarks, in order.
+    function landmarkTypes(r as Route) as Array<String> {
+        var out = [] as Array<String>;
+        for (var i = 0; i < r.points.size(); i++) {
+            if ("landmark".equals(r.points[i]["kind"] as Object?)) { out.add(r.points[i]["type"] as String); }
+        }
+        return out;
+    }
+
+    // The bundled routes for the picker (#55, #141), from the owner's recordings: each loads, with its
+    // source's totals. The Daubenhorn is the real route: 841 m gained, no section going down.
+    (:test)
+    function daubenhornLoads(logger as Logger) as Boolean {
+        var loaded = Route.fromJson(WatchUi.loadResource(Rez.JsonData.daubenhorn) as Dictionary);
+        Test.assertMessage(loaded != null, "loads");
+        var r = loaded as Route;
+        Test.assertEqualMessage(r.short, "Daubenhorn", "short");
+        Test.assertEqualMessage(r.ascent(), 841, "gained height");
+        Test.assertEqualMessage(r.guideMinutes(), 330, "guidebook minutes");
+        Test.assertEqualMessage(r.approachType(), "Top station", "the approach's start");
+        // Gemmi, head, bench, Obere Freiheit, bridge, Via Konst board, route book.
+        Test.assertEqualMessage(r.knownPoints().toString(), [0, 1, 2, 3, 4, 6, 8].toString(), "known points");
+        // The approach's start and the head have coordinates, so the approach has a track (#113).
+        Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "sign"].toString(), "landmark types");
+        // Neither the 2-rope bridge nor the Via Konst board has coordinates until a climb places them
+        // (owner, 2026-11-28); the bench has.
+        Test.assertMessage((r.points[4]["lat"] as Object?) == null && (r.points[6]["lat"] as Object?) == null, "bridge and board unplaced");
+        Test.assertMessage((r.points[2]["lat"] as Object?) != null, "the bench placed");
+        // The approach's start and the head, 0 and 2400 m along it.
+        var track = r.approachTrack();
+        Test.assertEqualMessage(track.size(), 2, "approach track");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2400.0), "along " + track);
+        Climb.use(r, :ferrata);
+        Test.assertEqualMessage(Climb.count(), 14, "sections");
+        Test.assertEqualMessage(Climb.totalU(), 841, "gained");
+        Test.assertEqualMessage(Climb.totalD(), 1545, "length");
+        Test.assertEqualMessage(Climb.START_ALT, 2070, "head");
+        // Net as much as gained: nothing goes down. The route book's own altitude is 2912, a metre
+        // above the head's 2070 and the sections' 841 (the tool allows 15).
+        Test.assertEqualMessage(Climb.netAt(Climb.count()), 841, "net");
+        Test.assertEqualMessage(r.points[r.point("top")]["alt"] as Number, 2912, "the route book");
+        for (var i = 0; i < Climb.count(); i++) {
+            Test.assertMessage(!Climb.descends(i), "section " + i + " " + Climb.NAME[i] + " climbs");
+        }
+        Test.assertEqualMessage(Climb.EXIT_AT.toString(), [5].toString(), "exits");
+        Test.assertEqualMessage(Climb.EXIT_NAME.toString(), ["Obere Freiheit"].toString(), "exit names");
+        Test.assertEqualMessage(Climb.DANGER_AT.toString(), [895, 1115].toString(), "dangers");
+        Climb.use(r, :approach);
+        Test.assertEqualMessage(Climb.totalD(), 2400, "approach length");
+        Test.assertEqualMessage(Climb.START_ALT, 2348, "Gemmi top station");
+        return true;
+    }
+
+    // The Sulzfluh: no exit, only climbing, and an approach from the Partnun car park P6.
+    (:test)
+    function sulzfluhLoads(logger as Logger) as Boolean {
+        var loaded = Route.fromJson(WatchUi.loadResource(Rez.JsonData.sulzfluh) as Dictionary);
+        Test.assertMessage(loaded != null, "loads");
+        var r = loaded as Route;
+        Test.assertEqualMessage(r.short, "Sulzfluh", "short");
+        Test.assertEqualMessage(r.ascent(), 451, "gained height");
+        Test.assertEqualMessage(r.guideMinutes(), 150, "guidebook minutes");
+        Test.assertEqualMessage(r.approachType(), "Car park", "the approach's start");
+        Test.assertEqualMessage(landmarkTypes(r).toString(), ["rest", "bridge", "bridge"].toString(), "landmark types");
+        // The car park P6 and the head, 0 and 2778 m along it.
+        var track = r.approachTrack();
+        Test.assertEqualMessage(track.size(), 2, "approach track");
+        Test.assertMessage(near(track[0][2], 0.0) && near(track[1][2], 2778.0), "along " + track);
+        Test.assertMessage(r.headPosition() != null, "the head's coordinates");
+        Climb.use(r, :ferrata);
+        Test.assertEqualMessage(Climb.count(), 16, "sections");
+        Test.assertEqualMessage(Climb.totalU(), 451, "gained");
+        Test.assertEqualMessage(Climb.totalD(), 595, "length");
+        Test.assertEqualMessage(Climb.START_ALT, 2366, "head");
+        Test.assertEqualMessage(Climb.netAt(Climb.count()), 451, "net");
+        Test.assertEqualMessage(r.points[r.point("top")]["alt"] as Number, 2817, "the summit");
+        Test.assertEqualMessage(Climb.EXIT_AT.size(), 0, "no exits");
+        Test.assertEqualMessage(Climb.DANGER_AT.toString(), [395, 500].toString(), "dangers");
+        Climb.use(r, :approach);
+        Test.assertEqualMessage(Climb.totalD(), 2778, "approach length");
+        Test.assertEqualMessage(Climb.START_ALT, 1700, "Partnun");
+        return true;
+    }
 }

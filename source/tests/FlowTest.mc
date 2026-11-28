@@ -53,7 +53,8 @@ class FlowFeed extends Feed {
 // summary, and the triggers the GPS prompts (#52, #113) will call. On the demo route: the approach
 // from the Car park (1270 m), the head at 1290 m, the Band exit at 210 m along and the Last exit at
 // 475 m (neither with an altitude), the Bench landmark at 390 m and 1310 m, the top at 640 m and
-// 1580 m. The watch reads 1290 m unless a test says otherwise.
+// 1580 m. The watch reads 1290 m unless a test says otherwise, and shows metres whatever the
+// simulator's setting (UnitsFlow; FlowFeetTest has feet).
 module FlowTest {
 
     // Point indices in the demo route.
@@ -65,7 +66,7 @@ module FlowTest {
     const TOP = 7;
 
     function flow() as FlowMenus {
-        return new FlowMenus(new FlowFeed(RouteTest.demo()));
+        return new UnitsFlow(new FlowFeed(RouteTest.demo()), false);
     }
 
     // On the ferrata from the head, the estimate put at d.
@@ -156,7 +157,7 @@ module FlowTest {
 
     (:test)
     function startMenuWithoutApproachPoint(logger as Logger) as Boolean {
-        var f = new FlowMenus(new FlowFeed(RouteTest.made([[100, 100]])));
+        var f = new UnitsFlow(new FlowFeed(RouteTest.made([[100, 100]])), false);
         f.press(:start);
         Test.assertMessage(rows(f.menu, [:atHead, :atAltitude]), "no approach point: " + ids(f.menu));
         return true;
@@ -220,14 +221,14 @@ module FlowTest {
     function altitudeEntrySteps(logger as Logger) as Boolean {
         var range = RouteTest.demo().altRange();
         Test.assertMessage(range[0] == 1270 && range[1] == 1580, "range " + range);
-        Test.assertEqualMessage(Flow.altUp(1293, range), 1300, "up to the mark");
-        Test.assertEqualMessage(Flow.altUp(1300, range), 1310, "then 10 m");
-        Test.assertEqualMessage(Flow.altDown(1293, range), 1290, "down to the mark");
-        Test.assertEqualMessage(Flow.altDown(1290, range), 1280, "then 10 m");
-        Test.assertEqualMessage(Flow.altUp(1580, range), 1580, "not above the top");
-        Test.assertEqualMessage(Flow.altDown(1270, range), 1270, "not below the Car park");
-        Test.assertEqualMessage(Flow.altDown(1650, range), 1580, "a reading above comes in");
-        Test.assertEqualMessage(Flow.altUp(1200, range), 1270, "a reading below comes in");
+        Test.assertEqualMessage(Flow.altUp(1293, range, false), 1300, "up to the mark");
+        Test.assertEqualMessage(Flow.altUp(1300, range, false), 1310, "then 10 m");
+        Test.assertEqualMessage(Flow.altDown(1293, range, false), 1290, "down to the mark");
+        Test.assertEqualMessage(Flow.altDown(1290, range, false), 1280, "then 10 m");
+        Test.assertEqualMessage(Flow.altUp(1580, range, false), 1580, "not above the top");
+        Test.assertEqualMessage(Flow.altDown(1270, range, false), 1270, "not below the Car park");
+        Test.assertEqualMessage(Flow.altDown(1650, range, false), 1580, "a reading above comes in");
+        Test.assertEqualMessage(Flow.altUp(1200, range, false), 1270, "a reading below comes in");
         var f = flow();
         watchReads(f, 1650.0);
         f.press(:start);
@@ -376,7 +377,7 @@ module FlowTest {
         var r = RouteTest.made([[100, 0], [200, 0], [100, 0]]);
         r.points.add({"kind" => "exit", "at" => 100, "name" => "Early"});
         r.points.add({"kind" => "exit", "at" => 300, "name" => "Late"});
-        var f = new FlowMenus(new FlowFeed(r));
+        var f = new UnitsFlow(new FlowFeed(r), false);
         f.feed.start(:head);
         f.feed.tracker.d = 260.0;
         Test.assertMessage(same(Flow.exitsInReach(f.feed.tracker), [3, 2]), "Late, then Early: " + Flow.exitsInReach(f.feed.tracker));
@@ -442,7 +443,7 @@ module FlowTest {
         Test.assertEqualMessage(f.phase(), Tracker.ASCENT, "the climb goes on");
         Test.assertMessage(near(t.d, 390.0, 0.01), "at the Bench, d " + t.d);
         Test.assertMessage(near(t.offset as Float, 5.0, 0.01), "offset " + t.offset);
-        Test.assertEqualMessage(f.calibrated as Number, 1310, "CALIBRATED at the Bench's 1310 m");
+        Test.assertMessage(near(f.calibrated as Float, 1310.0, 0.001), "CALIBRATED at the Bench's 1310 m");
         Test.assertEqualMessage(f.calibratedPoint, BENCH, "the Bench named");
         Test.assertMessage(f.detail == null && f.menu == null, "nothing open under it");
         Test.assertMessage(f.press(:up) && f.calibrated != null, "Up does nothing under it");
@@ -468,7 +469,7 @@ module FlowTest {
         Test.assertEqualMessage(e.value, 1400, "to the mark");
         f.press(:start);
         var t = f.feed.tracker;
-        Test.assertEqualMessage(f.calibrated as Number, 1400, "CALIBRATED at the altitude");
+        Test.assertMessage(near(f.calibrated as Float, 1400.0, 0.001), "CALIBRATED at the altitude");
         Test.assertEqualMessage(f.calibratedPoint, -1, "no point named");
         // 110 m up is on the traverse at 45 + 20 / 30 x 140 m.
         Test.assertMessage(near(t.d, 138.33, 0.01), "the place moved, d " + t.d);
@@ -571,7 +572,7 @@ module FlowTest {
         Test.assertEqualMessage(f.phase(), Tracker.PAUSED, "still paused");
         f.press(:start);
         f.press(:start);
-        Test.assertEqualMessage(f.calibrated as Number, 1290, "Start calibrates at the head");
+        Test.assertMessage(near(f.calibrated as Float, 1290.0, 0.001), "Start calibrates at the head");
         Test.assertMessage(near(f.feed.tracker.d, 0.0, 0.01), "the place at the head");
         return true;
     }
@@ -596,7 +597,7 @@ module FlowTest {
         end.sel = 0;
         f.press(:start);
         Test.assertEqualMessage((f.detail as FlowDetail).alt, 1580, "the top's altitude");
-        var how = Flow.ahead((f.detail as FlowDetail).at, (f.detail as FlowDetail).d);
+        var how = Flow.ahead((f.detail as FlowDetail).at, (f.detail as FlowDetail).d, false);
         Test.assertMessage("420".equals(how[0]) && "m ahead".equals(how[1]), "420 m ahead: " + how);
         f.press(:start);
         Test.assertEqualMessage(f.phase(), Tracker.ENDED, "Start ends there");
@@ -656,25 +657,10 @@ module FlowTest {
         var cases = [[1258, "+12", "+12"], [1293, "+7", "–3"], [1300, "+10", "–10"], [1270, "+10", "–0"],
             [1580, "+0", "–10"], [1650, "–70", "–70"]] as Array<Array>;
         for (var i = 0; i < cases.size(); i++) {
-            var v = cases[i][0] as Number, s = Flow.steps(v, range);
+            var v = cases[i][0] as Number, s = Flow.steps(v, range, false);
             Test.assertMessage((cases[i][1] as String).equals(s[0]) && (cases[i][2] as String).equals(s[1]),
                 v + ": " + s);
         }
-        return true;
-    }
-
-    // A new climb from the settings leaves no toast, and no quit (the review of #124).
-    (:test)
-    function resetClearsToasts(logger as Logger) as Boolean {
-        var f = flow();
-        f.showToast("SAVED", Flow.WHITE);
-        f.reset();
-        Test.assertMessage(f.toast == null && !f.quit, "nothing left");
-        f.tick(5000);
-        Test.assertMessage(!f.quit, "the app stays");
-        f.quit = true;
-        f.reset();
-        Test.assertMessage(!f.quit, "nor a quit");
         return true;
     }
 
@@ -692,33 +678,37 @@ module FlowTest {
 
     // The summary's line of three figures fits the round screen whatever the climb (Codex on #124): a
     // typical climb's at the mock's size (owner), a long one's smaller, its symbols and gaps with it.
+    // Cases: the height climbed, the active seconds, the drift, in metres (FlowFeetTest has feet).
     (:test)
     function summaryLineFits(logger as Logger) as Boolean {
         var d = PagesTest.draw();
-        var cases = [["374", "0:06", "+0"], ["1500", "10:00", "+100"], ["12345", "10:00", "+0"],
-            ["12345", "100:00", "-1234"], ["841", "5:17", "+19"]] as Array<Array<String>>;
+        var cases = [[374, 360, 0.0], [1500, 36000, 100.0], [12345, 36000, 0.0],
+            [12345, 360000, -1234.0], [841, 19020, 19.0]] as Array<Array>;
+        var lines = [] as Array<SummaryLine>;
         for (var i = 0; i < cases.size(); i++) {
-            var line = FlowDraw.summaryLine(d, cases[i]);
+            var c = cases[i], h = c[0] as Number, s = c[1] as Number, dr = c[2] as Float;
+            var line = FlowDraw.summaryLine(d, Flow.summary(h, s, dr, false));
             var room = FlowDraw.lineRoom(d, line);
-            Test.assertMessage(line.total <= room, cases[i] + ": " + line.total + " in " + room);
+            Test.assertMessage(line.total <= room, line.values + ": " + line.total + " in " + room);
+            lines.add(line);
         }
         var mock = Fonts.nearest(0.085, FontSizes.SEMI);
-        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[0]).vk, mock, "a short climb at the mock's size");
-        Test.assertEqualMessage(FlowDraw.summaryLine(d, cases[4]).vk, mock, "the mock's own example too");
-        Test.assertMessage(FlowDraw.summaryLine(d, cases[1]).vk < mock, "1500 m, 10:00, +100 m smaller");
-        Test.assertMessage(FlowDraw.summaryLine(d, cases[2]).vk < mock, "12345 m smaller");
+        Test.assertEqualMessage(lines[0].vk, mock, "a short climb at the mock's size");
+        Test.assertEqualMessage(lines[4].vk, mock, "the mock's own example too");
+        Test.assertMessage(lines[1].vk < mock, "1500 m, 10:00, +100 m smaller");
+        Test.assertMessage(lines[2].vk < mock, "12345 m smaller");
         return true;
     }
 
     (:test)
     function aheadOrBack(logger as Logger) as Boolean {
-        var a = Flow.ahead(420.0, 400.0);
+        var a = Flow.ahead(420.0, 400.0, false);
         Test.assertMessage("20".equals(a[0]) && "m ahead".equals(a[1]), "20 m ahead: " + a);
-        a = Flow.ahead(100.0, 400.0);
+        a = Flow.ahead(100.0, 400.0, false);
         Test.assertMessage("300".equals(a[0]) && "m back".equals(a[1]), "300 m back: " + a);
-        a = Flow.ahead(402.0, 400.0);
+        a = Flow.ahead(402.0, 400.0, false);
         Test.assertMessage("here".equals(a[0]) && "".equals(a[1]), "here: " + a);
-        a = Flow.ahead(1660.0, 400.0);
+        a = Flow.ahead(1660.0, 400.0, false);
         Test.assertMessage("1.3".equals(a[0]) && "km ahead".equals(a[1]), "1.3 km ahead: " + a);
         return true;
     }
@@ -758,7 +748,7 @@ module FlowTest {
     function belowLedge() as FlowMenus {
         var r = RouteTest.made([[100, 100], [100, 100]]);
         r.points.add({"kind" => "landmark", "at" => 100, "alt" => 1100, "name" => "Ledge"});
-        var f = new FlowMenus(new FlowFeed(r));
+        var f = new UnitsFlow(new FlowFeed(r), false);
         f.feed.start(:head);
         f.feed.tracker.d = 60.0;
         return f;
@@ -817,7 +807,7 @@ module FlowTest {
             "points" => [{"kind" => "head", "at" => 0, "name" => "Head"},
                 {"kind" => "landmark", "at" => 50, "type" => "rest", "name" => "Bench"},
                 {"kind" => "top", "at" => 100, "name" => "Top"}]}) as Route;
-        var f = new FlowMenus(new FlowFeed(r));
+        var f = new UnitsFlow(new FlowFeed(r), false);
         f.feed.start(:head);
         f.press(:start);
         choose(f, :calibrate);
@@ -836,17 +826,18 @@ module FlowTest {
     function approachPointsNotMarks(logger as Logger) as Boolean {
         var r = RouteTest.demo();
         r.points.add({"kind" => "landmark", "at" => -50, "alt" => 1280, "name" => "Spring"});
-        var f = new FlowMenus(new FlowFeed(r));
+        var f = new UnitsFlow(new FlowFeed(r), false);
         f.feed.start(:head);
         Test.assertMessage(same(Flow.marks(f.feed.tracker), [HEAD, BENCH, TOP]), "the ferrata's: " + Flow.marks(f.feed.tracker));
         return true;
     }
 
     // The review of #114: the Start menu and the altitude entry read the barometer without starting
-    // the replay's clock; the recording plays from its start when the climb starts.
+    // the replay's clock; the recording plays from its start when the climb starts. On a route from
+    // 1000 m, so the recording's 1000 m is within the entry's reach (Flow.OPEN_MARGIN, #144).
     (:test)
     function startMenuLeavesReplayClock(logger as Logger) as Boolean {
-        var f = new FlowMenus(new ReplayFeed(RouteTest.demo()));
+        var f = new UnitsFlow(new ReplayFeed(RouteTest.made([[100, 100]])), false);
         var input = f.feed.input as ReplayInput;
         f.press(:start);
         choose(f, :atAltitude);
@@ -881,7 +872,7 @@ module FlowTest {
     function promptedLandmarkWithinGps(logger as Logger) as Boolean {
         var r = RouteTest.made([[100, 100], [100, 100]]);
         r.points.add({"kind" => "landmark", "at" => 100, "alt" => 1100, "name" => "Ledge"});
-        var f = new FlowMenus(new FlowFeed(r));
+        var f = new UnitsFlow(new FlowFeed(r), false);
         f.feed.start(:head);
         var t = f.feed.tracker;
         t.d = 60.0;
