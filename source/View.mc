@@ -23,6 +23,8 @@ class View extends WatchUi.View {
     var sel as Number = -1;
     var ferrataShown as Boolean = true;
     var climbShown as Tracker? = null;
+    // The climb whose start last put the pages back to the first: each climb has a tracker of its own.
+    var climbStarted as Tracker? = null;
     var timer as Timer.Timer?;
     var dotsMs as Number = 0;
 
@@ -30,12 +32,15 @@ class View extends WatchUi.View {
     var feed as Feed?;
     var flow as FlowMenus?;
 
-    function initialize(r as Route?) {
+    // On the routes on the watch, the feed on the last one used (last), read already (r; #141).
+    function initialize(routes as Array<RouteEntry>, last as Number, r as Route?) {
         View.initialize();
         if (r != null) {
             var f = new Feed(r);
             feed = f;
-            flow = new FlowMenus(f);
+            var fl = new FlowMenus(f);
+            fl.offer(routes, last);
+            flow = fl;
         }
     }
 
@@ -80,7 +85,7 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // After Back on the ready screen (#121), the app leaves.
+    // After Back on the route list, or on the ready screen with one route (#121, #141), the app leaves.
     function leaveIfClosed(fl as FlowMenus) as Void {
         if (fl.quit) { System.exit(); }
     }
@@ -149,6 +154,18 @@ class View extends WatchUi.View {
         }
     }
 
+    // A climb just started opens on the first page, its dots showing (the flow mock), whatever page the
+    // last climb, on this route or another (#141), ended on. On the approach the first page is under
+    // its own screen (F4).
+    function firstPageOnStart() as Void {
+        var f = feed;
+        if (f == null || !f.climbing() || f.tracker == climbStarted) { return; }
+        climbStarted = f.tracker;
+        page = 0;
+        sel = -1;
+        dotsMs = DOTS_MS;
+    }
+
     // Whether the climb flow has the screen, and with it Up and Down.
     function flowOnScreen() as Boolean {
         var fl = flow;
@@ -160,6 +177,7 @@ class View extends WatchUi.View {
         var fl = flow;
         if (fl == null) { return key != :back; }
         var taken = fl.press(key);
+        firstPageOnStart();
         leaveIfClosed(fl);
         WatchUi.requestUpdate();
         return taken;
