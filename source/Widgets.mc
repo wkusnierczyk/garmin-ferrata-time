@@ -1157,8 +1157,9 @@ module Widgets {
     const G_FROM = 232;
     const G_SPAN = 284;
     const G_PEN = 0.028846;
-    // The climber's line: its width, and its radius 0.0072 of the width inside the sections.
-    const G_INNER = 0.014423;
+    // The climber's line: its width, the sections' own (owner, 2026-11-28: twice the first 0.0144,
+    // #156), and its radius 0.0072 of the width inside the sections.
+    const G_INNER = 0.028846;
     const G_INNER_R = G_R - G_PEN / 2 - 0.007212 - G_INNER / 2;
 
     // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
