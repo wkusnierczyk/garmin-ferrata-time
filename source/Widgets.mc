@@ -1157,9 +1157,14 @@ module Widgets {
     const G_FROM = 232;
     const G_SPAN = 284;
     const G_PEN = 0.028846;
-    // The climber's line: its width, and its radius 0.0072 of the width inside the sections.
-    const G_INNER = 0.014423;
+    // The climber's line: its width, the sections' own (owner, 2026-11-28: twice the first 0.0144,
+    // #156), and its radius 0.0072 of the width inside the sections.
+    const G_INNER = 0.028846;
     const G_INNER_R = G_R - G_PEN / 2 - 0.007212 - G_INNER / 2;
+    // The line's ends at least this many degrees inside the gauge's own ends, so its round caps (half
+    // its width, about 2° at G_INNER_R) stay within the gauge and clear of the ascent numbers in the
+    // gap below them (#156: at twice the width a cap at the very end touched them).
+    const G_CAP = 2;
 
     // Each section gets at least G_MIN degrees of the sweep, the others sharing the rest in proportion
     // to their length (or, byUp, the metres they climb), so no section is too short to draw or see.
@@ -1216,6 +1221,11 @@ module Widgets {
         var around = st.stretch(), lo = around[0], hi = around[1];
         // On whole degrees, as the watch draws arcs, so the round ends sit on the line's ends.
         var a0 = Math.round(gaugeAngle(lo, byUp)), a1 = Math.round(gaugeAngle(hi, byUp));
+        // Both ends into the allowed range, each clamped both ways: a stretch wholly within the last
+        // (or first) G_CAP degrees collapses onto the limit rather than past it.
+        var hiA = G_FROM - G_CAP, loA = G_FROM - G_SPAN + G_CAP;
+        a0 = a0 > hiA ? hiA : (a0 < loA ? loA : a0);
+        a1 = a1 > hiA ? hiA : (a1 < loA ? loA : a1);
         // The climber: an orange line inside the gauge, with round ends.
         var p0 = d.onCircle(G_INNER_R, a0), p1 = d.onCircle(G_INNER_R, a1);
         d.arc(G_INNER_R, a0, a1, CLIMBER, G_INNER);
