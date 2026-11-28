@@ -70,6 +70,13 @@ class Feed {
     // The clock the input reads: the demo's own, or the system's.
     function now() as Number { return demo ? demoMs : System.getTimer(); }
 
+    // Another route, picked on the route list (#141): a new climb on it, not started.
+    function use(r as Route) as Void {
+        route = r;
+        Climb.use(r, :ferrata);
+        begin();
+    }
+
     // A new climb on the app's input, the old input let go.
     function begin() as Void {
         input.stop();

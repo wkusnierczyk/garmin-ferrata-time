@@ -30,12 +30,15 @@ class View extends WatchUi.View {
     var feed as Feed?;
     var flow as FlowMenus?;
 
-    function initialize(r as Route?) {
+    // On the routes on the watch, the feed on the last one used (last; #141).
+    function initialize(routes as Array<Route>, last as Number) {
         View.initialize();
-        if (r != null) {
-            var f = new Feed(r);
+        if (routes.size() > 0) {
+            var f = new Feed(routes[last]);
             feed = f;
-            flow = new FlowMenus(f);
+            var fl = new FlowMenus(f);
+            fl.offer(routes, last);
+            flow = fl;
         }
     }
 
@@ -80,7 +83,7 @@ class View extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // After Back on the ready screen (#121), the app leaves.
+    // After Back on the route list, or on the ready screen with one route (#121, #141), the app leaves.
     function leaveIfClosed(fl as FlowMenus) as Void {
         if (fl.quit) { System.exit(); }
     }

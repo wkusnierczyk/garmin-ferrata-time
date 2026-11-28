@@ -9,16 +9,18 @@ class App extends Application.AppBase {
         AppBase.initialize();
     }
 
-    // The route the app climbs, from resources/routes/ (tools/route.py writes and checks it).
-    var route as Route?;
+    // The routes on the watch, from resources/routes/ (tools/route.py writes and checks them), and the
+    // last one used, which the app opens on (Routes, #141).
+    var routes as Array<Route> = [] as Array<Route>;
+    var last as Number = 0;
     var view as View?;
 
     // The pages count from the ferrata head: the approach is a part of its own, shown only while on it
     // (its screen first, then the pages, #121).
     function onStart(state as Dictionary?) as Void {
-        var r = Route.fromJson(WatchUi.loadResource(Rez.JsonData.route) as Dictionary);
-        route = r;
-        if (r != null) { Climb.use(r, :ferrata); }
+        routes = Routes.load();
+        last = Routes.last(routes);
+        if (routes.size() > 0) { Climb.use(routes[last], :ferrata); }
     }
 
     // Lets go of the GPS.
@@ -28,7 +30,7 @@ class App extends Application.AppBase {
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
-        var v = new View(route);
+        var v = new View(routes, last);
         view = v;
         return [v, new Delegate(v)];
     }
