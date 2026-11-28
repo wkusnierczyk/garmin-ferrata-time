@@ -136,7 +136,7 @@ The route around the screen's edge, from its start at the lower left, over the t
 - Each section gets at least 3° of the 284°, the others sharing the rest in proportion, so no section is too short to draw or see (by ascent, rests and short climbs would be under a degree; the watch draws arcs in whole degrees, and one under a degree came out as a full circle, #28). Within a section, positions follow the distance along it.
 - Sections a hair apart, none after the last, so the gauge ends where the gap ascent's top dot is; climbed parts dimmed.
 - Rests, exits and dangers as hollow rings on it, dimmed once passed.
-- The climber as a thicker orange line (0.0144 of the screen wide, round ends) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
+- The climber as a thicker orange line (0.0288 of the screen wide, the sections' width, round ends; twice the first 0.0144, #156; its ends at least 2° inside the gauge's, so the caps stay clear of the ascent numbers) on the gauge's inner side, 0.0072 clear of the sections, over the stretch they could be on. (The first version's orange outline around that stretch covered the sections.)
 - By length (page 12) or by ascent (page 13): each section's arc its length along the route, or the metres it climbs, at least 3°; sections one degree apart. By ascent a section that loses height climbs none, and takes 3° as a flat one does (#56).
 
 ## gap ascent

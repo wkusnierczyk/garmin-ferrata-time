@@ -359,7 +359,19 @@ class Draw {
 
     // Text whose capitals are centred vertically on y, justified as given.
     function textCapMiddle(x as Numeric, y as Numeric, font as Graphics.FontType, str as String, c as Number, justify as Number) as Void {
-        textTop(x, y + capHeight(font) / 2 - ascent(font), font, str, c, justify);
+        textTop(x, capTop(y, font), font, str, c, justify);
+    }
+
+    // Where textCapMiddle puts the text's top for capitals centred on y.
+    function capTop(y as Numeric, font as Graphics.FontType) as Float {
+        return (y + capHeight(font) / 2 - ascent(font)).toFloat();
+    }
+
+    // The middle of those capitals in pixels, once the text's top is rounded: what to centre a shape
+    // around the text on.
+    function capMiddlePx(y as Numeric, font as Graphics.FontType) as Float {
+        var a = Graphics.getFontAscent(font);
+        return s(capTop(y, font)) + a - a * CAP / 2;
     }
 
     // A round brush along a line: filled circles every BRUSH_STEP, so ends and bends come out round.
