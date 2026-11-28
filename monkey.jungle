@@ -11,7 +11,8 @@
 # twice in one build ("Attempting to reset project property 'manifest'"), where every other property
 # is simply overridden by the later file (as in Matrix Time's editions). The Makefile's DEMO variable
 # picks the app's jungle. Both manifests list the same products (make check-manifests), so the
-# launcher icon mapping below serves both. One edition each; the Lite/Premium split comes later.
+# launcher icon mapping below serves both, and demo.jungle layers the demo's outlined icons over it
+# (#149). One edition each; the Lite/Premium split comes later.
 
 # Strict typing from the first line (playbook, reference/build.md).
 project.typecheck = 3
