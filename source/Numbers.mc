@@ -7,8 +7,9 @@ import Toybox.Lang;
 // Sulzfluh grids), one issue each (#67 on), ported from the demo the owner checked on the watch
 // (2026-11-27): so far pages 16 to 19 (#67), progress as done and total (design/page-16.md). Sizes are
 // shares of the screen's width, the mocks' px at 416 divided by 416. A size that depends on the route is
-// chosen once per part: the mock's, or the largest below it in the size table (FontSizes.SEMI) at which
-// the page keeps 6 % of the width clear of the edge, measured in the fonts drawn. The number fonts are
+// chosen once per part: the page's own, or the largest below it in the size table (FontSizes.SEMI) at
+// which the page fits (pages 17 to 19 6 % of the width clear of the edge, page 16 on the screen),
+// measured in the fonts drawn. The number fonts are
 // tabular, and a value's space is laid out from the widest it can get, so nothing moves as it changes.
 module Numbers {
 
@@ -16,16 +17,18 @@ module Numbers {
     const GREY = 0x99aaaa;
     const TOTAL_GREY = 0xc8d0d0;
 
-    // Font sizes (shares): SemiBold 104, 84, 64, 40 and 32 px at 416.
+    // Font sizes (shares): SemiBold 104, 84, 52, 40 and 32 px at 416.
     const F104 = 0.25;
     const F84 = 0.2019;
-    const F64 = 0.1538;
+    const F52 = 0.125;
     const F40 = 0.0962;
     const F32 = 0.0769;
     // Capitals and digits stand 0.71 of the size above the baseline (the mocks' CAP).
     const CAP = 0.71;
-    // The content keeps 6 % of the width clear of the edge.
+    // Pages 17 to 19 keep 6 % of the width clear of the edge; page 16's rows need only stay on the
+    // screen (owner, 2026-11-28: its 52 px leave about 4 % beside four-digit totals).
     const FIT_R = 0.44;
+    const SCREEN_R = 0.5;
 
     // ---------------------------------------------------------------- per part
 
@@ -38,14 +41,14 @@ module Numbers {
         cache = {} as Dictionary<Number, Array<Float>>;
     }
 
-    // Whether the box [x0, y0, x1, y1] keeps clear of the edge: every corner within FIT_R.
-    function fits(b as Array<Float>) as Boolean {
-        return corner(b[0], b[1]) && corner(b[2], b[1]) && corner(b[0], b[3]) && corner(b[2], b[3]);
+    // Whether the box [x0, y0, x1, y1] keeps clear of the edge: every corner within r of the centre.
+    function fits(b as Array<Float>, r as Float) as Boolean {
+        return corner(b[0], b[1], r) && corner(b[2], b[1], r) && corner(b[0], b[3], r) && corner(b[2], b[3], r);
     }
 
-    function corner(x as Float, y as Float) as Boolean {
+    function corner(x as Float, y as Float, r as Float) as Boolean {
         var dx = x - 0.5, dy = y - 0.5;
-        return dx * dx + dy * dy <= FIT_R * FIT_R;
+        return dx * dx + dy * dy <= r * r;
     }
 
     // The table's SemiBold size at or below f, i places further down (from 0); -1.0 past the smallest.
@@ -137,21 +140,23 @@ module Numbers {
             0.5 + ofW / 2 + gap + widest + unitW, top + 2 * pitch + (down > 0 ? down : 0.0)] as Array<Float>;
     }
 
-    // Page 16's size: 64, the mock's, or the largest below it in the table at which the rows fit with
-    // the widest totals, in metres or feet, whichever is wider (and the wider unit), so nothing moves
-    // through the climb; the smallest if none does.
+    // Page 16's size: 52, as the demo and the later pages' rows of figures (owner, 2026-11-28), or,
+    // only where a row would leave the screen (a five-digit total, such as a 12 km approach's path), the
+    // largest below it in the table at which the rows stay on it, with the widest totals in metres or
+    // feet, whichever is wider (and the wider unit), so nothing moves through the climb; the smallest if
+    // none does.
     function progressSize(d as Draw, st as Climb.State) as Float {
         var f = cached(0, st);
         if (f != null) { return f; }
-        var last = F64;
-        for (var i = 0; sizeBelow(F64, i) > 0; i++) {
-            last = sizeBelow(F64, i);
+        var last = F52;
+        for (var i = 0; sizeBelow(F52, i) > 0; i++) {
+            last = sizeBelow(F52, i);
             var font = d.semi(last), widest = 0.0;
             for (var k = 0; k < 6; k++) {
                 var w = d.width(font, rowIn(st, k % 3, k >= 3)[1]);
                 if (w > widest) { widest = w; }
             }
-            if (fits(progressBox(d, last, widest))) { break; }
+            if (fits(progressBox(d, last, widest), SCREEN_R)) { break; }
         }
         return keep(0, st, last);
     }
@@ -203,7 +208,7 @@ module Numbers {
         if (f == null) {
             var m = rowIn(st, kind, false), ft = rowIn(st, kind, true);
             f = F104;
-            for (var i = 1; !(fits(oneBox(oneLayout(d, m, f))) && fits(oneBox(oneLayout(d, ft, f)))) && sizeBelow(F104, i) > 0; i++) {
+            for (var i = 1; !(fits(oneBox(oneLayout(d, m, f)), FIT_R) && fits(oneBox(oneLayout(d, ft, f)), FIT_R)) && sizeBelow(F104, i) > 0; i++) {
                 f = sizeBelow(F104, i);
             }
             keep(1 + kind, st, f);

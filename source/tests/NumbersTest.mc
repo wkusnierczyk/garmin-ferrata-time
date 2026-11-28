@@ -1,3 +1,4 @@
+using Toybox.Math;
 using Toybox.System;
 
 import Toybox.Lang;
@@ -163,20 +164,32 @@ module NumbersTest {
         return true;
     }
 
-    // Whether (x, y) keeps 6 % of the width clear of the edge, to half a pixel.
-    function clear(d as Draw, x as Float, y as Float) as Boolean {
-        var dx = x - 0.5, dy = y - 0.5, r = Numbers.FIT_R + 0.5 / d.w;
-        return dx * dx + dy * dy <= r * r;
+    // Whether (x, y) is within r of the screen's centre (FIT_R: 6 % of the width clear of the edge;
+    // SCREEN_R: on the screen), to half a pixel.
+    function clear(d as Draw, x as Float, y as Float, r as Float) as Boolean {
+        var dx = x - 0.5, dy = y - 0.5, e = r + 0.5 / d.w;
+        return dx * dx + dy * dy <= e * e;
     }
 
-    function boxClear(d as Draw, b as Array<Float>) as Boolean {
-        return clear(d, b[0], b[1]) && clear(d, b[2], b[1]) && clear(d, b[0], b[3]) && clear(d, b[2], b[3]);
+    function boxClear(d as Draw, b as Array<Float>, r as Float) as Boolean {
+        return clear(d, b[0], b[1], r) && clear(d, b[2], b[1], r) && clear(d, b[0], b[3], r) && clear(d, b[2], b[3], r);
+    }
+
+    // How near the box's farthest corner comes to the edge, as a share of the width (0.06: 6 % clear).
+    function margin(b as Array<Float>) as Float {
+        var worst = 0.0;
+        for (var i = 0; i < 4; i++) {
+            var dx = b[i % 2 == 0 ? 0 : 2] - 0.5, dy = b[i < 2 ? 1 : 3] - 0.5, r = dx * dx + dy * dy;
+            if (r > worst) { worst = r; }
+        }
+        return (0.5 - Math.sqrt(worst)).toFloat();
     }
 
     // Page 16 at every place of every part, in metres and in feet: the size is the one chosen at the
-    // start (each place chooses anew, the cache dropped, so it is the layout that holds, not the cache),
-    // a size of the table no larger than 64; the rows, measured here in the font drawn from the values
-    // at that place, stay 6 % clear of the edge.
+    // start (each place chooses anew, the cache dropped, so it is the layout that holds, not the cache):
+    // 52 with totals of four digits or fewer, in either unit (owner, 2026-11-28), and a size of the
+    // table below 52 for the 12 km approach's five-digit path; the rows, measured here in the font drawn
+    // from the values at that place, stay on the screen.
     (:test)
     function pageSixteenFitsAndHoldsItsSize(logger as Logger) as Boolean {
         var d = PagesTest.draw(), ps = parts();
@@ -185,7 +198,12 @@ module NumbersTest {
             var sts = states(), where = "part " + p + ": ";
             Numbers.forget();
             var fs = Numbers.progressSize(d, shown(sts[0]));
-            Test.assertMessage(fs <= Numbers.F64 && FontSizes.SEMI.indexOf(fs) >= 0, where + "size " + fs);
+            if (p < 3) {
+                Test.assertEqualMessage(fs, Numbers.F52, where + "four-digit totals at 52");
+            } else {
+                Test.assertMessage(fs < Numbers.F52 && FontSizes.SEMI.indexOf(fs) >= 0, where + "a five-digit total steps down: " + fs);
+            }
+            var nearest = 1.0;
             for (var s = 0; s < sts.size(); s++) {
                 Numbers.forget();
                 var f = Numbers.progressSize(d, shown(sts[s]));
@@ -199,9 +217,10 @@ module NumbersTest {
                     }
                 }
                 var b = Numbers.progressBox(d, f, widest);
-                Test.assertMessage(boxClear(d, b), where + "state " + s + " at " + f + ": " + b + " not clear of the edge");
+                if (margin(b) < nearest) { nearest = margin(b); }
+                Test.assertMessage(boxClear(d, b, Numbers.SCREEN_R), where + "state " + s + " at " + f + ": " + b + " not clear of the edge");
             }
-            logger.debug(where + "size " + fs);
+            logger.debug(where + "size " + fs + ", " + nearest + " of the width clear of the edge at the nearest");
         }
         return true;
     }
@@ -238,7 +257,7 @@ module NumbersTest {
                         var ofLeft = L[0] - L[5] - d.width(d.semi(L[7]), row[1]) - d.width(d.semi(Numbers.F40), "of ");
                         var x0 = L[1] - L[4] / 2 < ofLeft ? L[1] - L[4] / 2 : ofLeft;
                         var b = [x0, L[2] - Numbers.CAP * L[6], L[0], L[3]] as Array<Float>;
-                        Test.assertMessage(boxClear(d, b), where + "state " + s + " at " + L[6] + ": " + b + " not clear of the edge");
+                        Test.assertMessage(boxClear(d, b, Numbers.FIT_R), where + "state " + s + " at " + L[6] + ": " + b + " not clear of the edge");
                     }
                     logger.debug(where + "size " + f + ", the symbol moved " + moves + " times");
                 }
