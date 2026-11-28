@@ -1,5 +1,6 @@
-<!-- The bundled routes, built by make routes from routes/<id>.src.json (tools/route.py). The app climbs
-     route, the demo climb; daubenhorn and sulzfluh are the routes it will pick from (#141). -->
+<!-- The bundled routes, built by make routes from routes/<id>.src.json (tools/route.py). Ferrata's
+     route list (#141, source/Routes.mc) has daubenhorn and sulzfluh; Ferrata Demo climbs route, the demo
+     climb, alone, as most of the unit tests do. -->
 <resources>
     <jsonData id="route" filename="demo.json"/>
     <jsonData id="daubenhorn" filename="daubenhorn.json"/>

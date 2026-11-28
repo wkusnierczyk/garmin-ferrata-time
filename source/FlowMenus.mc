@@ -24,7 +24,7 @@ class FlowItem {
     }
 }
 
-// A menu: which one (:start, :paused, :calibrate, :landmarks, :end, :head, :summary or :confirm),
+// A menu: which one (:routes, :start, :paused, :calibrate, :landmarks, :end, :head, :summary or :confirm),
 // which also says its title (FlowDraw), its rows, the one selected, and the menu Back returns to.
 class FlowMenu {
 
@@ -95,20 +95,25 @@ class FlowDetail {
 }
 
 // The climb flow (design/real-functionality.md, section 5; the flow mock the owner picked from, #51):
-// the ready screen, the menus the app draws, the altitude entry, the CALIBRATED confirmation and the
-// summary, driven by the buttons and acting on the climb through the feed. Pure but for the buzz, so
-// the tests drive it by press(); FlowDraw draws it, the view passes it the keys.
+// the route list (#141), the ready screen, the menus the app draws, the altitude entry, the CALIBRATED
+// confirmation and the summary, driven by the buttons and acting on the climb through the feed. Pure
+// but for the buzz and the last route used (Routes), so the tests drive it by press(); FlowDraw draws
+// it, the view passes it the keys.
 class FlowMenus {
 
     // How long SAVED or DISCARDED shows, in milliseconds (#121): Back closes it sooner.
     const TOAST_MS = 3000;
 
     var feed as Feed;
-    var range as [Number, Number];
+    // The routes on the watch, in the route list's order (F0, #141), and which of them the feed climbs.
+    var routes as Array<RouteEntry>;
+    var current as Number = 0;
+    var range as [Number, Number] = [0, 0];
     // What is open: a menu, the altitude entry or a point's details over its menu, the calibration's
     // confirmation (the altitude calibrated to, in metres, and the point it was at, -1 for an altitude
-    // entered), a toast over the ready screen. Back on the ready screen closes the app at once, to the
-    // watch's activities (quit, which the view acts on; owner, 2026-11-26: no APP CLOSED).
+    // entered), a toast over the ready screen. Back on the route list, or on the ready screen with one
+    // route on the watch, closes the app at once, to the watch's activities (quit, which the view acts
+    // on; owner, 2026-11-26: no APP CLOSED).
     var menu as FlowMenu? = null;
     var entry as FlowEntry? = null;
     var detail as FlowDetail? = null;
@@ -130,22 +135,65 @@ class FlowMenus {
     // The ready screen's figures, worked out once (#121): the ferrata's path, its length and height
     // together as page 16 counts it, and its ascent, in metres; its guidebook time as shown.
     var path as Float = 0.0;
-    var ascent as Number;
-    var guide as String;
-    // The large altitude's size (FlowDraw.bigSize), worked out once; -1 until then.
+    var ascent as Number = 0;
+    var guide as String = "";
+    // The large altitude's size (FlowDraw.bigSize), worked out once a route; -1 until then.
     var bigK as Number = -1;
 
+    // The feed's route alone, until offer() gives the routes on the watch.
     function initialize(f as Feed) {
         feed = f;
-        var r = f.route;
+        routes = [Routes.entry(f.route)] as Array<RouteEntry>;
+        figure(f.route);
+    }
+
+    // The route's range of altitudes and the ready screen's figures.
+    function figure(r as Route) as Void {
         range = r.altRange();
+        path = 0.0;
         for (var i = 0; i < r.sections.size(); i++) {
             var len = r.sections[i]["len"] as Number, up = r.sections[i]["up"] as Number;
             path += Math.sqrt(len * len + up * up).toFloat();
         }
         ascent = r.ascent();
         guide = Flow.hours(r.guideMinutes());
+        bigK = -1;
     }
+
+    // The routes on the watch, the feed on the last one used (last), as the app opens (#141, variant A
+    // of the flow mock): with more than one, on the route list (F0), that one selected; with one, on
+    // the ready screen (F1).
+    function offer(list as Array<RouteEntry>, last as Number) as Void {
+        routes = list;
+        current = last;
+        if (list.size() > 1) { openRoutes(); }
+    }
+
+    function openRoutes() as Void {
+        var m = routesMenu();
+        m.sel = current;
+        open(m, null);
+    }
+
+    // Start on the route list: the ready screen for the selected route, now the last one used, read
+    // only now (Routes.open); the route climbed before is let go. One that cannot be read (none: each
+    // was read when the list was made) leaves the list open.
+    function pickRoute(i as Number) as Void {
+        var e = routes[i];
+        if (!e.id.equals(feed.route.id)) {
+            var r = Routes.open(e);
+            if (r == null) { return; }
+            feed.use(r);
+            figure(r);
+            newClimb();
+        }
+        menu = null;
+        current = i;
+        remember(e.id);
+    }
+
+    // Kept across launches (Routes); a test's flow keeps it itself.
+    function remember(id as String) as Void { Routes.remember(id); }
 
     // Whether the watch shows feet: the system's setting, never the app's (#144). A test's flow says.
     function feet() as Boolean { return Widgets.feet(); }
@@ -243,8 +291,11 @@ class FlowMenus {
         var p = phase();
         if (p == Tracker.IDLE) {
             if (key == :start) { open(startMenu(), null); }
-            // Back leaves the app at once (#121). Up and Down do nothing yet.
-            if (key == :back) { quit = true; }
+            // Back returns to the route list (#141), or with one route leaves the app at once (#121). Up
+            // and Down do nothing yet.
+            if (key == :back) {
+                if (routes.size() > 1) { openRoutes(); } else { quit = true; }
+            }
             return true;
         }
         if (p == Tracker.ENDED) {
@@ -271,11 +322,13 @@ class FlowMenus {
         } else if (key == :start) {
             select(m, m.items[m.sel]);
         } else if (key == :back) {
-            // A submenu returns to its menu; the summary stays (Save, Resume or Discard); the Start menu
-            // returns to the ready screen, the head's offer leaves the approach going, the pause menu
-            // leaves the climb paused.
+            // A submenu returns to its menu; the summary stays (Save, Resume or Discard); the route list
+            // closes the app at once (#141); the Start menu returns to the ready screen, the head's
+            // offer leaves the approach going, the pause menu leaves the climb paused.
             if (m.parent != null) {
                 menu = m.parent;
+            } else if (m.id == :routes) {
+                quit = true;
             } else if (m.id != :summary) {
                 menu = null;
             }
@@ -284,7 +337,9 @@ class FlowMenus {
 
     function select(m as FlowMenu, it as FlowItem) as Void {
         var id = it.id;
-        if (id == :calibrate) {
+        if (id == :route) {
+            pickRoute(m.sel);
+        } else if (id == :calibrate) {
             open(calibrateMenu(), m);
         } else if (id == :end) {
             open(endMenu(), m);
@@ -464,6 +519,13 @@ class FlowMenus {
     }
 
     // ---------------------------------------------------------------- the menus
+
+    // F0 (#141): a row per route, its name alone, white; a row's place is its route's.
+    function routesMenu() as FlowMenu {
+        var rows = [] as Array<FlowItem>;
+        for (var i = 0; i < routes.size(); i++) { rows.add(new FlowItem(:route, routes[i].name, Flow.WHITE)); }
+        return new FlowMenu(:routes, rows);
+    }
 
     // Where the climb starts (#121): HEAD (green), the approach's start by its type (TOP STATION, CAR
     // PARK) when the route knows its altitude, or ALTITUDE.

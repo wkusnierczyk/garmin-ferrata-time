@@ -1030,7 +1030,7 @@ module FlowTest {
     (:test)
     function selectionResetsWithPart(logger as Logger) as Boolean {
         var r = RouteTest.demo();
-        var v = new View(r);
+        var v = new View([Routes.entry(r)] as Array<RouteEntry>, 0, r);
         Climb.use(r, :ferrata);
         v.followPart();
         v.sel = 5;
@@ -1057,7 +1057,7 @@ module FlowTest {
     // of #124).
     (:test)
     function approachKeepsPage(logger as Logger) as Boolean {
-        var v = new View(RouteTest.demo()), del = new Delegate(v);
+        var r = RouteTest.demo(), v = new View([Routes.entry(r)] as Array<RouteEntry>, 0, r), del = new Delegate(v);
         var fl = v.flow as FlowMenus;
         fl.feed.start(:approachPoint);
         Test.assertMessage(v.flowOnScreen(), "the approach's screen");
