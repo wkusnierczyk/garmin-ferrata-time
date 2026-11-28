@@ -371,6 +371,7 @@ class FlowMenus {
             menu = null;
             feed.unend();
         } else if (id == :discard) {
+            // From the summary or the pause menu (#158); No or Back returns to it.
             open(confirmMenu(), m);
         } else if (id == :yes) {
             menu = null;
@@ -538,17 +539,24 @@ class FlowMenus {
     }
 
     // On the approach: go on, onto the ferrata, or end here. On the ferrata: go on, calibrate, or end.
+    // Either way Discard last, red as End (#158): it asks DISCARD? at once, as the summary's does.
     function pauseMenu() as FlowMenu {
         if (!Climb.FERRATA) {
             return new FlowMenu(:paused, [
                 new FlowItem(:continue, "Continue approach", Flow.WHITE),
                 startAscentItem(),
-                new FlowItem(:endHere, "End here", Widgets.RED)]);
+                new FlowItem(:endHere, "End here", Widgets.RED),
+                discardItem()]);
         }
         return new FlowMenu(:paused, [
             new FlowItem(:continue, "Continue", Flow.WHITE),
             new FlowItem(:calibrate, "Calibrate", Flow.SYNC),
-            new FlowItem(:end, "End", Widgets.RED)]);
+            new FlowItem(:end, "End", Widgets.RED),
+            discardItem()]);
+    }
+
+    function discardItem() as FlowItem {
+        return new FlowItem(:discard, "Discard", Widgets.RED);
     }
 
     function startAscentItem() as FlowItem {
@@ -602,7 +610,7 @@ class FlowMenus {
         return new FlowMenu(:summary, [
             new FlowItem(:save, "Save", Widgets.GREEN),
             new FlowItem(:resume, "Resume", Flow.WHITE),
-            new FlowItem(:discard, "Discard", Widgets.RED)]);
+            discardItem()]);
     }
 
     // DISCARD is the one destructive row: its pill filled red.
