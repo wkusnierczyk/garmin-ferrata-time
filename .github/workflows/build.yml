@@ -1,18 +1,20 @@
 # Build verification (#10), cut down from Climber Time's build.yml
 # (wkusnierczyk/garmin-climber-time#5), itself from Matrix Time's. Every push to main or a dev-*
-# release branch, and every pull request from this repository (not a fork's, below), compiles the app for the epix Pro (Gen 2) 47 mm. Every
-# target device (#11), the store bundle (#12) and the checks that need no
-# SDK (#14) come with the design and functionality. The build job also compiles the replay variant
-# (#57) and the demo app, Ferrata Demo (#140). Two jobs beside the build: the unit tests, in all
-# three builds, in the same container under a virtual display (#13, #46), and the tools' tests with
-# the route files checked against their sources and the two manifests against each other, on the
-# runner (#47, #57, #140).
+# release branch, and every pull request from this repository (not a fork's, below), compiles both
+# apps, Ferrata and Ferrata Demo (#140), for one product per device family, the set derived at run
+# time from manifest.xml and the image's device definitions (tools/ci-devices.py, #11). The build job
+# also compiles the replay variant (#57). The store bundle (#12) and the checks that need no SDK (#14)
+# come later. Beside the build: the unit tests, in all three builds, in the same container under a
+# virtual display (#13, #46); the tools' tests with the route files checked against their sources and
+# the two manifests against each other (#47, #57, #140); and the launcher icons checked (#133), these
+# two on the runner.
 #
 # A container, because the device definitions monkeyc compiles against are not in the public SDK
 # download: the SDK manager pulls them behind a Garmin sign-in, so they arrive in an image. The image
 # is our own, ghcr.io/wkusnierczyk/connectiq-tester (wkusnierczyk/connectiq-tester, after
 # matco/connectiq-tester; wkusnierczyk/garmin-watch-faces#37). Tag 9.3.0-2026-11-16: SDK 9.3.0,
-# 94 device definitions.
+# 94 device definitions. A product added to manifest.xml that the image lacks fails the build job
+# (tools/ci-devices.py names it) and needs a rebuilt resources image.
 #
 # It is a PRIVATE package. The job logs in to ghcr.io with the run's GITHUB_TOKEN, which needs
 # packages: read (below), and the package's settings grant this repository read access ("Manage
@@ -59,6 +61,41 @@ jobs:
           test -z "$(git status --porcelain -- resources/routes)"
           make check-manifests
 
+  # The launcher icons (#133): both apps' icons and their mappings in monkey.jungle and demo.jungle,
+  # README.md's table, and every icon's pixels against tools/launcher_icon.py's drawing. On the runner,
+  # as Climber Time runs its own: the tester image has no Python packages. garmin-graphics-generator is
+  # not on PyPI, so it is installed from GitHub; only its icons command runs, which imports Pillow and
+  # nothing else, so it goes in without its dependencies (rembg and onnxruntime are hundreds of
+  # megabytes the check never loads). Pinned to a commit SHA, with the release trailing, for the
+  # reason the actions are; Pillow to the version the icons were drawn with. Keep them in step with
+  # GRAPHICS_TOOL_VERSION and GRAPHICS_PILLOW_VERSION in the Makefile. rsvg-convert (librsvg2-bin)
+  # draws the SVG the pixels are checked against. A venv, because the runner's Python is externally
+  # managed; make runs the tool through it as GRAPHICS_PYTHON. No device definitions here, so the
+  # mapping is checked against the manifests, not the definitions' icon sizes.
+  icons:
+    name: launcher icons
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          lfs: true
+
+      - name: Install rsvg-convert and garmin-graphics-generator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends librsvg2-bin
+          # Printed because the pixels are compared byte for byte with what this rsvg-convert draws,
+          # and librsvg2-bin is ubuntu-latest's, not pinned: a red here with no change in the
+          # repository may be librsvg drift, not a wrong icon. Compare this version with a green run's.
+          rsvg-convert --version
+          python3 -m venv "$RUNNER_TEMP/tools"
+          "$RUNNER_TEMP/tools/bin/pip" install --quiet --no-deps \
+            'garmin-graphics-generator @ git+https://github.com/wkusnierczyk/garmin-graphics-generator@9d37f5487d3684452cc468a8944bc83132277040'  # v0.8.1
+          "$RUNNER_TEMP/tools/bin/pip" install --quiet Pillow==11.3.0
+
+      - name: Check the launcher icons
+        run: make check-icons GRAPHICS_PYTHON="$RUNNER_TEMP/tools/bin/python"
+
   build:
     name: build
     runs-on: ubuntu-latest
@@ -71,11 +108,13 @@ jobs:
     steps:
       # The image is ubuntu:jammy plus the SDK. make, because make is how the build is spelled
       # everywhere else (calling monkeyc here would be a second copy of its flags); git, so checkout
-      # clones rather than downloads a tarball; git-lfs, without which lfs: true fails outright.
-      - name: Install make, git and git-lfs
+      # clones rather than downloads a tarball; git-lfs, without which lfs: true fails outright;
+      # python3 for tools/ci-devices.py, named though the image has it, since it arrives only as a
+      # dependency of the simulator's GTK stack and a slimmer image would drop it.
+      - name: Install make, git, git-lfs and python3
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends make git git-lfs
+          apt-get install -y --no-install-recommends make git git-lfs python3
 
       # lfs: true, because the launcher icon is an LFS object: without it a pointer file sits where
       # the .png should be, and monkeyc compiles it without a word. Pinned to a commit SHA with the
@@ -91,27 +130,53 @@ jobs:
             -in /tmp/ci_key.pem -out /tmp/ci_key -nocrypt
 
       # HOME, because the image keeps the device definitions in /root/.Garmin/ConnectIQ/Devices and a
-      # container job runs with HOME=/github/home; monkeyc finds them by expanding ~. DEVICE is named
-      # rather than left to the Makefile's default, which is a developer's convenience.
-      - name: Build for the epix Pro (Gen 2) 47 mm
+      # container job runs with HOME=/github/home; monkeyc and tools/ci-devices.py find them by
+      # expanding ~.
+      #
+      # Both apps, one product per device family (#11): resource qualifiers resolve per family, so
+      # that compiles every resolution either app ships. The product is the family's lowest Connect IQ
+      # version, so an API too new for the oldest watch fails here; make export (#12, to come) builds
+      # every product. Ferrata Demo (#140) is the same source under its own manifest (demo.jungle,
+      # manifest-demo.xml), with the same products (make check-manifests) and its own icons, published
+      # on its own, so it is built for each family too.
+      #
+      # The set is resolved into a variable first, under bash's -e, so a failure to resolve it stops
+      # the step; read straight into the loop from a process substitution, its exit status would be
+      # lost and the step would build nothing and pass (playbook, reference/ci.md). The empty-set guard
+      # is the other half of that rule. Past that, every build runs even after one fails, so a run
+      # reports all the damage: a make in an if condition is exempt from -e.
+      - name: Build both apps for one product per device family
+        shell: bash
         env:
           HOME: /root
         run: |
-          make build DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
-          ls -l FerrataTime.prg
+          devices=$(python3 tools/ci-devices.py)
+          test -n "$devices" || { echo "::error::no device families resolved"; exit 1; }
+          echo "Building $(echo "$devices" | wc -l) families:"
+          echo "$devices"
 
-      # Ferrata Demo (#140): the same source under its own manifest (demo.jungle, manifest-demo.xml),
-      # the demo climb in the sensors' place. Its own app, published on its own, so it compiles here too.
-      - name: Build the demo app
-        env:
-          HOME: /root
-        run: |
-          make build DEMO=1 DEVICE=epix2pro47mm SDK_BIN=/connectiq/bin DEV_KEY=/tmp/ci_key
-          ls -l FerrataTime-demo.prg
+          mkdir -p bin
+          status=0
+          while read -r family device; do
+            for demo in "" 1; do
+              out="bin/$device${demo:+-demo}.prg"
+              echo "::group::$family -- $device${demo:+ (Ferrata Demo)}"
+              if make build DEMO=$demo DEVICE="$device" SDK_BIN=/connectiq/bin \
+                            DEV_KEY=/tmp/ci_key OUTPUT="$out"; then
+                ls -l "$out"
+              else
+                echo "::error::build failed for $device ($family)${demo:+, Ferrata Demo}"
+                status=1
+              fi
+              echo "::endgroup::"
+            done
+          done <<< "$devices"
+          exit $status
 
-      # The replay build (#57) compiles too, so the code only it holds does not rot. Its recording is
-      # never in the repository (a climber's own track), so a two-entry stand-in is written here, in
-      # the shape tools/fit2replay.py writes.
+      # The replay build (#57) compiles too, so the code only it holds does not rot: for the epix Pro
+      # (Gen 2) 47 mm only, as it plays in the simulator and is never shipped. Its recording is never
+      # in the repository (a climber's own track), so a two-entry stand-in is written here, in the
+      # shape tools/fit2replay.py writes.
       - name: Build the replay variant
         env:
           HOME: /root
